@@ -1,0 +1,26 @@
+/* 관리자 운영 도구(사용자 상세의 지급·제한 패널, 방 편집, 로비 채팅 관리). 기본 관리자 스타일은 styles.css. */
+.admin-tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.admin-tool-card { display: grid; align-content: start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--panel); }
+.admin-tool-card h3 { margin: 0; font-size: 13px; }
+.admin-tool-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.admin-tool-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.admin-select, .admin-text-input { min-width: 0; height: 30px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: rgba(0,0,0,.22); color: var(--text); font: 12px var(--ui-font); }
+.admin-select { max-width: 100%; }
+.admin-text-input { flex: 1 1 120px; }
+.admin-select:focus-visible, .admin-text-input:focus-visible { outline: 2px solid var(--muted); outline-offset: 1px; }
+.admin-item-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; max-height: 200px; overflow-y: auto; }
+.admin-item-list li { display: flex; gap: 8px; align-items: center; justify-content: space-between; min-height: 30px; padding: 2px 8px; border-radius: var(--radius-xs); background: rgba(255,255,255,.04); font-size: 12px; }
+.admin-item-list small { color: var(--muted); }
+.admin-room-edit { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; align-items: end; padding: 10px 0 2px; }
+.admin-room-edit label { display: grid; gap: 4px; font-size: 11px; color: var(--muted); }
+.admin-room-edit-actions { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-lobby-chat-list { display: grid; gap: 2px; }
+.admin-lobby-chat-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.admin-lobby-chat-row time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.admin-lobby-chat-row b { margin-right: 6px; }
+.admin-lobby-chat-row span { overflow-wrap: anywhere; }
+.admin-lobby-chat-actions { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+@media (max-width: 640px) {
+  .admin-lobby-chat-row { grid-template-columns: minmax(0, 1fr); }
+  .admin-lobby-chat-actions { justify-content: flex-start; }
+}

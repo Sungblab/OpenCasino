@@ -1,0 +1,77 @@
+/* =============================================================================
+   DECK SHOE — the dealing shoe the shoe games' cards launch from.
+
+   Additive, same contract as the other styles/ files: layers on the shared
+   .ot-felt primitives without touching them. The element is decorative; its
+   real job is being the [data-deck-shoe] anchor lib/shoeFlight.ts measures.
+   ============================================================================= */
+.deck-shoe {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  width: clamp(52px, 4.8vw, 68px);
+  aspect-ratio: 0.74;
+  overflow: visible;
+  rotate: 0deg;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.48));
+}
+
+/* One quiet contact shadow is enough to seat it on the felt. */
+.deck-shoe::before {
+  content: "";
+  position: absolute;
+  right: 5%;
+  bottom: -3%;
+  left: 5%;
+  height: 15%;
+  z-index: -1;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.52);
+  filter: blur(4px);
+}
+
+/* Five tightly stacked backs make the shoe read as a dense deck, not three loose icons. */
+.deck-shoe-card {
+  position: absolute;
+  left: 10%;
+  z-index: 1;
+  width: 80%;
+  border: 1px solid rgba(239, 234, 218, 0.68);
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.38);
+}
+.deck-shoe-card.lower { top: 0%; translate: 0 -2px; filter: brightness(0.42); }
+.deck-shoe-card.lower-mid { top: 2.5%; translate: 0 -1px; filter: brightness(0.52); }
+.deck-shoe-card.mid { top: 5%; filter: brightness(0.64); }
+.deck-shoe-card.upper-mid { top: 7.5%; filter: brightness(0.78); }
+.deck-shoe-card.top { top: 10%; filter: brightness(0.96); }
+
+/* Blackjack: the 좌석/관전 meta pills own the very corner (top 12px), so the
+   shoe stands just under them beside the dealer row — the dealer's off hand,
+   where a live shoe actually sits. */
+.ot-felt.bj .deck-shoe { top: 44px; right: 18px; }
+
+@media (max-width: 900px) {
+  /* Baccarat and Dragon Tiger need every pixel around the two hands. Keep a 1px,
+     invisible anchor at the dealer's centre so shoe-flight geometry still works,
+     while removing the decorative stack that overlapped Banker / Tiger. */
+  .ot-felt.baccarat .deck-shoe {
+    top: 8px;
+    right: auto;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    aspect-ratio: auto;
+    transform: translateX(-50%);
+    opacity: 0;
+    filter: none;
+  }
+  .ot-felt.baccarat .deck-shoe::before,
+  .ot-felt.baccarat .deck-shoe-card { display: none; }
+
+  .deck-shoe { top: 10px; right: 10px; width: 42px; }
+  .ot-felt.bj .deck-shoe { top: 40px; right: 10px; }
+}

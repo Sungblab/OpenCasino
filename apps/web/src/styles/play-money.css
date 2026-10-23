@@ -1,0 +1,20 @@
+/* ── 하루 무료 코인(플레이머니 운영) ─────────────────────────────────────────────────────
+   프로필 패널·메타 카드와 같은 재료(--panel 바탕, 금색 테두리, 평평한 2D)로 만든다. */
+.daily-coins {
+  display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 12px 14px;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel);
+}
+.daily-coins > svg { flex: none; color: var(--gold); }
+.daily-coins.is-ready { border-color: var(--positive); }
+.daily-coins.is-ready > svg { color: var(--positive); }
+.daily-coins-text { display: grid; gap: 2px; min-width: 0; margin-right: auto; }
+.daily-coins-text strong { color: var(--text); font: 700 14.5px var(--ui-font); }
+.daily-coins-text small { color: var(--muted); font: 500 12px/1.45 var(--ui-font); }
+.daily-coins-claim { flex: none; min-width: 84px; min-height: 40px; margin: 0; padding: 0 16px; }
+.profile-panel .daily-coins { margin: 8px 0 0; }
+.wallet-play-money-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; }
+
+@media (max-width: 720px) {
+  .daily-coins { flex-wrap: wrap; }
+  .daily-coins-claim { width: 100%; }
+}

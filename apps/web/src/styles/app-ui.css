@@ -1,0 +1,294 @@
+/*
+ * 앱 공용 UI: 토스트, 에러 패널, 404, 스켈레톤, 빈 상태, 건너뛰기 링크, 폰 아래 탭 줄, 포커스 링.
+ *
+ * ── 캐스케이드 순서(@layer) ─────────────────────────────────────────────
+ * 이 파일이 가장 먼저 들어오는 스타일시트라(main.tsx 첫 import) 레이어 순서를 여기서 한 번만 적는다.
+ *   base        토큰(:root)·요소 기본값·스크롤바·기본 포커스 링 (styles.css 와 이 파일)
+ *   components  다른 시트와 겹치지 않는 독립 부품: 토스트·에러·404·스켈레톤·빈 상태·아래 탭 줄
+ *   pages, tables, overrides  아직 비어 있다 — 아래 이유로.
+ * 레이어에 넣지 않은(unlayered) 규칙은 어느 레이어보다도 이긴다. styles.css 의 나머지와 PvP·게임
+ * 시트(table-*.css, game-guide, deck-shoe, mobile-perf, 방별 캔버스 시트)는 서로 특정도로 이기고
+ * 지는 자리가 많아서, 한쪽만 레이어에 넣으면 특정도와 상관없이 뒤집힌다. 그래서 그 규칙들은
+ * 지금처럼 unlayered 로 두고 import 순서(main.tsx 에 적어 둠)로 정한다.
+ *
+ * 이 파일에서도 styles.css 를 특정도로 이겨야 하는 패치(포커스 링을 지운 자리, 드롭다운의 키보드
+ * 항목, 에러 패널의 버튼, 아래 탭 줄만큼의 여백)는 레이어 밖에 둔다 — 레이어에 넣으면 unlayered 인
+ * styles.css 에 진다. !important 는 쓰지 않는다.
+ */
+@layer base, components, pages, tables, overrides;
+
+/* ── 레이어 밖: styles.css 를 특정도로 이겨야 하는 것들 ─────────────────── */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+/* ── 포커스 링 ───────────────────────────────────────────────────────────
+   styles.css 는 button/input 에만 :focus-visible 링을 주고(링크·select 등은 아래 @layer base 의
+   :where 규칙), 채팅 입력·관리자 검색은 아예 outline 을 지웠다. 키보드로 Tab 을 치면 포커스가 어디
+   있는지 보이지 않던 곳들이라, 여기서 특정도로 되살린다. */
+/* 방 타일·게임 카드는 이름 버튼의 ::after 가 카드 전체를 덮는다. 링은 카드 테두리(:focus-within)에
+   이미 있지만 마우스 클릭에도 켜져서 구분이 안 됐다 — 키보드일 때만 이름 둘레에 한 번 더 그린다. */
+.room-tile .room-tile-open:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.room-tile:has(.room-tile-open:focus-visible) {
+  box-shadow: 0 0 0 3px rgba(255, 210, 74, .35);
+}
+.chat-composer input:focus-visible, .room-chat-composer input:focus-visible, .admin-search:focus-visible, .admin-balance-input:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 0;
+}
+.dropdown .dropdown-trigger:focus-visible,
+.profile-menu .profile-trigger:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 2px;
+}
+.profile-dropdown a:focus-visible,
+.profile-dropdown button:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: -2px;
+  background: rgba(240, 180, 28, .248);
+  color: var(--gold-light);
+}
+/* <main tabindex=-1> 은 건너뛰기 링크의 도착점일 뿐이다. 마우스로 본문을 누를 때마다 링이 생기면 안 된다. */
+.app-shell:focus { outline: none; }
+.app-shell:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+
+/* ── 드롭다운: 키보드로 가리키는 항목 ─────────────────────────────────── */
+.dropdown-menu li.is-active { background: rgba(240, 180, 28, .16); color: var(--gold-light); }
+.dropdown-menu li.is-active.selected { background: rgba(240, 180, 28, .34); }
+
+/* ── 잔액: 아직 모를 때 ─────────────────────────────────────────────────── */
+.balance-display .balance-pending { color: var(--muted); }
+
+/* 에러 패널의 버튼: styles.css 의 .gold-button 여백을 덮는다. */
+.app-error-actions .gold-button { min-width: 120px; margin: 0; padding: 0 18px; }
+
+@media (max-width: 720px) {
+  /* 아래 탭 줄이 마지막 줄(푸터·폼 버튼)을 덮지 않게 그 높이만큼 비워 둔다. */
+  .app-shell.has-mobile-nav { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  /* 프로필 메뉴(내 프로필·게임 기록·지갑·문의)는 아래 탭 줄과 겹친다. 로그아웃은 프로필 화면에 있다. */
+  .topbar.has-mobile-nav .account .profile-menu { display: none; }
+}
+
+@layer base {
+  /* 기본 포커스 링. button/input 은 styles.css 가 따로 준다. */
+  :where(a[href], select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* ── 건너뛰기 링크 ─────────────────────────────────────────────────────── */
+  .skip-link {
+    position: fixed; z-index: 100; top: 8px; left: 8px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--gold-btn); color: var(--on-gold);
+    font: 700 13px var(--ui-font); text-decoration: none;
+    transform: translateY(-160%);
+    transition: transform .15s ease;
+  }
+  .skip-link:focus, .skip-link:focus-visible { transform: none; outline: 2px solid var(--gold-light); outline-offset: 2px; }
+
+  /* ── 토스트 ──────────────────────────────────────────────────────────────
+     자리는 둘: 화면 위(헤더 바로 아래 가운데)와 테이블 채팅 버튼 위(오른쪽 아래). */
+  .toast-region {
+    position: fixed; z-index: 70;
+    display: grid; gap: 8px;
+    pointer-events: none;
+  }
+  .toast-region:empty { display: none; }
+  .toast-region.is-top {
+    top: 78px; left: 50%;
+    width: min(420px, calc(100vw - 32px));
+    transform: translateX(-50%);
+  }
+  body.game-screen-active .toast-region.is-top { top: 60px; }
+  .toast-region.is-corner {
+    right: 22px; bottom: 84px;
+    width: min(300px, calc(100vw - 44px));
+    justify-items: end;
+  }
+  .toast {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; min-width: 0;
+    padding: 11px 10px 11px 14px;
+    border: 1px solid var(--line-strong);
+    border-left: 3px solid var(--muted);
+    border-radius: var(--radius-sm);
+    background: rgba(30, 24, 17, .97);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .45);
+    color: var(--text);
+    font-family: var(--ui-font);
+    pointer-events: auto;
+    animation: toast-in .18s ease-out;
+  }
+  .toast.is-success { border-left-color: #4fc47f; }
+  .toast.is-error { border-left-color: var(--negative, #e0584f); background: rgba(40, 18, 16, .97); }
+  .toast.is-info { border-left-color: var(--gold); }
+  .toast.is-announcement { border-color: rgba(240, 180, 28, .65); border-left-color: var(--gold); background: rgba(36, 26, 12, .97); }
+  .toast-badge {
+    flex: 0 0 auto; padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(240, 180, 28, .18); color: var(--gold-light);
+    font: 700 12px var(--ui-font);
+  }
+  .toast-body { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
+  .toast-title { color: var(--text); font: 700 12.5px var(--ui-font); }
+  .toast-message { overflow-wrap: anywhere; color: #f3dfae; font: 500 12.5px/1.45 var(--ui-font); }
+  .toast.is-error .toast-message { color: #f6d2cd; }
+  .toast-action {
+    flex: 0 0 auto; padding: 6px 8px;
+    border: 1px solid var(--gold-line); border-radius: var(--radius-xs, 6px);
+    background: transparent; color: var(--gold-light);
+    font: 700 12px var(--ui-font); text-decoration: none; white-space: nowrap; cursor: pointer;
+  }
+  .toast-close {
+    display: grid; flex: 0 0 auto; place-items: center;
+    width: 30px; height: 30px; padding: 0;
+    border: 0; border-radius: 50%;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .toast-close:hover { background: rgba(255, 255, 255, .06); color: var(--text); }
+  /* 채팅 토스트: 예전 모양(작고 조용하게, 작성자 이름만 금색) 그대로. */
+  .toast.is-chat {
+    width: auto; max-width: 100%;
+    padding: 7px 6px 7px 11px;
+    border: 1px solid var(--gold-line-soft);
+    background: rgba(10, 8, 5, .92);
+    box-shadow: none;
+  }
+  .toast.is-chat .toast-title { color: var(--gold); font-size: 12px; }
+  .toast.is-chat.is-mine .toast-title { color: var(--gold-light); }
+  .toast.is-chat .toast-message { color: var(--text); }
+  .toast.is-chat .toast-close { width: 24px; height: 24px; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+  @media (max-width: 620px) {
+    .toast-region.is-top { top: 66px; width: calc(100vw - 20px); }
+    .toast-region.is-corner { right: 10px; bottom: 68px; width: calc(100vw - 20px); }
+  }
+
+  /* ── 에러 패널 ───────────────────────────────────────────────────────── */
+  .app-error {
+    display: grid; min-height: 100vh; place-items: center;
+    padding: 20px;
+    background: var(--bg);
+  }
+  .app-error.is-inline { min-height: 50vh; background: transparent; }
+  .app-error-card {
+    display: grid; gap: 14px;
+    width: min(420px, 100%);
+    padding: 30px 26px;
+    border: 1px solid var(--gold-line);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    text-align: center;
+    font-family: var(--ui-font);
+  }
+  .app-error-card h1 { margin: 0; color: var(--gold-light); font-size: 20px; }
+  .app-error-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .app-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 4px; }
+  .app-error-home {
+    display: inline-grid; min-width: 120px; min-height: 46px; place-items: center;
+    padding: 0 18px;
+    border: 1px solid var(--gold-line); border-radius: 6px;
+    color: var(--gold-light); font: 600 14px var(--ui-font); text-decoration: none;
+  }
+  .app-error-home:hover { background: rgba(240, 180, 28, .1); }
+
+  /* ── lazy 화면을 기다리는 자리 ─────────────────────────────────────────── */
+  .route-loading { display: inline-flex; align-items: center; gap: 10px; margin: 0; color: var(--muted); font: 500 13px var(--ui-font); }
+  .route-loading-dot {
+    width: 14px; height: 14px;
+    border: 2px solid var(--gold-line); border-top-color: var(--gold-light); border-radius: 50%;
+    animation: route-spin .8s linear infinite;
+  }
+  .route-loading-inline { display: grid; min-height: 30vh; place-items: center; }
+  @keyframes route-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .route-loading-dot { animation: none; } }
+
+  /* ── 404 ───────────────────────────────────────────────────────────────── */
+  .not-found-card { text-align: center; }
+  .not-found-code { margin: 0 0 4px; color: var(--gold); font: 700 44px/1 var(--ui-font); letter-spacing: .08em; }
+  .not-found-card h1 { margin: 0 0 10px; color: var(--text); font: 600 19px var(--ui-font); }
+  .not-found-path { padding: 1px 6px; border-radius: 4px; background: rgba(255, 255, 255, .06); color: var(--gold-pale); word-break: break-all; }
+  .not-found-home { display: grid; place-items: center; margin-top: 18px; text-decoration: none; }
+
+  /* ── 스켈레톤 ─────────────────────────────────────────────────────────── */
+  .skeleton {
+    display: block;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .11), rgba(255, 255, 255, .05));
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+  .skeleton-line { height: 12px; margin: 8px 0; }
+  .skeleton-line.is-short { width: 40%; height: 10px; }
+  .skeleton-line.is-strong { width: 70%; height: 20px; }
+  .skeleton-line.is-heading { width: 30%; height: 16px; margin-bottom: 16px; }
+  .skeleton-panel { margin-top: 16px; }
+  @keyframes skeleton-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+  /* ── 빈 상태 ─────────────────────────────────────────────────────────── */
+  .empty-state {
+    display: grid; justify-items: center; gap: 8px;
+    margin: 12px 0; padding: 26px 18px;
+    border: 1px dashed var(--line-strong); border-radius: var(--radius-md, 12px);
+    text-align: center; font-family: var(--ui-font);
+  }
+  .empty-state-title { color: var(--text); font-size: 14px; font-weight: 600; }
+  .empty-state-text { max-width: 420px; margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+  .empty-state-action { margin-top: 6px; }
+  .empty-state.is-error { border-color: rgba(224, 88, 79, .45); }
+  .app-secondary-button {
+    display: inline-grid; min-height: 38px; place-items: center;
+    padding: 0 16px;
+    border: 1px solid var(--gold-line); border-radius: var(--radius-sm);
+    background: transparent; color: var(--gold-light);
+    font: 600 13px var(--ui-font); text-decoration: none; cursor: pointer;
+  }
+  .app-secondary-button:hover { background: rgba(240, 180, 28, .1); }
+
+  /* ── 폰 아래 탭 줄 ────────────────────────────────────────────────────── */
+  .mobile-nav { display: none; }
+  @media (max-width: 720px) {
+    .mobile-nav {
+      position: fixed; z-index: 25; right: 0; bottom: 0; left: 0;
+      display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+      padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--gold-deep);
+      background: var(--bar-top);
+    }
+    .mobile-nav-link {
+      display: grid; justify-items: center; gap: 2px;
+      min-height: 50px; padding: 6px 2px;
+      border-radius: var(--radius-sm);
+      color: var(--muted); font: 600 12px var(--ui-font); text-decoration: none;
+    }
+    .mobile-nav-link.active { color: var(--gold-light); background: rgba(240, 180, 28, .1); }
+    .mobile-nav-link:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+    .mobile-nav-link { position: relative; }
+    .mobile-nav-badge { position: absolute; top: 3px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--negative); color: #fff; font: 700 12px/18px var(--ui-font); text-align: center; }
+  }
+
+  /* 친구·메시지 새 소식: 프로필 메뉴 버튼 모서리와 메뉴 항목 끝. */
+  .profile-trigger-badge { z-index: 1; pointer-events: none; }
+  .profile-dropdown-count { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--negative); color: #fff; font: 700 12px/20px var(--ui-font); text-align: center; }
+
+  /* ── 터치 기기: 누르는 곳은 44×44 이상 ─────────────────────────────────── */
+  @media (pointer: coarse) {
+    .toast-close, .toast.is-chat .toast-close { width: 44px; height: 44px; }
+    .toast-action { display: inline-flex; align-items: center; min-height: 44px; }
+    .app-secondary-button { min-height: 44px; }
+  }
+}

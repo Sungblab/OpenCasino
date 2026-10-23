@@ -1,0 +1,32 @@
+{
+  "name": "opencasino",
+  "private": true,
+  "version": "2.0.0-dev",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c yellow,green \"npm run dev -w @opencasino/api\" \"npm run dev -w @opencasino/web\"",
+    "dev:api": "npm run dev -w @opencasino/api",
+    "dev:web": "npm run dev -w @opencasino/web",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @opencasino/api",
+    "db:migrate:status": "npm run db:migrate:status -w @opencasino/api",
+    "db:seed": "npm run db:seed -w @opencasino/api",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:integration": "npm run test:integration -w @opencasino/api",
+    "test:load": "node scripts/load/bet-load.mjs",
+    "check": "npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@opencasino/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "node ../../scripts/build-api.mjs",
+    "start": "tsx src/main.ts",
+    "start:dist": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test-integration/tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "test:integration": "vitest run -c vitest.integration.config.ts",
+    "db:migrate": "tsx src/database/migrate.ts",
+    "db:migrate:status": "tsx src/database/migrate.ts status",
+    "db:seed": "tsx src/database/seed.ts"
+  },
+  "dependencies": {
+    "@opencasino/contracts": "*",
+    "@opencasino/game-core": "*",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.3",
+    "socket.io": "^4.8.1",
+    "tsx": "^4.19.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.13.4",
+    "@types/pg": "^8.11.11",
+    "socket.io-client": "^4.8.1",
+    "vitest": "^5.0.5"
+  }
+}

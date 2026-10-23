@@ -1,0 +1,2536 @@
+/* Cascade: only the design tokens and element defaults below sit in @layer base (the layer order
+   is declared once in styles/app-ui.css, the first stylesheet). Everything else in this file is
+   deliberately unlayered — the PvP and table sheets that load after it win or lose against these
+   rules by specificity, and layering one side would flip those. main.tsx documents the order. */
+@layer base {
+  /* =============================================================================
+     OPENCASINO — design tokens.
+
+     Modelled on Evolution's live-table client, whose real frames were pixel-sampled
+     for this palette: ~95% of every frame is a dark warm-grey ground, saturated
+     colour covers only 0.5–5% of pixels and is spent solely on things you can act
+     on or that you backed, and the "gold" is antique brass (hue ~42°, sat ~28%),
+     never #FFD700. Surfaces separate by adjacency and a 1px dark gap, not by
+     borders; nothing glows. Token NAMES are kept from the previous saturated
+     palette so the ~370 call sites below re-theme without a rewrite; the values
+     are what changed. Literals elsewhere in this file are a bug, not a style choice.
+     ============================================================================= */
+  :root {
+    color-scheme: dark;
+    /* The one font stack (defined below). index.html loads Poppins and Noto Sans KR: Poppins
+       draws Latin letters and digits, Noto Sans KR the Hangul it lacks. */
+    font-family: var(--ui-font);
+
+    /* — Ground: Evolution's studio black is #010103, its betting-grid ground
+         #0A0806, its top/bottom bars #30291C / #393629. Warm, flat, never a
+         gradient. Each step up is a small luminance step, not a colour change. — */
+    --bg: #0a0806;
+    --panel: #171310;
+    --panel-2: #221c15;
+    --panel-gradient: #1e1812;
+    --panel-raised: #2a231a;
+    --panel-sunken: #070503;
+    /* Matches --panel rather than Evolution's own sampled brown bar — a standalone muddy
+       olive tone read as an off/wrong colour sitting on its own against the rest of the
+       near-black + gold system. The gold bottom border (below) is what marks it as the bar. */
+    --bar-top: #171310;
+    --bar-bottom: #1e1811;
+
+    /* — Hairlines and the 1px dark gap that does the work borders used to do. — */
+    --line: rgba(255, 255, 255, .07);
+    --line-strong: rgba(255, 255, 255, .14);
+    --gap: #0a0806;
+
+    /* — Gold: the brand. Evolution's own accent is a muted brass, but this is *OpenCasino*
+         Casino, so the hue stays a true saturated gold. What we take from Evolution is
+         where it's spent: the wordmark, the one primary control on a screen, key numerals
+         and active-state underlines. Never a panel fill, never a border on ordinary chrome,
+         never a shadow — secondary text and surfaces stay neutral so the gold reads. — */
+    --gold: #f0b41c;
+    --gold-deep: #c98708;
+    --gold-mid: #e8a913;
+    --gold-light: #ffd24a;
+    --gold-pale: #ffe598;
+    --gold-line: rgba(240, 180, 28, .42);
+    --gold-line-soft: rgba(240, 180, 28, .22);
+    --gold-wash: rgba(240, 180, 28, .1);
+    --gold-btn: #f0b41c;
+    --gold-btn-hover: #ffd24a;
+    --on-gold: #1c1300;
+
+    /* — Felt: desaturated green, like a real cloth under warm light, not emerald. — */
+    --felt: #12563a;
+    --felt-mid: #0e4530;
+    --felt-dark: #08301f;
+
+    /* — Dragon Tiger's felt: oxblood (Evolution's Lightning Blackjack cloth samples
+         #8A171C–#9A2528), so the table itself reads as a different game. — */
+    --dt-felt: #6e1620;
+    --dt-felt-mid: #4f1017;
+    --dt-felt-dark: #2e0a0e;
+
+    /* — Type: off-white, then two neutral warm greys. Secondary text is grey,
+         not tan — tan was what made every label compete with the accent. — */
+    --text: #f2ede4;
+    --muted: #a69c90;
+    /* #736a60 was 3.2–3.8:1 on these panels — under AA, and it's used almost entirely on
+       11–12px labels, where AA-large doesn't apply. Lightened to clear 4.5:1 on the lightest
+       surface it lands on (--panel-raised) while staying a step below --muted. */
+    --muted-dim: #94897c;
+    /*
+     * Two families, two jobs (2026-10-23):
+     *   --ui-font      Poppins + Noto Sans KR — everything you read or press: body, buttons,
+     *                  labels, numbers and amounts, chat, betting zones, tables.
+     *   --display-font Cinzel — English CAPS signage only: the OPENCASINO wordmark, game
+     *                  names (BACCARAT), betting-zone names (PLAYER), the result headline.
+     *                  Cinzel has no Hangul and no lowercase, so Korean text is never set in it —
+     *                  keep it off anything Korean, and off odds, chips, amounts and buttons.
+     *                  The list lives in styles/typography.css; add to it there.
+     * Uppercase + letter-spacing is reserved for small labels and the wordmark.
+     * Nothing below 12px either, except glyphs that sit inside a tiny shape and are read by
+     * colour and position: road-map beads and their tie counts, chip denominations and the
+     * lightning multiplier on a card corner.
+     */
+    --ui-font: "Poppins", "Noto Sans KR", "Noto Sans", "Malgun Gothic", sans-serif;
+    --display-font: "Cinzel", "Poppins", "Noto Sans KR", sans-serif;
+
+    /* — Table primaries. *-fill is the bet-panel ground. Evolution's own samples run
+         near-black (Player #0C1733 etc.) — on this table that read as barely-tinted black,
+         not a coloured bet spot, so these sit a fair bit lighter/more saturated: a real
+         solid navy/crimson/forest, not a wash. — */
+    --player: #2b7fff;
+    --player-light: #6ba6ff;
+    --player-fill: #123a7a;
+    --banker: #e63946;
+    --banker-light: #ff7078;
+    --banker-fill: #7a1018;
+    --tie: #169f4a;
+    --tie-light: #4ee79a;
+    --tie-fill: #0f5c33;
+
+    /* — Semantic states — */
+    --positive: #2fd97e;
+    --negative: #ff4d5c;
+    --warning: #f5c451;
+
+    /* — Chip denominations, shared by the tray, the stacks and the mobile picker.
+         Kept in sync with CHIP_TIER_COLORS in apps/web/src/lib/betting.ts. — */
+    /* Evolution's ladder (sampled from its own chip-strip artwork): grey · red · green ·
+       black · purple, each with a white rim. The chip is the one saturated filled object on
+       the table, so it can afford real colour. */
+    --chip-0: #6e6e6e;
+    --chip-0-rim: #f2f2f2;
+    --chip-1: #a41600;
+    --chip-1-rim: #f2f2f2;
+    --chip-2: #038c20;
+    --chip-2-rim: #f2f2f2;
+    --chip-3: #141414;
+    --chip-3-rim: #f2f2f2;
+    --chip-4: #6b398d;
+    --chip-4-rim: #f2f2f2;
+
+    /* — Corner radius: one small scale, four steps. Before this the file had roughly
+         thirty distinct border-radius values between 4px and 18px — visually near-identical
+         panels (room cards, game cards, the login card, admin panels, chat bubbles) each
+         rounded by their own slightly different arbitrary amount, and the felt's own bottom
+         corners (34px) didn't match its top (22px) or the chip rail directly under it (15px).
+         Every rectangular radius in this file now snaps to one of these four; pills
+         (border-radius: 999px) and true circles (50%) are a different, intentional shape,
+         not a "how round" choice, so they stay as literals rather than joining this scale. — */
+    --radius-xs: 5px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; }
+  html { width: 100%; min-width: 0; max-width: 100%; overflow-x: hidden; }
+  body { margin: 0; min-height: 100vh; color: var(--text); }
+  button, input { font: inherit; }
+  button { color: inherit; }
+}
+/* ── Breakpoints ──────────────────────────────────────────────────────────────
+   Use these tiers for new rules:
+     ≤480  phone                    ≤620  phone layout for the shell pages (see below)
+     ≤900  tablet portrait          ≤1180 small desktop (not needed by any rule yet)
+     (max-width: 900px) and (max-height: 540px) and (orientation: landscape)  landscape phone
+   A few older widths stay because moving them to the nearest tier visibly changes a layout
+   inside the gap (checked with screenshots at a width in that gap):
+     620   the whole shell (topbar, lobby, wallet, admin) goes single-column here; at 720 the
+           621–720px band would switch to the phone header and one-column lists. app-ui.css's
+           bottom tab bar still appears at ≤720, so that band has both — a design call.
+     600   the game rooms' compact phone shell; 601–620 would change.
+     768   admin topbar/KPI density and the login card; 721–768 would change.
+     980   lobby game picker and room list go 3 → 2 columns; 901–980 would change.
+     1050  admin dashboard grids (5 → 3 KPIs, chat panels stacked); 1051–1180 would change.
+     1280  admin rail 216 → 184px; 1181–1280 would change.
+     (max-height: 680px), (max-height: 700px) portrait: short-screen tweaks with no tier. */
+/* No outline-offset: most inputs/buttons already draw their own focus ring via
+   border-color + box-shadow (see .login-card input:focus etc.) — an offset outline
+   on top of that drew a second, visibly separate concentric border. Flush against
+   the edge, this reads as one ring instead of two. */
+button:focus-visible, input:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 0; }
+@layer base {
+  h1, h2, h3, p { margin-top: 0; }
+}
+h1, h2, h3, .brand strong { text-shadow: 0 2px 6px rgba(0,0,0,.45); }
+/* Evolution's top bar is a flat, warm dark strip (#30291C) separated from the content by
+   being flatter and warmer than it — no gradient, no glow, no blur. */
+.topbar { position: sticky; top: 0; z-index: 20; display: grid; align-items: center; padding: 0 28px; border-bottom: 1px solid var(--line); --topbar-pad-x: 24px; backdrop-filter: none; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; min-height: 64px; background: var(--bar-top); border-bottom-color: var(--gold-deep); }
+.brand { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.brand-home { display: inline-flex; align-items: center; min-width: 0; min-height: 40px; color: inherit; text-decoration: none; }
+.brand > span { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--gold-line); border-radius: 50%; background: var(--panel-2); color: var(--gold-light); font-family: var(--ui-font); font-size: 16px; font-weight: 700; }
+.brand strong { color: var(--gold-light); font-family: var(--ui-font); font-weight: 600; letter-spacing: .12em; }
+.topbar nav { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 500; font-family: var(--ui-font); }
+.topbar nav a { border-bottom: 2px solid transparent; color: inherit; text-decoration: none; }
+.mute-button { border: 1px solid var(--gold-line); cursor: pointer; font-size: 0; border-radius: var(--radius-sm); background: transparent; }
+.account { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+.account .balance-display { display: grid; padding: 4px 12px; border-radius: 0; background: transparent; }
+.account small { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+/* The balance is the one number in the bar: loud through size, plain white, tabular. */
+.account strong { color: var(--text); font-size: 16px; font-weight: 500; font-family: var(--ui-font); font-variant-numeric: tabular-nums; }
+/* 잔액이 움직이면 색으로 반응하고 변화량이 떠오른다 (lib/useDelta). 게임 셸·앱 셸 공용. */
+.balance-display { position: relative; transition: color .25s ease; }
+.balance-display.is-up strong { color: #7ee2a8; }
+.balance-display.is-down strong { color: #ff8a93; }
+.balance-delta { position: absolute; right: 10px; bottom: 100%; font-style: normal; font-size: 12.5px; font-weight: 800; font-family: var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; animation: balance-delta-float 1.5s ease-out forwards; }
+.balance-display.is-up .balance-delta { color: #7ee2a8; }
+.balance-display.is-down .balance-delta { color: #ff8a93; }
+@keyframes balance-delta-float { from { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .balance-delta { animation: none; } }
+.account button { border: 0; background: none; color: var(--muted); font-size: 12px; font-family: var(--ui-font); cursor: pointer; }
+.app-shell { display: flex; flex-direction: column; width: min(1380px, 100%); min-height: calc(100vh - 72px); margin: auto; --shell-pad-x: 24px; padding: 24px 24px 52px; }
+/* Everything above the lobby footer; flex:1 absorbs the leftover height so the footer
+   never rides up when a filtered room list is short. */
+.lobby-content { flex: 1 0 auto; }
+.lobby-footer { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-top: 36px; padding: 22px 4px 0; border-top: 1px solid var(--line); font-family: var(--ui-font); }
+/* ── Lobby room tiles ─────────────────────────────────────────────────────────
+   Tiles, stacked: status line, name, stakes, then the history strip where a room has
+   one. The first pass strung all of it along a single 60px line, which read as 21
+   interchangeable lines — the separation was a 1px hairline and nothing else carried
+   an edge. These have a real border, a panel fill and room to breathe, and the column
+   count follows the content: a history strip needs width, so those sections run wider
+   and fewer across. */
+.room-list { display: grid; gap: 10px; margin-bottom: 30px; }
+.room-list.has-road { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.room-list.no-road { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.room-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  position: relative;
+  min-height: 150px;
+  padding: 15px 17px 17px;
+  /* Same gold edge as the game cards and the header's underline. */
+  border: 1px solid var(--gold-deep);
+  border-radius: 10px;
+  background: var(--panel);
+  transition: border-color .15s, background .15s;
+}
+.room-tile:hover, .room-tile:focus-within { border-color: var(--gold-light); background: var(--panel-2); }
+.room-tile:focus-within { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+.room-tile-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.room-tile-status { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font: 500 12px var(--ui-font); letter-spacing: .04em; white-space: nowrap; }
+/* Ring = idle, filled = a round is running. The word beside it says which, so the dot is
+   reinforcement rather than the only signal. */
+.room-tile-status i { width: 7px; height: 7px; border: 1px solid var(--muted-dim); border-radius: 50%; }
+.room-tile.is-live .room-tile-status { color: var(--tie-light); }
+.room-tile.is-live .room-tile-status i { border-color: var(--tie-light); background: var(--tie-light); }
+.room-tile.is-paused .room-tile-status { color: var(--warning); }
+/* Name and stakes share a baseline: the name takes the slack, the limits sit flush right. */
+.room-tile-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-top: auto; }
+/* The only control; ::after stretches it over the tile so the whole card is the target.
+   `.room-tile` is the positioned ancestor, so nesting this deeper doesn't shrink the target. */
+.room-tile-open {
+  flex: 1 1 auto;
+  min-width: 0; padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--text); font: 600 18px var(--ui-font); text-align: left;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.room-tile-open::after { content: ""; position: absolute; inset: 0; }
+/* One limit per line. Side by side, "최소 100코인 최대 5,000코인" is wider than a two-column
+   tile and ran past its edge — and nowrap means the element overflows the tile rather than
+   its own box, so a scrollWidth check never catches it. Stacked, the widest it can get is
+   one limit. */
+.room-tile-bet { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin: 0; color: var(--muted); font: 500 12.5px var(--ui-font); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.room-tile-bet span:first-child { color: var(--text); }
+.room-tile.is-paused { opacity: .6; }
+.room-tile.is-paused .room-tile-open { cursor: default; }
+.room-tile-admin {
+  /* Sits above the stretched ::after, and nowrap so "정지" can't break inside the pill. */
+  position: absolute; z-index: 1; right: 14px; bottom: 14px;
+  min-height: 26px; padding: 0 11px;
+  border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel-sunken);
+  color: var(--muted); font: 600 12px var(--ui-font); white-space: nowrap; cursor: pointer;
+}
+.room-tile-admin:hover:not(:disabled) { border-color: var(--gold-line); color: var(--text); }
+.room-tile-admin:disabled { opacity: .5; cursor: progress; }
+/* Seat games get the table itself where the road sits on a baccarat tile: one pip per seat,
+   filled for taken. Same height as the road strip so both kinds of tile carry equal weight. */
+.room-tile-seats {
+  display: flex; flex-direction: column; justify-content: center; gap: 9px;
+  height: 68px; margin-top: 2px; padding: 0 13px;
+  border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel-sunken);
+}
+.room-tile-seat-row { display: flex; gap: 7px; }
+.room-tile-seat-row i { width: 13px; height: 13px; border: 1.5px solid var(--muted-dim); border-radius: 50%; }
+.room-tile-seat-row i.is-taken { border-color: var(--gold); background: var(--gold); }
+.room-tile-seat-caption { display: flex; align-items: baseline; gap: 7px; }
+.room-tile-seat-caption b { color: var(--text); font: 600 13px var(--ui-font); }
+.room-tile-seat-caption small { color: var(--muted); font: 500 12px var(--ui-font); }
+/* Full-bleed across the tile — a strip that shrink-wraps its dots reads as a stray box.
+   The void it used to leave was never the width's fault: the preview threw away all but
+   12 of the 60 results the lobby already sends (COMPACT_MAX_COLUMNS in BigRoad.tsx).
+   Showing the full shoe fills the same strip with real history. */
+.room-tile .big-road-compact { width: 100%; gap: 0; margin-top: 2px; }
+.room-tile .big-road-compact .big-road-head { display: none; }
+.room-tile .big-road-compact .big-road-grid { height: 68px; overflow: hidden; }
+/* A table with no shoe yet should say so, not render an empty rectangle. */
+.room-tile .big-road-compact .big-road-empty::before { content: "아직 결과 없음"; }
+/* 6px numerals inside a 9px dot are a smudge, not a tie count; the full road in the room has it. */
+.room-tile .big-road-compact .road-cell em { display: none; }
+
+/* ── Lobby: title ────────────────────────────────────────────────────────────
+   The game rows live in styles/lobby-rows.css. */
+.lobby-title { margin: 0 0 16px; font-size: 20px; font-weight: 600; letter-spacing: .02em; color: var(--text); }
+
+/* ── Lobby level two: one game's rooms ───────────────────────────────────────── */
+.game-rooms-head { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; }
+.game-rooms-back {
+  display: grid; place-items: center; flex: none; width: 36px; height: 36px;
+  border: 1px solid var(--line-strong); border-radius: 50%;
+  color: var(--muted); text-decoration: none; transition: border-color .15s, color .15s;
+}
+.game-rooms-back:hover { border-color: var(--gold-line); color: var(--text); }
+.game-rooms-head h1 { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: .02em; }
+.game-rooms-head h1 span { color: var(--muted-dim); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.game-rooms-head p { margin: 3px 0 0; color: var(--muted); font: 500 12.5px var(--ui-font); }
+
+@media (max-width: 620px) {
+  .lobby-title { font-size: 17px; margin-bottom: 12px; }
+  .game-rooms-head { gap: 10px; margin-bottom: 14px; }
+  /* 40px is the smallest target a thumb hits reliably; 32 was a miss on every other tap. */
+  .game-rooms-back { width: 40px; height: 40px; }
+  .game-rooms-head h1 { font-size: 17px; }
+  .game-rooms-head p { font-size: 12px; }
+}
+
+/* Placeholder tiles for the beat before the first lobby fetch lands — a dark rectangle the
+   size of the real thing, breathing, so the page has its shape before it has its data. */
+.room-tile.is-skeleton { border-color: var(--line); background: var(--panel); animation: room-skeleton 1.4s ease-in-out infinite; }
+@keyframes room-skeleton { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .room-tile.is-skeleton { animation: none; } }
+
+/* Tablet: three across gets cramped before the phone breakpoint does. */
+@media (max-width: 980px) {
+  .room-list.no-road, .room-list.has-road { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Phone: one column throughout. Two-up left the tiles ~174px wide, which is where the room
+   names and the bet limits kept colliding. */
+@media (max-width: 620px) {
+  .room-list { gap: 8px; margin-bottom: 10px; }
+  .room-list.has-road, .room-list.no-road { grid-template-columns: 1fr; }
+  .room-tile { min-height: 124px; gap: 6px; padding: 12px 13px 14px; }
+  .room-tile-open { font-size: 15px; }
+  .room-tile-bet { gap: 9px; font-size: 12px; }
+  .room-tile-status { font-size: 12px; }
+  .room-tile-seats { height: 52px; gap: 7px; padding: 0 11px; }
+  .room-tile-seat-row { gap: 6px; }
+  .room-tile-seat-row i { width: 11px; height: 11px; }
+  .room-tile-seat-caption b { font-size: 12px; }
+  .room-tile-seat-caption small { font-size: 12px; }
+  .room-tile .big-road-compact .big-road-grid { height: 52px; }
+  .room-tile-admin { right: 10px; bottom: 10px; min-height: 24px; padding: 0 9px; }
+}
+
+/* The one filled control on a card: flat brass, dark text, no lift. Everything else on
+   the card is text, so this is where the eye lands. */
+.outline-button { padding: 0 18px; border: 0; border-radius: 6px; background: var(--gold-btn); color: var(--on-gold); font-weight: 600; font-family: var(--ui-font); cursor: pointer; transition: background .18s; width: 100%; min-height: 38px; margin-top: 13px; font-size: 12px; }
+.outline-button:hover { background: var(--gold-btn-hover); }
+.login-page, .loading-screen { display: grid; min-height: 100vh; place-items: center; padding: 20px; background: var(--bg); }
+.login-card { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); min-width: 0; padding: 34px; }
+.login-card .brand { justify-content: center; min-width: 0; margin-bottom: 24px; }
+.login-card .brand strong { color: var(--gold-light); text-shadow: none; }
+.login-rule { width: 100%; height: 1px; margin: 0 0 28px; background: linear-gradient(90deg, transparent, var(--gold-line) 30%, var(--gold-line) 70%, transparent); }
+.muted { color: var(--muted); line-height: 1.7; font-family: var(--ui-font); }
+.login-card form { display: grid; gap: 15px; }
+.login-card label { display: grid; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; font-family: var(--ui-font); }
+.login-card input { width: 100%; min-width: 0; min-height: 46px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 15px; font-family: var(--ui-font); box-shadow: none; }
+.login-card input:focus { outline: 0; border-color: var(--gold); box-shadow: none; }
+.gold-button { min-height: 46px; margin-top: 6px; border: 0; border-radius: 6px; background: var(--gold-btn); color: var(--on-gold); font-size: 14px; font-weight: 600; font-family: var(--ui-font); letter-spacing: .04em; cursor: pointer; transition: background .18s, opacity .15s; box-shadow: none; }
+.gold-button:hover:not(:disabled) { background: var(--gold-btn-hover); box-shadow: none; }
+/* Same bug class as .bet-confirm-button: :hover already excluded :disabled, but nothing ever
+   defined what disabled actually looks like — login/signup/profile "처리 중" and wagering-locked
+   states rendered identically to a clickable button. */
+.gold-button:disabled { cursor: not-allowed; filter: grayscale(.6); opacity: .55; box-shadow: none; }
+.error-message { color: var(--negative); font-size: 12px; font-family: var(--ui-font); }
+.notice-message { color: #7cd68a; font-size: 12px; font-family: var(--ui-font); }
+.login-signup-link { margin: 18px 0 0; color: var(--muted); font-size: 12px; font-family: var(--ui-font); text-align: center; }
+.login-signup-link a { color: var(--gold-light); font-weight: 500; text-decoration: none; }
+.login-signup-link a:hover { text-decoration: underline; }
+.room-shell.is-fullscreen { position: fixed; inset: 0; z-index: 100; padding: 20px; overflow-y: auto; background: var(--bg); }
+/* =============================================================================
+   Playing-card system.
+
+   A table sizes its cards by setting ONE custom property on the card container:
+   --card-w. Card height, the fan overlap, corner radius, drop shadow, the empty
+   slot placeholders and the sideways (baccarat third / blackjack double-down)
+   card all derive from it, so a single fluid clamp() per table replaces the
+   per-breakpoint pixel tables this file used to carry - the cards now scale
+   continuously with the viewport instead of stepping at each breakpoint.
+
+   --card-scale locally shrinks a fan that has outgrown its container (a five
+   card blackjack hand) without restating a size.
+   ============================================================================= */
+@layer base {
+  :root {
+    --card-w-base: 61px;
+    --card-ratio: 1.4;   /* the OpenDecks art is exactly 750 x 1050 */
+    --card-fan: .27;     /* share of a card width the next card covers */
+  }
+}
+.ot-card-slot, .holdem-hole-slot {
+  --_cw: calc(var(--card-w, var(--card-w-base)) * var(--card-scale, 1));
+  flex: 0 0 auto;
+  width: var(--_cw);
+  height: calc(var(--_cw) * var(--card-ratio));
+  border-radius: calc(var(--_cw) * .07);
+  font-size: calc(var(--_cw) * .34);
+  margin-left: calc(var(--_cw) * var(--card-fan) * -1);
+}
+.ot-card-slot:first-child, .holdem-hole-slot:first-child { margin-left: 0; }
+.playing-card {
+  --_cw: calc(var(--card-w, var(--card-w-base)) * var(--card-scale, 1));
+  --_ch: calc(var(--_cw) * var(--card-ratio));
+  display: block;
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--_cw);
+  height: var(--_ch);
+  margin-left: calc(var(--_cw) * var(--card-fan) * -1);
+  transform: rotate(var(--card-tilt, 0deg));
+  /* Required: this element now always carries a transform, and without
+     preserve-3d that flattens its subtree, so the container's `perspective`
+     would never reach the flip and the reveal would read as a flat squash. */
+  transform-style: preserve-3d;
+  animation: card-enter var(--card-deal-ms, .28s) cubic-bezier(.2,.85,.32,1) var(--card-enter-delay, 0ms) backwards;
+}
+.playing-card:first-child { margin-left: 0; }
+/* The baccarat third card and the blackjack double-down card are laid across the
+   fan, the way a live dealer squares them off. The element's own box stays
+   upright (rotating it would not reflow its neighbours), so these margins buy
+   back the rotated card's real footprint and keep a centered row honestly
+   centered instead of letting the sideways card hang out of the container. */
+.playing-card.sideways {
+  --card-tilt: 90deg;
+  /* The box is upright but the card is drawn rotated, so its painted edges sit
+     (h - w) / 2 outside the box on each side. Subtracting that from both margins
+     puts the *painted* left edge exactly where an upright card's would be - i.e.
+     overlapping the fan by --card-fan, not floating off to the side - while the
+     right margin still reserves the real footprint so the row stays centered. */
+  margin-left: calc((var(--_ch) - var(--_cw)) * .5 - var(--_cw) * var(--card-fan));
+  margin-right: calc((var(--_ch) - var(--_cw)) * .5);
+}
+.playing-card-inner { display: block; position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform var(--card-flip-ms, .35s) cubic-bezier(.3,1.05,.4,1); }
+.playing-card-inner.is-revealed { transform: rotateY(180deg); }
+.playing-card-back, .playing-card-face { position: absolute; inset: 0; overflow: hidden; border-radius: calc(var(--_cw) * .055); background: #0b4a32; backface-visibility: hidden; filter: drop-shadow(0 calc(var(--_cw) * .11) calc(var(--_cw) * .2) rgba(0,0,0,.5)); }
+.playing-card-face { transform: rotateY(180deg); }
+.playing-card.is-lightning-hit .playing-card-face {
+  outline: 3px solid var(--gold-light);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px rgba(240,180,28,.85), 0 0 22px rgba(240,180,28,.95);
+  animation: lightning-card-hit 1.15s ease-in-out infinite;
+}
+.playing-card-lightning-badge {
+  position: absolute;
+  right: -6px;
+  bottom: 5px;
+  z-index: 2;
+  padding: 2px 5px;
+  border: 1px solid rgba(255,247,205,.9);
+  border-radius: 999px;
+  color: #241600;
+  background: var(--gold-light);
+  box-shadow: 0 0 12px rgba(240,180,28,.9);
+  font: 700 clamp(9px, 1.2vw, 13px)/1 var(--ui-font);
+  white-space: nowrap;
+}
+@keyframes lightning-card-hit {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(240,180,28,.6)); }
+  50% { filter: drop-shadow(0 0 14px rgba(240,180,28,1)); }
+}
+.card-face-svg { display: block; width: 100%; height: 100%; }
+/* The box is now exactly the art's 1.4 aspect, so `fill` avoids the hairline of
+   card-back green that `contain` used to leak along a rounded-off edge. */
+.card-face-image { border-radius: calc(var(--_cw, 61px) * .055); object-fit: fill; pointer-events: none; user-select: none; }
+/* Dealt from the shoe: on tables with a DeckShoe, lib/shoeFlight.ts overwrites
+   --card-deal-x/y/ms per card with the measured shoe→slot delta and a
+   distance-scaled duration, so the card visibly leaves the shoe; the stock
+   values below are the fallback hop for cards rendered without one. The fade
+   finishes early (18%) because a card emerging from the shoe should be solid
+   for nearly the whole flight, not ghosting across the felt. */
+@keyframes card-enter {
+  from { transform: translate3d(var(--card-deal-x, 38px), var(--card-deal-y, -32px), 0) rotate(calc(var(--card-tilt, 0deg) + 12deg)); opacity: 0; }
+  18% { opacity: 1; }
+  to { transform: translate3d(0, 0, 0) rotate(var(--card-tilt, 0deg)) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .playing-card, .playing-card.is-lightning-hit .playing-card-face { animation: none; } .playing-card-inner { transition: none; } }
+/* Chip stack shown on a bet zone once money is down: layered dashed casino chips, sungblab-style. */
+.chip-stack { position: absolute; right: 8px; bottom: 8px; z-index: 3; display: grid; place-items: center; animation: chip-pop .24s ease-out; height: 30px; }
+.chip-stack-layer, .chip-stack-top { position: absolute; left: 50%; transform: translateX(-50%); height: 22px; }
+.chip-stack-top { display: grid; place-items: center; color: var(--text); font-family: var(--ui-font); font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+@keyframes chip-pop { from { transform: translateY(-10px) scale(.6); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+/* --- Casino chip face -------------------------------------------------------
+   A real chip is a coloured disc with a ring of lighter "edge spots" printed
+   around its rim — not a dashed outline. The old recipe stacked a 3px dashed
+   border on top of a 3px inset ring, which at the 26–34px sizes these chips
+   actually render at ate most of the diameter and read as "a ring inside a ring"
+   rather than as a chip.
+
+   One recipe, driven by --chip-face/--chip-rim, shared by the tray, the mobile
+   picker, the bet-zone stacks and the blackjack seat badges. Background layers
+   paint first-on-top: centre face, then the white separator ring, then the rim
+   spots underneath filling the remainder.
+   --------------------------------------------------------------------------- */
+.chip, .chip-picker-trigger, .chip-picker-menu button, .chip-stack-layer, .chip-stack-top {
+  --chip-face: var(--chip-0);
+  --chip-rim: var(--chip-0-rim);
+  border: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--chip-face) 0 55%, transparent 55.5%),
+    radial-gradient(circle, rgba(255,255,255,.92) 0 60%, transparent 60.5%),
+    repeating-conic-gradient(var(--chip-rim) 0deg 26deg, rgba(255,255,255,.92) 26deg 45deg);
+  box-shadow: 0 2px 6px rgba(0,0,0,.45), inset 0 0 0 1px rgba(0,0,0,.28);
+}
+.chip-tier-0 { --chip-face: var(--chip-0); --chip-rim: var(--chip-0-rim); }
+.chip-tier-1 { --chip-face: var(--chip-1); --chip-rim: var(--chip-1-rim); }
+.chip-tier-2 { --chip-face: var(--chip-2); --chip-rim: var(--chip-2-rim); }
+.chip-tier-3 { --chip-face: var(--chip-3); --chip-rim: var(--chip-3-rim); }
+.chip-tier-4 { --chip-face: var(--chip-4); --chip-rim: var(--chip-4-rim); }
+/*
+ * The shared recipe above sets --chip-face: var(--chip-0) unconditionally for every
+ * selector in its list, including .chip-stack-layer/.chip-stack-top — which silently
+ * clobbered the per-amount --chip-tier value BetZone.tsx sets inline on .chip-stack
+ * (via chipColorForAmount), because a later same-specificity rule always wins the
+ * cascade. Every settled bet stack rendered in tier-0 orange no matter the amount.
+ * Re-assert the tier-aware value here, after the shared block, so it wins again.
+ */
+.chip-stack-layer,
+.chip-stack-top {
+  --chip-face: var(--chip-tier, var(--chip-0));
+  /* Rim comes in inline beside --chip-tier (ChipStack.tsx). It used to be derived here with
+     color-mix(), but a custom property accepts any token stream, so on a browser without
+     color-mix() the declaration parsed and only failed when substituted into `background` -
+     taking the whole shorthand down with it. The chip's amount label still rendered, so the
+     bet read as "the number is there but the chip is not". */
+  --chip-rim: var(--chip-tier-rim, var(--chip-0-rim));
+}
+/*
+ * Same class of bug as above, for the mobile chip picker: `.chip-picker-menu button`
+ * (a class + element selector, (0,1,1)) is MORE specific than `.chip-tier-N` alone
+ * ((0,1,0)), so every tier class lost outright — every mobile chip rendered tier-0
+ * gold no matter its denomination. `.chip-picker-trigger` doesn't even reach that far;
+ * it never picked up the shared face recipe at all (see its media-query rule further
+ * down, which used to hardcode a fixed gold border+background). Re-assert per tier,
+ * scoped to these two selectors specifically, so the combined selector out-specifies
+ * the shared block above.
+ */
+.chip-picker-trigger.chip-tier-0, .chip-picker-menu button.chip-tier-0 { --chip-face: var(--chip-0); --chip-rim: var(--chip-0-rim); }
+.chip-picker-trigger.chip-tier-1, .chip-picker-menu button.chip-tier-1 { --chip-face: var(--chip-1); --chip-rim: var(--chip-1-rim); }
+.chip-picker-trigger.chip-tier-2, .chip-picker-menu button.chip-tier-2 { --chip-face: var(--chip-2); --chip-rim: var(--chip-2-rim); }
+.chip-picker-trigger.chip-tier-3, .chip-picker-menu button.chip-tier-3 { --chip-face: var(--chip-3); --chip-rim: var(--chip-3-rim); }
+.chip-picker-trigger.chip-tier-4, .chip-picker-menu button.chip-tier-4 { --chip-face: var(--chip-4); --chip-rim: var(--chip-4-rim); }
+.chip { display: grid; place-items: center; color: var(--text); font-family: var(--ui-font); font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.55); cursor: pointer; transition: transform .14s ease, box-shadow .14s ease; height: 38px; font-size: 13px; }
+.chip:hover, .chip.active { transform: scale(1.05); outline: 2px solid var(--gold-light); outline-offset: 2px; }
+/* Chips you can't afford are disabled, not errored after the tap (Evolution's rule). */
+.chip:disabled { opacity: .35; cursor: not-allowed; transform: none; outline: 0; }
+/* Scorecards are dark neutral panels — the colour in them is the red/blue road marks. */
+.big-road { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); }
+.big-road-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); border-bottom-color: var(--line); padding: 9px 12px; }
+.big-road-head h3 { margin: 0; font-size: 13px; letter-spacing: .08em; font-family: var(--ui-font); }
+.road-tally { display: flex; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .04em; font-family: var(--ui-font); font-variant-numeric: tabular-nums; }
+.road-tally .tally-player { color: #4a92ff; } .road-tally .tally-banker { color: var(--negative); } .road-tally .tally-tie { color: var(--positive); }
+.big-road-grid { display: flex; gap: 3px; overflow-x: auto; background: var(--panel-sunken); min-height: 76px; padding: 9px; }
+.big-road-empty { margin: auto; color: var(--muted); font-size: 12px; font-family: var(--ui-font); white-space: nowrap; }
+.big-road-column { display: grid; grid-auto-rows: 13px; gap: 2px; }
+/* The letter has to sit inside the ring — the global legibility floor doesn't apply to
+   these markers, they're read by colour and position, the glyph is a courtesy. */
+.road-cell { position: relative; display: grid; place-items: center; border-radius: 50%; background: transparent; font-size: 9px; font-weight: 700; line-height: 1; font-family: var(--ui-font); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); height: 13px; }
+.road-cell.player { border: 2px solid var(--player); box-shadow: inset 0 0 6px rgba(43,127,255,.35); }
+.road-cell.banker { border: 2px solid #ef2b2b; box-shadow: inset 0 0 6px rgba(239,43,43,.35); }
+.road-cell.tie-only { border: 2px dashed var(--tie); background: transparent; }
+.road-cell em { position: absolute; right: -3px; bottom: -3px; font-size: 8px; font-style: normal; color: var(--tie); }
+.road-preview { animation: road-preview-pulse .72s ease-in-out infinite alternate; }
+/* The tie preview rides the marker, not the cell, so it has to be legible on its own. */
+.road-cell em.road-tie-preview { right: -5px; bottom: -5px; min-width: 11px; height: 11px; display: grid; place-items: center; border-radius: 50%; background: var(--tie); color: #fff; font-size: 8px; font-weight: 700; text-shadow: none; animation: road-preview-pulse .72s ease-in-out infinite alternate; }
+@keyframes road-preview-pulse { from { opacity: .38; transform: scale(.8); } to { opacity: 1; transform: scale(1.12); } }
+.road-pair-dot { position: absolute; width: 4px; height: 4px; border-radius: 50%; }
+.player-pair-dot { top: -1px; left: -1px; background: var(--player); }
+.banker-pair-dot { bottom: -1px; right: -1px; background: #ef2b2b; }
+
+/* Big Eye / Small / Cockroach derived road maps — read alongside the Big Road. */
+.derived-roads { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); }
+/* Header strip: the three road names with their current lengths, always shown above the grids.
+   Three equal columns, each item stacking count under label, so the strip always fits the
+   aside — a single flex row clipped "COCKROACH" off the right edge on the 180–250px panels
+   and wrapped it to a second line on wider ones. */
+.derived-roads-toggle { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 0 6px; min-height: 34px; padding: 5px 10px; color: var(--muted); font-family: var(--ui-font); font-size: 12px; font-weight: 500; letter-spacing: 0; border-bottom: 1px solid var(--line); }
+/* Item modifiers are is-* on purpose: the .derived-road-<key> classes belong to the grid
+   containers and carry borders/grid-column rules that must not leak onto these labels. */
+.derived-roads-toggle-item { display: flex; justify-content: center; gap: 5px; align-items: center; min-width: 0; }
+.derived-roads-toggle-item i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--player); }
+.derived-roads-toggle-item.is-small i { background: var(--player); border: 0; }
+.derived-roads-toggle-item.is-cockroach i { width: 8px; height: 2px; border-radius: 1px; border: 0; background: var(--player); transform: rotate(45deg); }
+.derived-roads-toggle-item b { color: var(--text); font-size: 12px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.derived-road-bigEye { grid-column: 1 / -1; border-bottom: 1px solid var(--line); }
+/* min-width: 0 on both: a 60-column road's min-content width otherwise stops the 1fr
+   tracks shrinking, the whole panel blows past the aside's edge (overflow: hidden clips it)
+   and the toggle strip spanning those tracks loses its third column — "COCKROACH" simply
+   disappeared off the right side. With it, the grids scroll inside the panel instead. */
+.derived-road { display: flex; min-width: 0; padding: 8px 10px; }
+.derived-road-small { border-right: 1px solid var(--line); }
+.derived-road-grid { display: flex; flex: 1; gap: 2px; min-width: 0; min-height: 20px; overflow-x: auto; scrollbar-width: none; }
+.derived-road-grid::-webkit-scrollbar { display: none; }
+.derived-road-empty { display: block; width: 100%; height: 1px; }
+.derived-road-column { display: grid; flex: none; grid-auto-rows: 8px; gap: 2px; }
+.derived-road-cell { width: 8px; height: 8px; border-radius: 50%; }
+.derived-road-bigEye .derived-road-cell.player { border: 1.5px solid var(--player); background: transparent; }
+.derived-road-bigEye .derived-road-cell.banker { border: 1.5px solid #ef2b2b; background: transparent; }
+.derived-road-small .derived-road-cell.player { background: var(--player); }
+.derived-road-small .derived-road-cell.banker { background: #ef2b2b; }
+.derived-road-cockroach .derived-road-cell { position: relative; background: transparent; border-radius: 0; }
+.derived-road-cockroach .derived-road-cell.player::before, .derived-road-cockroach .derived-road-cell.banker::before { content: ""; position: absolute; top: 3px; left: 0; width: 8px; height: 2px; border-radius: 1px; }
+.derived-road-cockroach .derived-road-cell.player::before { background: var(--player); transform: rotate(45deg); }
+.derived-road-cockroach .derived-road-cell.banker::before { background: #ef2b2b; transform: rotate(-45deg); }
+@media (max-width: 620px) {
+  .derived-road { padding: 6px 8px; }
+  .derived-road-grid { gap: 1.5px; min-height: 16px; }
+  .derived-road-column { grid-auto-rows: 6px; gap: 1.5px; }
+  .derived-road-cell { width: 6px; height: 6px; }
+  .derived-road-cockroach .derived-road-cell.player::before, .derived-road-cockroach .derived-road-cell.banker::before { top: 2px; width: 6px; }
+  /* The toggle strip's own numbers ("BIG EYE 50" etc.) were left at desktop size —
+     same read-by-position-not-size markers as .road-cell above, just missed in that pass. */
+  .derived-roads-toggle { min-height: 28px; padding: 4px 8px; font-size: 12px; }
+  .derived-roads-toggle-item { gap: 4px; }
+  .derived-roads-toggle-item i { width: 6px; height: 6px; }
+  .derived-roads-toggle-item.is-cockroach i { width: 7px; }
+  .derived-roads-toggle-item b { font-size: 12px; }
+}
+
+/* Mobile road placement: the road maps move inline between the table and the bet grid
+   (dense, legacy-style ordering) instead of trailing in the desktop sidebar. */
+.loading-screen { align-content: center; gap: 25px; color: var(--muted); font-family: var(--ui-font); }
+.wallet-table-wrap { border: 1px solid var(--line); max-height: min(520px, 62vh); overflow: auto; border-radius: var(--radius-sm); background: var(--panel); }
+.wallet-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-family: var(--ui-font); white-space: nowrap; min-width: 560px; }
+.wallet-table th, .wallet-table td { padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--line); }
+.wallet-table th { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+.wallet-table tr:last-child td { border-bottom: 0; }
+.wallet-table .align-right { text-align: right; font-variant-numeric: tabular-nums; }
+.amount-positive { color: var(--positive); } .amount-negative { color: var(--negative); }
+/* The 결과 column is what the eye actually scans a history table for; as plain body text in
+   the same grey as everything else it was invisible. A tinted chip is what every live-casino
+   history screen uses. `i` is the one-glyph form the phone layout swaps in (see the 620px
+   block) — it is not an icon, so it carries aria-hidden at the call site. */
+.outcome-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; padding: 3px 8px; border: 1px solid transparent; border-radius: 999px; font-size: 12px; font-weight: 600; font-style: normal; letter-spacing: .02em; }
+.outcome-chip i { display: none; font-style: normal; }
+.outcome-chip.is-win { border-color: rgba(64, 196, 122, .35); background: rgba(64, 196, 122, .12); color: var(--positive); }
+.outcome-chip.is-lose { border-color: rgba(255, 108, 120, .3); background: rgba(255, 108, 120, .1); color: var(--negative); }
+.outcome-chip.is-push { border-color: var(--line-strong); background: rgba(255, 255, 255, .05); color: var(--muted); }
+/*
+ * Pre-existing specificity bug: `.ledger-row strong` (0,1,1) outranks the plain
+ * `.amount-positive`/`.amount-negative` utility classes (0,1,0), so every profile ledger row
+ * silently rendered in the row's default tan instead of win/loss green or red. Only the
+ * `.ledger-row` context needs the boost — the wallet table's plain `.amount-positive`/
+ * `.amount-negative` cells have no competing ancestor rule and were already correct.
+ */
+.ledger-row .amount-positive { color: var(--positive); }
+.ledger-row .amount-negative { color: var(--negative); }
+.wallet-heading { display: flex; align-items: center; justify-content: flex-start; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.wallet-title-group { display: flex; width: 100%; min-width: 0; align-items: center; gap: 12px; }
+.wallet-heading { gap: 12px; }
+.wallet-heading h1 { margin: 0; font-family: var(--ui-font); font-size: 22px; font-weight: 600; text-align: left; }
+.wallet-heading .lobby-return-button { min-height: 34px; padding-inline: 12px; font-size: 12px; }
+.wallet-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 16px; }
+.wallet-stat { min-width: 0; min-height: 72px; padding: 13px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); }
+.wallet-stat small { display: block; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; text-overflow: ellipsis; white-space: nowrap; }
+.wallet-stat strong { display: block; margin-top: 8px; overflow: hidden; color: var(--text); font-size: 17px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wallet-stat.positive strong { color: var(--positive); }
+.wallet-stat.negative strong { color: var(--negative); }
+.wallet-table thead th { position: sticky; top: 0; z-index: 1; background: var(--panel); }
+@media (max-width: 620px) { .topbar { padding: 0 12px; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }.account button { display: none; }.account .balance-display { padding: 5px 8px; padding-inline: 8px; display: grid; } }
+@layer base {
+  /* Every native <select> gets the same dark/gold treatment, not just the ones that happen to
+     carry a class — a bare, unclassed <select> (admin room pickers) was rendering as a raw OS
+     control, white dropdown list and all, next to everything else on the gold theme. Anything
+     more specific still overrides this on its own properties. */
+  select {
+    min-height: 40px;
+    padding: 0 32px 0 12px;
+    border: 1px solid rgba(240,180,28, 0.465);
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23d7bc84' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+    color: var(--muted);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    font-weight: 700;
+    appearance: none;
+    cursor: pointer;
+  }
+  select:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 1px; }
+  select:disabled { cursor: not-allowed; opacity: .6; }
+  /* The dropdown's own popup list: most browsers respect <option> background/color even
+     though the popup chrome itself isn't stylable, so this is what actually darkens it. */
+  select option { background: #171008; color: #f0e6cf; }
+}
+/*
+ * Custom Dropdown component (Dropdown.tsx) — a real listbox, not a native <select>, because
+ * a native select's popup hover/selected highlight is OS accent color in most browsers and
+ * CSS can't touch it. Used for the mobile game switcher and both admin room pickers so every
+ * dropdown in the app matches this exact theme, not a half-native compromise.
+ */
+.dropdown { position: relative; }
+.dropdown-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid rgba(240,180,28, 0.465);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.04);
+  color: var(--muted);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.dropdown-trigger[aria-expanded="true"] { border-color: var(--gold-light); }
+.dropdown-chevron { flex: none; color: var(--muted); transition: transform .15s ease; }
+.dropdown-trigger[aria-expanded="true"] .dropdown-chevron { transform: rotate(180deg); color: var(--gold-light); }
+.dropdown-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 60vh;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid rgba(240,180,28, 0.55);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, rgba(35,25,11,.98), rgba(12,10,7,.98));
+  box-shadow: 0 14px 34px rgba(0,0,0,.5);
+}
+/* 아래 공간이 모자라면 트리거 위로 뜬다(Dropdown.tsx 가 열 때 재고 opens-up 을 붙인다). */
+.dropdown.opens-up .dropdown-menu { top: auto; bottom: calc(100% + 6px); }
+.dropdown-menu li {
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: #f0e6cf;
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dropdown-menu li:hover { background: rgba(240,180,28, 0.16); color: var(--gold-light); }
+.dropdown-menu li.selected { background: rgba(240,180,28, 0.28); color: var(--gold-light); font-weight: 600; }
+
+/* Login and shared mobile guardrails. */
+body, #root { width: 100%; max-width: 100vw; overflow-x: hidden; }
+.login-page { width: 100%; max-width: 100vw; overflow-x: hidden; padding: 14px 12px; }
+.login-card { width: min(400px, calc(100vw - 24px)); max-width: 100%; }
+.login-card .brand { max-width: 100%; overflow: hidden; }
+.login-card .brand strong { max-width: 100%; overflow: hidden; font-size: clamp(20px, 7vw, 30px); letter-spacing: .08em; text-overflow: ellipsis; white-space: nowrap; }
+.login-card form, .login-card .gold-button { width: 100%; min-width: 0; }
+
+/* The docked DevTools/mobile viewport can be narrower than the CSS breakpoint; constrain the layout by width itself. */
+#root { width: 100%; max-width: 100vw; min-width: 0; overflow-x: hidden; }
+.topbar { width: 100%; max-width: 100vw; }
+.brand { overflow: hidden; }
+.brand strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account { max-width: 100%; }
+.account .balance-display, .profile-menu { min-width: 0; }
+.account .balance-display { max-width: 116px; overflow: hidden; }
+.profile-menu { max-width: 112px; position: relative; }
+.profile-trigger { max-width: 112px; overflow: hidden; white-space: nowrap; gap: 7px; border-color: var(--line-strong); cursor: pointer; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; font-family: var(--ui-font); }
+/* auto-fill (not auto-fit): a category with only one or two rooms — Dragon Tiger
+   today — must not have its lone card's track stretch to fill the whole row.
+   300px (was 360px) fits 4 compact cards across the 1320px app-shell instead of 3,
+   so a full desktop screen surfaces more rooms without scrolling. */
+.account { overflow: visible; }
+
+/* The balance stays in the bar at every width. Hiding it below 768px put the one number a
+   player checks between every hand two taps away (프로필 → 지갑) on the device most of them
+   play on; no live-casino client does that. The topbar grid is `minmax(0,1fr) auto`, so the
+   account side takes the width it needs and the wordmark — which nobody reads twice — is what
+   gives way. Don't cap .balance-display's width: a truncated balance is worse than no brand. */
+@media (max-width: 768px) {
+  .account { overflow: visible; }
+  .account .balance-display { max-width: none; }
+  .account .profile-menu { max-width: none; overflow: visible; }
+}
+
+/* Lobby starts directly with the game tabs; the profile and sound controls stay icon-led like the mini-game reference. */
+.mute-button, .profile-trigger { display: grid; width: 36px; height: 36px; min-width: 36px; min-height: 36px; padding: 0; place-items: center; }
+.mute-button svg, .profile-trigger svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.profile-trigger { display: inline-flex; width: auto; min-width: 92px; align-items: center; justify-content: center; }
+.profile-trigger:hover, .profile-trigger[aria-expanded="true"] { border-color: var(--gold); background: var(--panel-2); color: var(--text); }
+.profile-trigger span { margin: 0; }
+.profile-trigger svg:last-child { width: 13px; height: 13px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 620px) { .mute-button, .profile-trigger { width: 40px; height: 40px; min-width: 40px; min-height: 40px; } }
+
+/* Compact scale: keep the casino feel without making the content dominate the viewport. */
+.brand strong { font-size: 18px; }
+.topbar nav a { padding: 9px 12px; }
+.login-card h1 { font-size: 29px; }
+
+/* Shared classic casino language for every authenticated screen. */
+.topbar nav a { border-radius: var(--radius-sm); }
+.wallet-table th { background: var(--panel-2); }
+@media (max-width: 620px) {
+  .big-road, .wallet-table-wrap { border-radius: var(--radius-sm); }
+}
+.profile-trigger { min-height: 34px; padding: 0 10px; border: 1px solid var(--gold-deep); background: transparent; color: #e0b23e; }
+.profile-trigger span { margin-left: 4px; color: #ffcd5d; }
+.profile-dropdown { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; display: grid; min-width: 148px; padding: 5px; border: 1px solid var(--gold-deep); border-radius: var(--radius-sm); background: var(--panel); box-shadow: 0 14px 30px rgba(0,0,0,.55); }
+.profile-dropdown a, .profile-dropdown button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 11px; border: 0; border-radius: var(--radius-xs); background: transparent; color: #f3dfae; font-size: 13px; font-weight: 700; text-align: left; text-decoration: none; font-family: var(--ui-font); cursor: pointer; }
+.profile-dropdown a svg, .profile-dropdown button svg { flex: 0 0 auto; color: #d8a94a; }
+.profile-dropdown a:hover, .profile-dropdown button:hover { background: rgba(240,180,28, 0.248); color: var(--gold-light); }
+.profile-dropdown a:hover svg, .profile-dropdown button:hover svg { color: var(--gold-light); }
+/* 게임 안 메뉴: 위는 게임 도구(도움말·게임 기록·전체 화면), 아래는 계정. */
+.profile-dropdown-sep { width: calc(100% - 12px); margin: 4px 6px; border: 0; border-top: 1px solid var(--line-strong); }
+.profile-heading { gap: 20px; border-bottom: 1px solid var(--line); align-items: center; justify-content: flex-start; display: flex; margin-bottom: 12px; padding-bottom: 12px; }
+.profile-heading h1 { font-family: var(--ui-font); font-weight: 600; }
+.profile-heading .muted { margin: 0; font-size: 12.5px; }
+/* Balance is the one gold number on the page; everything around it is neutral. */
+.profile-stat small { display: block; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; font-family: var(--ui-font); }
+.profile-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.profile-stat { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); min-height: 64px; padding: 10px 12px; }
+.profile-stat strong { display: block; color: var(--text); font-weight: 500; font-family: var(--ui-font); font-variant-numeric: tabular-nums; }
+.profile-stat.positive strong { color: #4fc47f; }
+.profile-stat.negative strong { color: #f06a6a; }
+/* No margin was ever set here, so two stacked panels (e.g. GameHistoryPage's
+   "게임별 통계" + "베팅 기록") butted flush against each other with nothing but
+   their own borders between them. */
+.profile-panel { margin-bottom: 20px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); padding: 14px; }
+.profile-panel:last-child { margin-bottom: 0; }
+.profile-panel-heading h2 { margin: 0; }
+.profile-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.profile-actions.single { grid-template-columns: minmax(0, 260px); }
+.profile-action { display: grid; gap: 5px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--panel-2); color: var(--text); text-align: left; cursor: pointer; transition: border-color .15s; min-height: 58px; padding: 10px; }
+.profile-action:hover, .profile-action.active { border-color: var(--gold); background: var(--panel-2); }
+.profile-action strong { font-family: var(--ui-font); font-weight: 600; }
+.profile-action small { color: var(--muted); font-family: var(--ui-font); }
+.profile-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.profile-form.password { grid-template-columns: 1fr; }
+.profile-form.password .gold-button { width: 100%; min-width: 0; }
+.profile-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; font-family: var(--ui-font); }
+.profile-form input { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 14px; font-family: var(--ui-font); }
+.profile-form input:focus { outline: 0; border-color: var(--gold); }
+.profile-form .gold-button { min-width: 124px; margin: 0; }
+.profile-form + .error-message { margin: 12px 0 0; }
+.request-list { display: grid; gap: 0; }
+.ledger-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; border-bottom: 1px solid rgba(240,180,28, 0.217); color: #e8d3a0; font-size: 12px; font-family: var(--ui-font); }
+.ledger-row:last-child { border-bottom: 0; }
+.ledger-row small { margin-left: 6px; color: #bb9d66; font-size: 12px; }
+.ledger-row strong { color: #f8e0a4; font-size: 12px; }
+.game-history-bygame { display: grid; gap: 8px; }
+.game-history-bygame-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: center; gap: 10px; padding: 11px 13px; border: 1px solid rgba(240,180,28, 0.341); border-radius: var(--radius-sm); background: rgba(0,0,0,.22); color: #e8d3a0; font-size: 12px; font-family: var(--ui-font); }
+.game-history-bygame-row strong:first-child { color: var(--gold); }
+.game-history-bygame-row .amount-positive { color: var(--positive); }
+.game-history-bygame-row .amount-negative { color: var(--negative); }
+@media (max-width: 620px) { .game-history-bygame-row { grid-template-columns: 1fr 1fr; row-gap: 4px; } }
+.profile-lobby-link { margin-bottom: 0; flex: 0 0 auto; }
+.lobby-return-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px; padding: 0 13px; border: 1px solid rgba(240,180,28, 0.72); border-radius: var(--radius-sm); background: var(--panel); color: var(--gold-light); font-size: 12px; font-weight: 700; font-family: var(--ui-font); text-decoration: none; box-shadow: inset 0 1px 0 rgba(232,217,184,.08); transition: border-color .2s, background .2s, color .2s; }
+.lobby-return-button span { color: #ffd873; font-size: 15px; line-height: 1; }
+.lobby-return-button:hover { border-color: var(--gold-light); background: #1a1006; color: var(--gold-pale); }
+
+/* Narrow screens: prevent header controls and room cards from forcing a page-wide horizontal scroll. */
+.topbar, .brand, .account, .app-shell, .room-list, .room-tile { min-width: 0; }
+.app-shell { overflow-x: hidden; }
+.room-tile, .outline-button { max-width: 100%; }
+/* flex items default to min-width:auto, which refuses to shrink below the label's intrinsic
+   width and pushes the switcher wider than the viewport instead of fitting three tabs in a row. */
+.account .balance-display strong { white-space: nowrap; }
+@media (max-width: 620px) {
+  .profile-stats { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .profile-actions { grid-template-columns: 1fr; }
+  .profile-form, .profile-form.deposit, .profile-form.withdraw, .profile-form.password { grid-template-columns: 1fr; }
+  .profile-form .gold-button { width: 100%; }
+  .profile-trigger { min-height: 40px; padding: 0; }
+  .account .profile-trigger { place-items: center; height: 40px; min-height: 40px; gap: 7px; display: inline-flex !important; }
+  /* 버튼 오른쪽 끝에 맞춘다(-4px 로 내밀면 폰에서 화면 끝에 붙어 보였다). */
+  .profile-dropdown { right: 0; }
+  .wallet-heading { align-items: center; }
+  .wallet-title-group { gap: 8px; }
+  .wallet-heading .lobby-return-button, .profile-heading .lobby-return-button { min-height: 40px; padding-inline: 12px; border-radius: var(--radius-xs); font-size: 12px; }
+  .wallet-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .wallet-stat strong { margin-top: 6px; }
+  .wallet-table-wrap { max-height: 58vh; overflow-x: hidden; border-radius: var(--radius-sm); }
+  .wallet-table { width: 100%; min-width: 0; table-layout: fixed; font-size: 12px; white-space: normal; }
+  .wallet-table th, .wallet-table td { overflow-wrap: anywhere; }
+  /* These widths describe the four-column ledger (일시·내역·구분·금액). `.wallet-table` is
+     also the game-history table, which has six — and with `table-layout: fixed` the four
+     percentages above already spend 100% of the row, so its 결과 and 손익 columns were
+     laid out at literally 0px: on a phone you could see what you staked but never whether
+     you won. Scope the ledger plan, and give the six-column table its own below. */
+  .wallet-table:not(.history-table) th:nth-child(1), .wallet-table:not(.history-table) td:nth-child(1) { width: 29%; }
+  .wallet-table:not(.history-table) th:nth-child(2), .wallet-table:not(.history-table) td:nth-child(2) { width: 41%; }
+  .wallet-table:not(.history-table) th:nth-child(3), .wallet-table:not(.history-table) td:nth-child(3) { display: none; }
+  .wallet-table:not(.history-table) th:nth-child(4), .wallet-table:not(.history-table) td:nth-child(4) { width: 30%; }
+  /* 일시 · 게임 · (선택 숨김) · 베팅 · 결과 · 손익 — the two columns that answer
+     "did I win, and by how much" are the ones that must survive the narrowest screen. */
+  /* Wide enough for "9. 21. 21:33" on one line — the 일시 cell wrapping was what made
+     every row two lines tall. Tighter side padding buys the extra glyphs. */
+  .history-table th, .history-table td { padding-inline: 8px; }
+  .history-table th:nth-child(1), .history-table td:nth-child(1) { width: 25%; }
+  .history-table th:nth-child(2), .history-table td:nth-child(2) { width: 21%; }
+  .history-table th:nth-child(3), .history-table td:nth-child(3) { display: none; }
+  .history-table th:nth-child(4), .history-table td:nth-child(4) { width: 18%; }
+  .history-table th:nth-child(5), .history-table td:nth-child(5) { width: 14%; }
+  .history-table th:nth-child(6), .history-table td:nth-child(6) { width: 22%; }
+  /* The room name is a second line of detail the 게임 column has no room for here. */
+  .history-table td small { display: none; }
+  .history-table .outcome-chip { min-width: 0; padding: 3px 6px; }
+  .history-table .outcome-chip b { display: none; }
+  .history-table .outcome-chip i { display: inline; }
+  .wallet-table th, .wallet-table td { padding: 11px 13px; }
+  .brand strong { overflow: hidden; font-size: 14px; letter-spacing: .04em; text-overflow: ellipsis; }
+  .account { gap: 5px; overflow: visible; }
+  .account small { overflow: hidden; font-size: 12.5px; letter-spacing: .06em; text-overflow: ellipsis; white-space: nowrap; }
+  .account strong { font-size: 13px; white-space: nowrap; }
+}
+
+@media (max-width: 480px) {
+  .topbar { --topbar-pad-x: 10px; }
+  .brand strong { font-size: 12px; }
+  .account .balance-display { padding-inline: 4px; }
+  /* Last resort at this width: the label collapses to the avatar, the balance never does. */
+  .account .profile-trigger { width: 40px; min-width: 40px; padding: 0; border-radius: 50%; }
+  .account .profile-trigger span, .account .profile-trigger svg:last-child { display: none; }
+}
+
+/* Profile density: keep identity, balance and actions visible without oversized panels. */
+.profile-title-group { display: flex; width: 100%; min-width: 0; align-items: center; gap: 12px; }
+/* 제목은 뒤로 가기 버튼 바로 옆(왼쪽 정렬) — 오른쪽 끝에 두면 눈이 화면을 가로질러야 했다. 제목 뒤 링크(주간 경매 → 등)는 오른쪽 끝. */
+.profile-heading h1 { margin: 0; font-size: 25px; text-align: left; }
+.profile-title-group > h1 ~ :is(a, button, span):last-child { margin-left: auto; }
+.profile-stat strong { margin-top: 5px; font-size: 15px; }
+.profile-panel-heading { margin-bottom: 9px; }
+.profile-panel-heading h2 { font-size: 17px; }
+.profile-actions-panel { margin-bottom: 12px; }
+.profile-action strong { font-size: 13px; }
+.profile-action small { font-size: 12px; }
+@media (max-width: 620px) {
+  .profile-heading { display: flex; }
+  .profile-title-group { gap: 8px; flex-wrap: wrap; }
+  .profile-action { min-height: 50px; padding: 9px; }
+}
+
+/* Mobile header: brand, sound, balance, profile. The balance used to be dropped here on the
+   grounds that it is "available on the profile screen" — but that is two taps away, and a
+   player checks it between hands. It stays; the wordmark is what shrinks. */
+@media (max-width: 620px) {
+  .account .profile-menu { max-width: none; overflow: visible; }
+  .account .profile-trigger { width: auto !important; min-width: 86px !important; padding: 0 10px !important; border-radius: var(--radius-sm) !important; }
+  .account .profile-trigger span, .account .profile-trigger svg:last-child { display: inline !important; }
+  .account .profile-trigger svg:last-child { width: 13px; height: 13px; }
+}
+
+/* Final mobile width guardrails (kept last so legacy compact rules cannot override them). */
+@media (max-width: 768px) {
+  .login-page { width: 100%; max-width: 100vw; padding: 18px 10px; }
+  .login-card { width: min(400px, calc(100vw - 20px)); max-width: 100%; padding: 24px 18px; }
+  .login-card .brand strong { font-size: clamp(19px, 6.5vw, 26px); }
+}
+
+/* Admin console: operational data stays dense and scrollable like the wallet ledger. Neutral
+   panel/line/text tokens throughout — this used to be gold-on-brown like the game felts, but an
+   ops screen isn't a table, and the gold read as gaudy rather than premium here. */
+.admin-nav-link { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); color: var(--text); font-size: 12px; font-weight: 700; font-family: var(--ui-font); text-decoration: none; }
+.admin-nav-link:hover { border-color: var(--muted); background: var(--panel-2); }
+.admin-kpi-grid { display: grid; gap: 9px; margin-bottom: 12px; grid-template-columns: repeat(5,minmax(0,1fr)); }
+.admin-kpi { min-width: 0; min-height: 68px; padding: 11px 13px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--panel-2); }
+.admin-kpi small, .admin-metric small { display: block; color: var(--muted); font-size: 12px; font-family: var(--ui-font); }
+.admin-kpi strong { display: block; margin-top: 7px; overflow: hidden; color: var(--text); font-size: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-kpi.positive strong { color: #4fc47f; }
+.admin-kpi.negative strong { color: #f06a6a; }
+.admin-kpi.warning strong { color: var(--warning); }
+.admin-panel { min-width: 0; padding: 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--panel); }
+.admin-panel-heading { padding-bottom: 9px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.admin-panel-heading h2 { font-size: 17px; }
+.admin-panel-heading span { color: var(--muted); font-size: 12px; font-family: var(--ui-font); }
+.admin-table strong { display: block; overflow: hidden; color: var(--text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-subline { font-size: 12px; font-family: var(--ui-font); display: block; margin-top: 4px; color: var(--muted); font: 12.5px var(--ui-font); }
+.admin-status { justify-content: center; border: 1px solid currentColor; font-size: 12px; display: inline-flex; align-items: center; padding: 0 7px; white-space: nowrap; }
+.admin-small-button { font-size: 12px; font-family: var(--ui-font); white-space: nowrap; color: var(--text); cursor: pointer; }
+.admin-user-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.admin-balance-adjust { display: inline-flex; align-items: center; gap: 4px; }
+.admin-balance-adjust .admin-small-button { min-width: 26px; padding: 0; font-weight: 600; }
+.admin-balance-input { width: 104px; min-height: 28px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: rgba(0,0,0,.28); color: var(--text); font-size: 12px; font-family: var(--ui-font); text-align: center; }
+.admin-balance-input::-webkit-outer-spin-button, .admin-balance-input::-webkit-inner-spin-button { margin: 0; }
+.admin-temp-password { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 4px; padding: 5px 8px; border: 1px solid rgba(79,196,127,.4); border-radius: var(--radius-xs); background: rgba(79,196,127,.1); color: #eafff1; font-size: 12px; font-family: var(--ui-font); }
+.admin-temp-password code { color: #4fc47f; font-weight: 700; }
+.admin-temp-password-close { border: none; background: none; color: #eafff1; cursor: pointer; font-size: 12px; line-height: 1; margin-left: auto; }
+.admin-metric { min-width: 0; padding: 12px; }
+.admin-metric strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-bygame-table { display: grid; gap: 7px; }
+.admin-bygame-row { display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--radius-xs); background: rgba(0,0,0,.15); color: var(--text); font-size: 12px; font-family: var(--ui-font); }
+.admin-bygame-row strong:first-child { color: var(--text); }
+.admin-bygame-row .amount-positive { color: var(--positive); }
+.admin-bygame-row .amount-negative { color: var(--negative); }
+.admin-trend-chart { display: flex; align-items: flex-end; gap: 10px; min-height: 150px; padding-top: 10px; }
+.admin-trend-bar { display: grid; flex: 1; grid-template-rows: 1fr auto auto; justify-items: center; gap: 5px; min-width: 0; height: 100%; }
+.admin-trend-track { display: flex; align-items: flex-end; width: 100%; max-width: 34px; height: 100px; border-radius: var(--radius-xs); background: var(--panel-2); }
+.admin-trend-track i { display: block; width: 100%; border-radius: var(--radius-xs) var(--radius-xs) 0 0; background: var(--muted); }
+.admin-trend-bar small { color: var(--muted); font-size: 12px; font-family: var(--ui-font); }
+.admin-trend-bar span { font-size: 12px; font-weight: 700; font-family: var(--ui-font); }
+.admin-trend-bar .amount-positive { color: var(--positive); }
+.admin-trend-bar .amount-negative { color: var(--negative); }
+@media (max-width: 620px) { .admin-bygame-row { grid-template-columns: 1fr 1fr; row-gap: 4px; } }
+.admin-table-wrap { max-height: min(390px, 55vh); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-xs); }
+.admin-table { width: 100%; min-width: 500px; border-collapse: collapse; font-size: 12px; font-family: var(--ui-font); white-space: nowrap; }
+.admin-table th, .admin-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.admin-table th { position: sticky; top: 0; z-index: 1; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 700; }
+.admin-table td { color: var(--text); }
+.admin-table tr:last-child td { border-bottom: 0; }
+.admin-table .admin-status { min-height: 21px; font-size: 12.5px; }
+.admin-protected { font-size: 12px; color: var(--muted); font: 12px var(--ui-font); }
+.admin-empty { padding: 22px !important; color: var(--muted) !important; text-align: center !important; }
+@media (max-width: 768px) {
+  .admin-kpi-grid { gap: 7px; }
+  .admin-kpi { min-height: 60px; padding: 9px 10px; }
+  .admin-kpi strong { font-size: 15px; }
+  .admin-panel { padding: 11px; }
+}
+@media (max-width: 480px) {
+  .admin-kpi small { font-size: 12.5px; }
+  .admin-kpi strong { font-size: 14px; }
+}
+/* GameShell: the site topbar is gone once you're at a table — this one slim bar (table
+   name/limits, phase timer, sound/balance/fullscreen/profile) replaces it entirely, Evolution-
+   style, so the felt below gets the rest of the viewport instead of stacking under two headers. */
+.game-bar { top: 0; z-index: 20; display: flex; align-items: center; gap: 16px; padding-block: 0; border-bottom: 1px solid var(--gold-deep); background: var(--bar-top); box-shadow: none; }
+.game-back { display: grid; flex: 0 0 auto; place-items: center; width: 34px; height: 34px; border: 1px solid var(--gold-deep); border-radius: var(--radius-sm); background: var(--gold-btn); color: var(--on-gold); font-weight: 700; text-decoration: none; transition: background .2s; }
+.game-back:hover { background: var(--gold-btn-hover); }
+.game-bar-title { display: grid; flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+.game-bar-title strong { overflow: hidden; color: var(--text); font-family: var(--ui-font); font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.game-bar-title span { overflow: hidden; color: var(--muted); font-size: 12px; font-family: var(--ui-font); text-overflow: ellipsis; white-space: nowrap; }
+/* Phase + seconds: a tracked caps label and a big plain number — the "traffic light" is
+   the label colour (green while open, red when closing), not a box around it. */
+.game-bar-phase { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; min-height: 34px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--panel-2); color: var(--tie-light); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; font-family: var(--ui-font); white-space: nowrap; }
+.game-bar-phase strong { color: var(--text); font-family: var(--ui-font); font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+/* Last five seconds: the same red the felt's countdown ring uses, so a player watching
+   only the bar (every phone layout) still sees the bet close coming. */
+.game-bar-phase.is-closing { color: var(--banker-light); box-shadow: none; }
+/* Sits directly under the game bar, pushing the felt down, because a player has to notice that
+   what they are looking at is a frozen snapshot before they try to act on it. */
+/* 게임 화면(.game-shell)은 [헤더 · 판] 두 줄 격자라, 이 띠가 줄을 차지하면 판 줄을 빼앗아 270px 로 부풀고 판이
+   그 아래 남는 줄로 밀려났다 — 헤더 가운데 빈 곳에 떠 있는 알약으로 둔다(판 윗단엔 상태 알약이 있다). */
+.game-offline-bar { position: absolute; top: 6px; left: 50%; z-index: 50; transform: translateX(-50%); display: flex; align-items: baseline; justify-content: center; gap: 10px; max-width: calc(100% - 24px); padding: 7px 16px; border: 1px solid var(--banker-deep, var(--gold-deep)); border-radius: 9px; background: rgba(150, 32, 32, .92); color: #fff; font-family: var(--ui-font); font-size: 13px; font-weight: 600; text-align: center; }
+.game-offline-bar small { color: rgba(255, 255, 255, .78); font-size: 12px; font-weight: 400; }
+.game-bar-phase.is-closing strong { color: #ff6b74; animation: phase-tick 1s steps(1) infinite; }
+@keyframes phase-tick { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .game-bar-phase.is-closing strong { animation: none; } }
+.game-bar-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.game-bar-actions .balance-display { padding: 0 12px; border-left: 1px solid var(--line-strong); white-space: nowrap; }
+.game-bar-actions .balance-display strong { color: var(--text); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.game-body { margin: auto; }
+@media (max-width: 620px) {
+  .game-bar { gap: 10px; }
+  .game-back { width: 30px; height: 30px; font-size: 13px; }
+  .game-bar-title strong { font-size: 13px; }
+  .game-bar-phase { padding: 0 10px; min-height: 30px; }
+  .game-bar-phase strong { font-size: 14px; }
+  .game-bar-actions { gap: 5px; }
+  .game-bar-actions .balance-display { display: none; }
+}
+.chip-stack { width: 26px; }
+.chip-stack-layer, .chip-stack-top { width: 22px; }
+.chip { width: 38px; }
+/* Defensive: grid/flex items default to min-width:auto, which refuses to shrink below the
+   content's intrinsic width and silently overflows a fixed-width track instead of wrapping.
+   Force min-width:0 down this whole column so long values (hex round IDs, etc.) truncate
+   with ellipsis instead of spilling past the sidebar's edge. */
+.big-road-head, .road-tally { min-width: 0; }
+.big-road-head h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* flex-basis 40% + wrap = a steady 2-per-row grid; min-width:0 is required or flex items refuse to
+   shrink below their text's intrinsic width and silently overflow the fixed-width sidebar column. */
+.road-cell { width: 13px; }
+
+
+/* Lobby page footer: brand mark, quick links to the account pages, copyright line. */
+.lobby-footer-brand { color: var(--gold-light); font-size: 13px; letter-spacing: .12em; font-family: var(--ui-font); }
+.lobby-footer-links { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: -9px 0; }
+/* Padded to a 40px-tall hit area; the visual gap is unchanged because the padding
+   replaces the flex gap it eats. These were 24×21 targets before. */
+.lobby-footer-links a { display: inline-flex; align-items: center; min-height: 42px; padding: 0 9px; color: var(--muted); font-size: 13px; text-decoration: none; }
+.lobby-footer-links a:hover { color: var(--gold-light); }
+.lobby-footer-copy { flex-basis: 100%; margin: 0; color: var(--muted-dim); font-size: 12px; text-align: center; }
+.responsible-play-notice { min-width: 0; color: var(--muted); font: 12px/1.6 var(--ui-font); text-align: center; }
+.responsible-play-notice p { margin: 0; }
+.responsible-play-notice p + p { margin-top: 3px; }
+.responsible-play-notice strong { color: var(--text); }
+.responsible-play-notice a { color: var(--gold-light); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.responsible-play-notice.is-footer { flex: 1 0 100%; padding: 0 8px; }
+.responsible-play-notice.is-login { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: rgba(0,0,0,.16); }
+.responsible-play-notice.is-menu { width: min(280px, calc(100vw - 56px)); margin: 4px 6px; padding: 10px; border-top: 1px solid var(--line-strong); text-align: left; }
+.profile-dropdown .responsible-play-notice a { display: inline; width: auto; padding: 0; border-radius: 0; background: transparent; color: var(--gold-light); font-size: inherit; }
+@media (max-width: 620px) { .lobby-footer { justify-content: center; text-align: center; margin-top: 24px; padding-top: 16px; } .lobby-footer-links { justify-content: center; } }
+
+.big-road-compact .big-road-head { padding: 4px 9px; }
+.big-road-compact .big-road-head h3 { font-size: 12px; letter-spacing: .04em; }
+.big-road-compact .road-tally { gap: 6px; font-size: 12px; }
+/* A fixed height (not just a min-height), matched to the tallest a road can actually get —
+   6 rows of 9px cells plus 5 gaps, see COMPACT_MAX_COLUMNS/maxRows in BigRoad.tsx — so every
+   room card is the same height regardless of how streaky that particular table's shoe has
+   been, instead of a heavily-hit table's card visibly stretching taller than its neighbors. */
+.big-road-compact .big-road-grid { height: 64px; min-height: 0; padding: 5px; overflow-y: hidden; }
+.big-road-compact .big-road-column { grid-auto-rows: 9px; gap: 2px; }
+.big-road-compact .road-cell { width: 9px; height: 9px; }
+.big-road-compact .road-cell em { right: -2px; bottom: -2px; font-size: 6px; }
+.big-road-compact .big-road-empty { font-size: 12px; white-space: normal; }
+
+/* Extra-compact pass for narrow phones: the 620px breakpoint above still leaves several
+   headings/controls sized for tablets. Shrink the biggest remaining touchpoints so more of
+   each page fits in one glance without scrolling past oversized type. */
+@media (max-width: 480px) {
+  .app-shell { padding: 16px 10px 48px; --shell-pad-x: 10px; }
+  .wallet-heading h1 { font-size: 18px; }
+  .wallet-stat strong { font-size: 13px; }
+  .wallet-table th, .wallet-table td { padding: 8px 10px; font-size: 12px; }
+  .chip { width: 40px; height: 40px; font-size: 11px; }
+  .login-card { padding: 22px 18px; }
+  .login-card h1 { font-size: 23px; }
+  .big-road-compact .road-cell { width: 8px; height: 8px; }
+  .big-road-compact .big-road-column { grid-auto-rows: 8px; }
+  .profile-trigger { font-size: 12px; }
+  .profile-dropdown { min-width: 130px; }
+  .profile-dropdown a, .profile-dropdown button { padding: 9px; font-size: 12px; }
+}
+
+/* Winner feed — Evolution-style "recent wins" list in the table sidebar. */
+.winner-feed { overflow: hidden; border: 1px solid var(--gold-line); border-radius: var(--radius-lg); background: var(--panel-gradient); }
+.winner-feed ul { display: grid; margin: 0; padding: 6px 10px 10px; list-style: none; }
+.winner-feed li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 7px 6px; border-radius: var(--radius-sm); font-size: 12px; font-family: var(--ui-font); }
+.winner-feed li:hover { background: rgba(240,180,28, 0.124); }
+.winner-feed-name { color: var(--muted); font-weight: 700; }
+.winner-feed-choice { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.winner-feed-amount { color: var(--gold-light); font-weight: 600; white-space: nowrap; }
+
+/* Room chat — floating button + overlay panel, reuses the room page's own socket. */
+/* padding:0 은 아이콘 크기를 위해 필요하다 — 버튼이 물려받던 1px 6px 때문에 안쪽 상자가
+   30x30 이 아니라 18x28 이 되어, 아래 퍼센트가 아이콘을 세로로 길쭉하게 눌렀다. */
+.room-chat-toggle { position: fixed; right: 22px; bottom: 22px; z-index: 40; display: grid; width: 52px; height: 52px; padding: 0; place-items: center; border: 1px solid var(--gold-deep); border-radius: 50%; background: var(--gold-btn); color: var(--on-gold); box-shadow: 0 12px 28px -10px rgba(0,0,0,.6); cursor: pointer; }
+.room-chat-toggle:hover { background: var(--gold-btn-hover); }
+/* 아이콘이 lucide 의 size={20} 로 고정이라, 버튼이 52px 일 때를 기준으로 고른 크기가 26~30px
+   짜리 홀덤·섯다 도구 버튼에서는 원 밖으로 삐져나왔다. 버튼 지름에 비례시키면 어느 크기로
+   줄든 안에 들어온다 — 정사각 아이콘의 대각선까지 원 안에 두려면 지름의 70% 아래여야 한다. */
+.room-chat-toggle svg { width: 54%; height: 54%; }
+.room-chat-badge { position: absolute; top: -4px; right: -4px; display: grid; min-width: 19px; height: 19px; padding: 0 5px; place-items: center; border-radius: 999px; background: var(--negative); color: #fff; font-size: 12px; font-weight: 600; font-family: var(--ui-font); }
+/* ── Seat avatar ──────────────────────────────────────────────────────────────
+   One initial in a disc, on every occupied seat in 홀덤/섯다/블랙잭. A name and a
+   number alone read as a label printed on the felt; this reads as somebody sitting
+   there, and gives each player a mark you can pick out faster than 11px type.
+   No per-player tint on purpose — colour in this palette means "actionable". */
+.seat-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px; height: 18px;
+  /* -3px pulls the nickname back: at 22px the disc cost the other seats' names ~7px and
+     started ellipsizing them, and a truncated name is worse than a slightly smaller disc. */
+  margin-right: -3px;
+  border: 1px solid var(--gold-line-soft);
+  border-radius: 50%;
+  background: var(--panel-raised);
+  color: var(--gold-pale);
+  font: 700 12px var(--ui-font);
+  line-height: 1;
+  overflow: hidden;
+}
+.seat-avatar.is-mine { border-color: var(--gold); color: var(--gold-light); }
+/* AI 봇 좌석은 이니셜 대신 "봇" — 색으로만 구분해서 문구 배지를 이름 앞에 하나 더 얹지 않는다. */
+.seat-avatar.is-bot { border-color: rgba(140, 200, 255, .75); background: linear-gradient(180deg, #5aa9ff, #1f62c8); color: #f2f8ff; }
+button.seat-avatar.is-bot.is-removable { padding: 0; cursor: pointer; }
+button.seat-avatar.is-bot.is-removable:hover:not(:disabled) { background: linear-gradient(180deg, #ff7a82, #c02430); }
+button.seat-avatar.is-bot.is-removable:disabled { opacity: .55; cursor: progress; }
+/* The plates are already tight on a phone; the disc shrinks with them rather than
+   pushing the nickname into an ellipsis. */
+@media (max-width: 620px) {
+  .seat-avatar { width: 15px; height: 15px; margin-right: -2px; }
+}
+/* 높이는 dvh 여야 한다. vh 는 소프트 키보드가 올라와도 줄지 않아서, 폰에서 채팅을 열면
+   입력칸이 키보드 밑에 깔린 채로 남았다 — 무엇을 치고 있는지 안 보이는 상태. */
+.room-chat-panel { position: fixed; right: 22px; bottom: 84px; z-index: 40; display: grid; grid-template-rows: auto 1fr auto; width: min(340px, calc(100vw - 32px)); height: min(440px, calc(100dvh - 160px)); overflow: hidden; border: 1px solid var(--gold-line); border-radius: var(--radius-lg); background: var(--panel-gradient); box-shadow: 0 24px 60px -18px rgba(0,0,0,.7); }
+.room-chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--gold-line); color: var(--gold-light); font-family: var(--ui-font); font-size: 13px; }
+/* Same reasoning as the composer: 닫기 is the one thing that must stay reachable, so the
+   title yields width instead of pushing it out of the panel. It is an <h2> (the dialog's
+   accessible name), so it also drops the heading margin, size and shadow. */
+.room-chat-head .room-chat-title { min-width: 0; margin: 0; overflow: hidden; color: inherit; font: inherit; text-overflow: ellipsis; text-shadow: none; white-space: nowrap; }
+.room-chat-head button { display: grid; flex: 0 0 auto; place-items: center; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.room-chat-list { display: grid; gap: 8px; align-content: start; overflow-y: auto; padding: 12px 14px; }
+.room-chat-empty { margin: auto; color: var(--muted); font-size: 12px; font-family: var(--ui-font); text-align: center; }
+.room-chat-message { display: grid; gap: 2px; }
+.room-chat-author { color: var(--gold); font-size: 12px; font-weight: 700; font-family: var(--ui-font); }
+.room-chat-text { overflow-wrap: break-word; color: var(--text); font-size: 12px; font-family: var(--ui-font); }
+.room-chat-message.is-mine .room-chat-author { color: var(--gold-light); }
+.room-chat-message.is-admin .room-chat-author { color: #4fd191; }
+.room-chat-message.is-admin .room-chat-text { color: #d6f5e6; }
+/* Grid, not flex: with flex the input is sized from its intrinsic width (a text input reports
+   ~20 characters) and only shrinks if every shrink factor cooperates. On a phone that came out
+   one button-width too wide and pushed 전송 off the right edge. A minmax(0,1fr) column can only
+   ever be "whatever is left", so the button is reserved first and can never be clipped. */
+.room-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--gold-line); }
+.room-chat-composer input { min-width: 0; width: 100%; min-height: 38px; padding: 0 12px; border: 1px solid var(--gold-deep); border-radius: var(--radius-sm); background: rgba(0,0,0,.35); color: var(--text); font-family: var(--ui-font); font-size: 12px; }
+.room-chat-composer button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--gold-deep); border-radius: var(--radius-sm); background: var(--gold-btn); color: var(--on-gold); cursor: pointer; }
+.room-chat-error { margin: 0; padding: 0 14px 10px; color: var(--negative); font-size: 12px; font-family: var(--ui-font); }
+@media (max-width: 620px) {
+  .room-chat-toggle { right: 14px; bottom: 14px; width: 46px; height: 46px; }
+}
+
+/* ── 폰에서는 채팅이 전체화면 ──────────────────────────────────────────────
+   구석에 뜨는 패널은 폰에서 어느 크기로 잡아도 틀렸다: 세로에서는 좌석을 덮고, 가로에서는
+   펠트를 위아래로 가로질러 오른쪽 좌석들을 통째로 지웠으며, 키보드가 올라오면 남는 대화
+   영역이 두어 줄이었다. 읽기도 쓰기도 안 되는 크기를 테이블 위에 얹느니, 채팅을 여는 동안은
+   화면을 통째로 준다 — 폰의 메신저가 다 그렇게 한다. 테이블은 닫으면 그대로 있다.
+   조건은 RoomChat.tsx 의 FULLSCREEN_CHAT 이 판단하고, 맞을 때만 is-fullscreen 이 붙은 채
+   body 로 포털된다. 그래서 여기 미디어 쿼리가 없고, 방별 시트의 배치 규칙(.game-shell …)도
+   더 이상 매치되지 않는다. */
+.room-chat-panel.is-fullscreen {
+  top: var(--room-chat-top, 0px); right: 0; bottom: auto; left: 0;
+  width: 100%;
+  /* --room-chat-vh is set from visualViewport by RoomChat while the panel is open: browsers
+     without interactive-widget support still shrink the visual viewport for the keyboard, and
+     this keeps the panel inside it instead of running on underneath. 100dvh is the fallback. */
+  height: var(--room-chat-vh, 100dvh);
+  max-width: 100%;
+  max-height: none;
+  padding-right: env(safe-area-inset-right);
+  padding-left: env(safe-area-inset-left);
+  border: 0;
+  border-radius: 0;
+  z-index: 90;
+}
+/* 헤더는 방 이름 한 줄 + 닫기 버튼뿐이라, 터치 하한을 지키려고 닫기 버튼을 키운 만큼
+   (40px + 위아래 14px) 대화 내용을 밀어내리고 있었다 — 여기서 필요한 여유는 닫기 버튼의
+   탭 영역이지, 헤더 자체의 키가 아니다. */
+.room-chat-panel.is-fullscreen .room-chat-head { padding: 8px 10px 8px 16px; font-size: 14px; }
+.room-chat-panel.is-fullscreen .room-chat-head button { width: 34px; height: 34px; }
+.room-chat-panel.is-fullscreen .room-chat-head button svg { width: 18px; height: 18px; }
+.room-chat-panel.is-fullscreen .room-chat-list { padding: 14px 16px; gap: 12px; }
+.room-chat-panel.is-fullscreen .room-chat-author { font-size: 13px; }
+.room-chat-panel.is-fullscreen .room-chat-text { font-size: 15px; }
+.room-chat-panel.is-fullscreen .room-chat-composer { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+/* 포털로 body 에 붙으면 아래 "터치 하한" 규칙의 .room-chat-composer 는 그대로 매치되지만,
+   전체화면 채팅은 어차피 폰이므로 여기서도 같은 하한을 박아 둔다. */
+.room-chat-panel.is-fullscreen .room-chat-composer input { min-height: 42px; font-size: 16px; }
+.room-chat-panel.is-fullscreen .room-chat-composer button { width: 42px; height: 42px; }
+/* 12px 입력칸은 iOS Safari 가 포커스할 때마다 페이지를 확대한다 — 한 줄 치고 나면 테이블이
+   줌된 채로 남아 손으로 되돌려야 했다. 16px 는 그 확대가 걸리지 않는 하한이고, 42px 는 이
+   파일이 다른 곳에서 쓰는 터치 하한(40px)에 맞춘 것. */
+@media (max-width: 900px), (pointer: coarse) {
+  .room-chat-composer input { min-height: 42px; font-size: 16px; }
+  .room-chat-composer button { width: 42px; height: 42px; }
+}
+
+/* =============================================================================
+   Overlay table ("ot-*"): the baccarat felt as one hero surface — hands, timer,
+   bet zones and road maps floated over it, Evolution-style, but printed into a
+   felt we draw ourselves instead of overlaid on video. Everything here is scoped
+   under .ot-felt / .ot-rail so it can't collide with the older shared classes
+   (.chip, .hand, .card-hint, .big-road…) that Blackjack and the lobby still use.
+   Desktop-first (this genuinely wants width); a media query at the bottom
+   collapses it back to a plain stacked column below ~900px.
+   ============================================================================= */
+.ot-stage { position: relative; }
+.ot-felt {
+  --felt-highlight: rgba(16,160,102, .52);
+  --felt-shadow: rgba(1,20,12, .9);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: clamp(560px, calc(100vh - 220px), 720px);
+  border: 1px solid rgba(226, 181, 65, .8);
+  /* Same radius as the chip rail below it (.ot-rail) and on all four corners — the felt
+     used to round its bottom corners (34px) far more than its top (22px), which read as
+     mismatched against the rail's flat 15px right underneath it. One smaller, uniform
+     value ties the felt and the rail together as one curvature instead of two. */
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse 86% 58% at 50% 15%, var(--felt-highlight), transparent 58%),
+    radial-gradient(ellipse 65% 52% at 50% 54%, rgba(10,106,68, .38), transparent 72%),
+    repeating-linear-gradient(116deg, rgba(255,255,255,.018) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(24deg, rgba(0,0,0,.028) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #0a5b3a 0%, #054228 48%, #02291a 100%);
+  box-shadow:
+    0 42px 86px -32px rgba(0,0,0,.92),
+    0 0 0 1px rgba(92,57,14, .88),
+    0 0 0 5px rgba(10, 8, 5, .96),
+    0 0 0 7px rgba(224,163,65, .2),
+    inset 0 1px 0 rgba(232,217,184,.34),
+    inset 0 -62px 95px var(--felt-shadow),
+    inset 42px 0 88px -68px rgba(0,0,0,.92),
+    inset -42px 0 88px -68px rgba(0,0,0,.92);
+}
+
+.ot-felt::before,
+.ot-felt::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+/*
+ * No inner pit-oval: this used to draw a second, curved outline a short distance inside
+ * the felt's own straight-edged border — near a corner the two arcs read as one border
+ * doubled into two parallel lines rather than as one table edge. The felt's real border
+ * (on .ot-felt itself) is the only outline now. Every media-query tweak below that still
+ * repositions this pseudo-element (inset/opacity at various breakpoints) is inert with
+ * display: none and can stay; none of them re-enable it.
+ */
+.ot-felt::before { display: none; }
+.ot-felt::after {
+  inset: 0;
+  background:
+    radial-gradient(circle at 24% 12%, rgba(15,79,216, .1), transparent 23%),
+    radial-gradient(circle at 76% 12%, rgba(204,10,28, .09), transparent 23%),
+    linear-gradient(90deg, rgba(240,180,28, 0.054), transparent 12%, transparent 88%, rgba(240,180,28, 0.054)),
+    radial-gradient(ellipse 70% 18% at 50% 100%, rgba(240,180,28, 0.085), transparent 72%);
+}
+
+/* Winner feed docked top-left, restyled from the sidebar card it is elsewhere. */
+.ot-feed { position: absolute; top: 14px; left: 14px; z-index: 4; width: 190px; }
+.ot-feed .winner-feed { border-color: rgba(240,180,28, 0.496); border-radius: var(--radius-md); background: linear-gradient(145deg, rgba(4,30,20,.82), rgba(2,16,10,.72)); box-shadow: inset 0 1px 0 rgba(232,217,184,.07), 0 14px 34px rgba(0,0,0,.2); backdrop-filter: blur(10px); }
+.ot-feed .winner-feed ul { padding: 6px 6px 7px; max-height: 132px; overflow-y: auto; }
+.ot-feed .winner-feed li { grid-template-columns: auto 1fr auto; gap: 5px; padding: 3px 4px; font-size: 12px; }
+.ot-feed .winner-feed-choice { display: none; }
+.ot-card-slot {
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(232,217,184,.3);
+  background: linear-gradient(145deg, rgba(255,255,255,.025), rgba(0,0,0,.06));
+  color: rgba(232,217,184,.3);
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,.045), 0 8px 18px rgba(0,0,0,.08);
+  font-family: var(--ui-font);
+}
+
+/* Countdown ring — the single clearest "time left" cue once there's no human dealer. */
+.ot-timer { position: absolute; top: 49%; left: 50%; transform: translate(-50%,-50%); z-index: 3; display: grid; width: 64px; height: 64px; place-items: center; border: 1px solid rgba(240,180,28, 0.279); border-radius: 50%; background: radial-gradient(circle, rgba(6,48,31,.9), rgba(1,20,12,.94)); box-shadow: 0 0 0 6px rgba(1,24,15,.45), 0 6px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.09); }
+.ot-timer svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+/* Evolution's Immersive-view TIMER: a depleting green ring (#08CF5C) with a plain white
+   numeral in the centre. Green = you can bet; it turns red as betting closes. */
+.ot-timer-track { fill: rgba(4,12,8,.8); stroke: rgba(255,255,255,.12); stroke-width: 3; }
+.ot-timer-ring { fill: none; stroke: #08cf5c; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 163.4; filter: none; transition: stroke-dashoffset .95s linear, stroke .3s; }
+.ot-timer.closing .ot-timer-ring { stroke: var(--banker-light); filter: none; }
+.ot-timer-num { position: relative; font-family: var(--ui-font); font-size: 22px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+.ot-timer.closing .ot-timer-num { color: var(--banker-light); }
+
+/* ── Bottom rail: balance, chip tray, actions, total bet ─────────────────── */
+.ot-tray { display: flex; align-items: center; gap: 8px; margin: 0 auto; }
+.chip-picker-trigger, .chip-picker-menu { display: none; }
+.ot-message { position: absolute; left: 50%; bottom: 106px; transform: translateX(-50%); z-index: 3; color: var(--text); font-size: 12.5px; font-weight: 500; font-family: var(--ui-font); white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+
+@media (max-width: 900px) {
+  .ot-feed { display: none; }
+  .ot-felt { min-height: 0; border-radius: var(--radius-lg); box-shadow: 0 26px 56px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(92,57,14,.88), 0 0 0 4px rgba(10,8,5,.96), inset 0 1px 0 rgba(232,217,184,.25), inset 0 -42px 72px rgba(1,20,12,.76); }
+  .ot-felt::before { inset: -8% 2% 58%; opacity: .58; }
+  .ot-felt::after { opacity: .72; }
+  .ot-timer { display: none; }
+  .ot-message { position: static; transform: none; text-align: center; margin-top: 6px; }
+  .ot-tray { order: -1; width: 100%; justify-content: center; }
+  .game-shell .ot-tray .chip-option { display: none; }
+  .game-shell .ot-tray { position: relative; order: 0; width: auto; gap: 4px; justify-content: flex-start; z-index: 31; }
+  /* No border/background here on purpose — the shared chip-face recipe (radial gradient +
+     conic rim dots, tier-coloured via .chip-tier-N) supplies both, so the trigger always
+     shows the actual face of the currently selected denomination instead of a fixed gold
+     disc that never changed no matter which chip was active. */
+  .game-shell .chip-picker-trigger {
+    display: grid; position: relative; z-index: 2; place-items: center; padding: 0; font: 600 14px var(--ui-font);
+    box-shadow: 0 0 0 2px rgba(240,180,28,.72), inset 0 0 0 2px rgba(35,21,6,.7);
+    font-size: 11px;
+  }
+  .game-shell .chip-picker-menu {
+    display: flex; position: absolute; left: 50%;
+    transform: translateX(-50%); align-items: center; justify-content: center;
+    width: max-content;
+    border: 1px solid rgba(240,180,28, 0.7); border-radius: var(--radius-md);
+    background: linear-gradient(180deg, rgba(35,25,11,.98), rgba(12,10,7,.98));
+    box-shadow: 0 10px 24px rgba(0,0,0,.48);
+    gap: 4px;
+    max-width: calc(100vw - 16px);
+    z-index: 80;
+    padding: 5px;
+  }
+  .game-shell .chip-picker-menu::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; transform: translateX(-50%) rotate(45deg); border-right: 1px solid rgba(240,180,28, 0.7); border-bottom: 1px solid rgba(240,180,28, 0.7); background: var(--on-gold); }
+  /* Real coin face, matching the desktop chip tray — the flat rectangle look this used
+     to have read as filler UI next to the tray's actual chips. .chip-picker-menu button
+     already carries the shared chip-face recipe (radial gradient + border-radius:50%);
+     only size/typography need setting here, not the face itself. */
+  .game-shell .chip-picker-menu button { position: relative; z-index: 1; padding: 0; font: 600 11px var(--ui-font); cursor: pointer; transition: transform .14s ease, box-shadow .14s ease; }
+  .game-shell .chip-picker-menu button.selected { transform: scale(1.08); outline: 2px solid var(--gold-light); outline-offset: 2px; }
+}
+
+/* =============================================================================
+   Compact room viewport: header + table + betting rail always fit in one screen.
+   Shoe and balance already live in the header, so the room itself only spends
+   height on play. These overrides intentionally come last in the cascade.
+   ============================================================================= */
+.game-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+.game-shell .game-bar {
+  position: relative;
+  min-height: 48px;
+  padding-inline: 14px;
+}
+.game-shell .game-body {
+  display: block;
+  width: min(1600px, 100%);
+  min-height: 0;
+  height: 100%;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+.game-shell .room-shell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.game-shell .room-shell.is-fullscreen {
+  display: block;
+  height: 100dvh;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+.game-shell .ot-stage {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 56px;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.game-shell .ot-felt {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+/* Keep Baccarat / Dragon Tiger hands in the playable middle band. A fixed top offset
+   looked acceptable on short monitors but drifted toward the ceiling as the felt grew
+   taller; the clamped percentage scales with the table, then stops before the betting zones. */
+.game-shell .ot-timer { top: 46%; }
+.game-shell .ot-tray {
+  flex: 0 1 auto;
+  min-width: 0;
+  /* margin-left: auto here (paired with .ot-money.right's own margin-left: auto) splits the
+     rail's leftover space into two equal pockets — before the tray and before the total/chat —
+     so the chip tray + undo/repeat sit centered as a group between the left edge and the
+     pinned-right total/chat, instead of packed flush left with one big empty gap on desktop.
+     A two-sided `margin: 0 auto` would give the tray its own auto-margin on both sides and pull
+     it apart from .ot-acts instead of keeping them together as one block. */
+  margin: 0 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .game-shell .game-body { padding: 7px 8px; }
+  .game-shell .ot-stage { grid-template-rows: minmax(0, 1fr) 52px; gap: 7px; }
+  /* Same 16px as the desktop felt and the rail below it — was 14px, a third value in
+     what should be one consistent curvature between the felt and its own chip rail. */
+  .game-shell .ot-felt { border-radius: var(--radius-lg); }
+  .game-shell .ot-tray {
+    /* Space is tight here — keep the tray flush left like before instead of the desktop
+       centering (see the unscoped .game-shell .ot-tray rule above). */
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-shell { grid-template-rows: 46px minmax(0, 1fr); }
+  .game-shell .game-bar {
+    min-height: 46px;
+    gap: 5px;
+    padding: 0 7px;
+  }
+  .game-shell .game-bar-title { display: none; }
+  .game-shell .game-back { width: 32px; height: 32px; }
+  .game-shell .game-bar-phase { gap: 5px; min-height: 32px; padding: 0 7px; font-size: 12px; }
+  .game-shell .game-bar-phase strong { font-size: 13px; }
+  .game-shell .game-bar-actions { gap: 4px; }
+  .game-shell .game-bar-actions .balance-display {
+    display: grid;
+    max-width: none;
+    padding: 0 5px;
+    border-left: 0;
+  }
+  .game-shell .game-bar-actions .balance-display strong { font-size: 12px; }
+  .game-shell .game-bar-actions .mute-button,
+  .game-shell .game-bar-actions .profile-trigger {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+  .game-shell .game-body { padding: 6px; }
+  .game-shell .ot-stage { grid-template-rows: minmax(0, 1fr) 48px; gap: 6px; }
+  /* 총 베팅 readout 이 숨어 자기 몫의 margin-left:auto 도 같이 사라졌다 — 그 여유 공간을
+     아무도 안 가져가니 채팅이 언더·×2·리핏 아이콘 바로 뒤 2px 간격에 그대로 눌러앉았고,
+     칩 선택(가운데 absolute 로 고정)까지 그 옆에 겹쳐 셋이 한 덩어리로 붙어 보였다. 채팅이
+     그 자리를 대신 가져가 레일 맨 오른쪽 끝으로 붙는다 — 칩 선택보다도 오른쪽. */
+  .room-chat-toggle { width: 40px; height: 40px; right: 10px; bottom: 58px; }
+}
+
+@media (max-width: 900px) and (max-height: 680px) {
+  .game-shell .ot-feed { display: none; }
+  .game-shell .ot-timer { top: 50%; }
+}
+/* 독에 앉은 채팅 버튼은 solid gold 였다 — 레일에서 유일하게 꽉 찬 금색이라, 실제 CTA인
+   베팅 확정 버튼보다 눈에 먼저 들어왔다. 옆의 icon-action·pvp-tool 과 같은 외곽선 톤으로
+   내리고, 주목이 필요한 순간(안 읽은 메시지)에는 빨간 배지가 대신 부른다. */
+.pvp-tools .room-chat-toggle {
+  border-color: var(--gold-line);
+  background: rgba(0, 0, 0, .28);
+  color: var(--gold-light);
+  box-shadow: none;
+}
+.pvp-tools .room-chat-toggle:hover {
+  border-color: rgba(240, 180, 28, .6);
+  background: rgba(240, 180, 28, .14);
+}
+.game-shell .room-chat-panel:not(.is-fullscreen) { bottom: 70px; }
+
+/* Derived baccarat statistics deserve the same visual weight as the bet zones. */
+
+@media (max-width: 480px) {
+  .game-shell .profile-trigger span,
+  .game-shell .profile-trigger svg:last-child { display: none; }
+}
+
+@layer base {
+  /* ── One scrollbar everywhere ──────────────────────────────────────────────────
+     The platform default is a wide light bar that looks pasted onto a dark felt, and it showed up
+     in every panel that scrolls: the help sheet, the winner feed, chat, the admin tables. A thin
+     gold thumb on a transparent track reads as part of the panel instead. Firefox gets the same
+     thing through scrollbar-width/color; the roads keep their own narrower strips further down. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(240, 180, 28, .55) transparent;
+  }
+  *::-webkit-scrollbar { width: 9px; height: 9px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(240, 180, 28, .45);
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(240, 180, 28, .72); background-clip: content-box; }
+  *::-webkit-scrollbar-corner { background: transparent; }
+}
+
+/* ── Table interaction polish: compact scrollbars, legible roads and richer bets ── */
+.game-shell:fullscreen {
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+.game-shell:fullscreen .game-bar { display: flex; }
+
+.game-shell .big-road-grid,
+.game-shell .derived-road-grid {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240,180,28, 0.62) rgba(255,255,255,.06);
+  scroll-behavior: smooth;
+  overscroll-behavior-inline: contain;
+}
+.game-shell .big-road-grid::-webkit-scrollbar,
+.game-shell .derived-road-grid::-webkit-scrollbar { height: 5px; }
+.game-shell .big-road-grid::-webkit-scrollbar-track,
+.game-shell .derived-road-grid::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+}
+.game-shell .big-road-grid::-webkit-scrollbar-thumb,
+.game-shell .derived-road-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+}
+.game-shell .big-road-grid::-webkit-scrollbar-button,
+.game-shell .derived-road-grid::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+/* Sized to fit inside the surface's reserved bottom strip (32px + border): the disc used
+   to stand 42px tall from the zone's bottom edge and so covered the odds line no matter
+   what padding the surface reserved. */
+.round-result-notice {
+  position: absolute;
+  top: 64%;
+  left: 50%;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-width: 330px;
+  padding: 12px 15px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(28,22,10,.96), rgba(10,7,3,.96));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 18px 45px rgba(0,0,0,.48);
+  backdrop-filter: blur(15px);
+  pointer-events: none;
+  animation: round-result-in .34s cubic-bezier(.2,.9,.25,1.2) both;
+}
+.round-result-notice.win { border-color: rgba(78,231,154,.62); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 34px rgba(47,217,126,.2), 0 18px 45px rgba(0,0,0,.48); }
+.round-result-notice.lose { border-color: rgba(255,77,92,.62); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 34px rgba(239,43,43,.18), 0 18px 45px rgba(0,0,0,.48); }
+.round-result-notice.push { border-color: rgba(240,180,28, 0.62); }
+.round-result-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: rgba(255,255,255,.07); }
+.round-result-notice.win .round-result-icon, .round-result-notice.win .round-result-net { color: var(--tie-light); }
+.round-result-notice.lose .round-result-icon, .round-result-notice.lose .round-result-net { color: #ff6b74; }
+.round-result-notice.push .round-result-icon, .round-result-notice.push .round-result-net { color: var(--gold-light); }
+.round-result-copy { display: grid; gap: 2px; }
+.round-result-copy small { color: var(--muted); font-size: 12.5px; font-weight: 600; letter-spacing: .17em; }
+.round-result-copy strong { font-family: var(--ui-font); font-size: 14px; }
+.round-result-net { display: flex; align-items: baseline; gap: 3px; font-family: var(--ui-font); font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.round-result-net small { font-size: 12px; }
+@keyframes round-result-in { from { transform: translate(-50%, -42%) scale(.9); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+
+@media (max-width: 900px) {
+  /* Same reserved-strip contract as desktop: the badge and chip strips are part of the
+     box at all times, so betting never changes a zone's size. */
+  .round-result-notice { top: 53%; min-width: 0; width: min(330px, calc(100% - 28px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round-result-notice { animation: none; }
+  .game-shell .big-road-grid,
+  .game-shell .derived-road-grid { scroll-behavior: auto; }
+}
+
+/* =============================================================================
+   Purpose-built mobile casino layout.
+
+   The game shell owns exactly one dynamic viewport: a compact shared header,
+   one fluid felt and one fixed action rail. Portrait phones use mobile-native
+   arrangements rather than a scaled desktop composition: Baccarat keeps all
+   five bets visible and Blackjack becomes a 2-3-2 seven-seat table. Landscape
+   phones get a separate horizontal layout so no document scrollbar is needed.
+   ============================================================================= */
+@media (max-width: 600px) {
+  body.game-screen-active,
+  body.game-screen-active #root {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .game-shell {
+    grid-template-rows: 42px minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+    height: 100svh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .game-shell .game-bar {
+    display: grid;
+    grid-template-columns: 30px minmax(0, auto) minmax(0, 1fr);
+    align-items: center;
+    min-width: 0;
+    min-height: 42px;
+    gap: 5px;
+    padding: 0 max(5px, env(safe-area-inset-left)) 0 max(5px, env(safe-area-inset-right));
+  }
+  .game-shell .game-bar-title { display: none; }
+  .game-shell .game-back {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    min-height: 30px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+  }
+  .game-shell .game-bar-phase {
+    justify-self: start;
+    min-width: 0;
+    min-height: 30px;
+    gap: 4px;
+    padding: 0 6px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  .game-shell .game-bar-phase strong { font-size: 12px; }
+  .game-shell .game-bar-actions {
+    justify-self: end;
+    min-width: 0;
+    gap: 4px;
+  }
+  /* 잔액은 단위(코인)까지 다 보인다 — 위 띠 버튼이 줄어 자리가 남는다(62px 로 묶어 "3,095코…"로 잘렸다). */
+  .game-shell .game-bar-actions .balance-display {
+    display: grid;
+    align-items: center;
+    min-width: 0;
+    height: 30px;
+    padding: 0 4px;
+    overflow: hidden;
+  }
+  .game-shell .game-bar-actions .balance-display strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .game-shell .game-bar-actions .mute-button,
+  .game-shell .game-bar-actions .profile-trigger {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    min-height: 30px;
+    border-radius: var(--radius-sm);
+  }
+  .game-shell .profile-trigger span,
+  .game-shell .profile-trigger svg:last-child { display: none; }
+  .game-shell .game-bar-actions svg { width: 14px; height: 14px; }
+
+  .game-shell .game-body {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding: 4px max(5px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
+    overflow: hidden;
+  }
+  .game-shell .room-shell, .game-shell .ot-stage { min-width: 0; min-height: 0; height: 100%; }
+  .game-shell .ot-stage {
+    grid-template-rows: minmax(0, 1fr) 46px;
+    gap: 4px;
+  }
+  .game-shell .ot-felt {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    border-radius: var(--radius-md);
+  }
+  .game-shell .ot-felt::before { inset: -3% 2% 58%; }
+  .game-shell .ot-timer { display: none; }
+
+  /* Shared compact action rail. All actions stay on one touch row. */
+  .game-shell .ot-tray { min-width: 0; gap: 3px; }
+  /* :not(.is-fullscreen) matters — this block sits later in the file than the fullscreen rules
+     and has the same specificity, so without it the phone-sized floating panel silently won
+     whenever the panel was portaled inside .game-shell (browser fullscreen). */
+  .game-shell .room-chat-panel:not(.is-fullscreen) {
+    right: 5px;
+    bottom: 55px;
+    width: min(320px, calc(100vw - 10px));
+    max-height: min(430px, calc(100dvh - 104px));
+  }
+
+  /* My hand owns the bottom band: big cards, nothing competing for the space. */
+
+  .round-result-notice {
+    top: 25.5%;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    width: calc(100% - 24px);
+    min-width: 0;
+    gap: 6px;
+    padding: 6px 9px;
+    border-radius: var(--radius-sm);
+  }
+  .round-result-icon { width: 24px; height: 24px; }
+  .round-result-copy small { font-size: 12px; }
+  .round-result-copy strong { font-size: 12px; }
+  .round-result-net { font-size: 14px; }
+}
+
+/* Short portrait phones keep the same information with tighter vertical
+   metrics. This targets devices such as 360x640 without hiding game controls. */
+@media (max-width: 600px) and (max-height: 700px) and (orientation: portrait) {
+  .game-shell { grid-template-rows: 38px minmax(0, 1fr); }
+  .game-shell .game-bar { min-height: 38px; }
+  .game-shell .game-back,
+  .game-shell .game-bar-actions .mute-button,
+  .game-shell .game-bar-actions .profile-trigger { width: 28px; min-width: 28px; height: 28px; min-height: 28px; }
+  .game-shell .game-bar-phase { min-height: 28px; }
+  .game-shell .game-bar-actions .balance-display { height: 28px; }
+  .game-shell .ot-stage { grid-template-rows: minmax(0, 1fr) 42px; gap: 3px; }
+}
+
+/* Mobile landscape uses horizontal real estate: Baccarat roads sit beside the
+   wagers, while Blackjack places the dealer left of a compact 4+3 seat grid. */
+@media (max-width: 900px) and (max-height: 540px) and (orientation: landscape) {
+
+  body.game-screen-active,
+  body.game-screen-active #root { height: 100%; overflow: hidden; }
+  .game-shell { grid-template-rows: 38px minmax(0, 1fr); height: 100dvh; }
+  /* 제목까지 한 줄에 놓는다 — 600px 이하의 세 칸 격자(제목 없음)를 그대로 두면 568×320 같은 가로 폰에서
+     제목이 한 칸을 차지해 오른쪽 버튼 묶음이 다음 줄(화면 밖)로 밀렸다. */
+  .game-shell .game-bar { display: flex; gap: 6px; min-height: 38px; padding-inline: 6px; }
+  .game-shell .game-bar-title { display: flex; }
+  .game-shell .game-bar-title strong { font-size: 12px; }
+  .game-shell .game-bar-title span { display: none; }
+  .game-shell .game-back,
+  .game-shell .game-bar-actions .mute-button,
+  .game-shell .game-bar-actions .profile-trigger { width: 28px; min-width: 28px; height: 28px; min-height: 28px; }
+  .game-shell .game-bar-phase { min-height: 28px; padding-inline: 6px; }
+  .game-shell .profile-trigger span,
+  .game-shell .profile-trigger svg:last-child { display: none; }
+  .game-shell .game-body { padding: 3px 5px 4px; }
+  .game-shell .ot-stage { grid-template-rows: minmax(0, 1fr) 42px; gap: 3px; }
+}
+
+/* 폰 게임 바의 프로필: 아이콘만 두지 않고 "프로필 ▾" 로 — 도움말·게임 기록·전체 화면이 이 메뉴에 들어 있다는
+   게 보여야 하고, 위 띠 버튼을 줄여 자리가 남는다. 위의 폭 고정(28~32px)·글자 숨김 규칙들보다 뒤에 둔다. */
+@media (max-width: 900px) {
+  .game-shell .game-bar-actions .profile-trigger { width: auto; min-width: 0; padding: 0 8px; gap: 4px; }
+  .game-shell .profile-trigger span,
+  .game-shell .profile-trigger svg:last-child { display: inline; }
+}
+
+/* Mobile chip picker must sit above the rail, not be clipped inside it. */
+@media (max-width: 900px) {
+  .game-shell .ot-stage { overflow: visible; }
+  .game-shell .chip-picker-trigger {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+  .game-shell .chip-picker-menu {
+    bottom: calc(100% + 7px);
+  }
+  .game-shell .chip-picker-menu button { font-size: 11px; }
+}
+
+/* Mobile picker: same chip face recipe as PC, only the metrics differ. The per-tier
+   colours come from .chip-tier-N setting --chip-face/--chip-rim, so nothing here repaints. */
+@media (max-width: 900px) {
+  .game-shell .chip-picker-trigger,
+  .game-shell .chip-picker-menu button {
+    color: var(--text);
+    font-family: var(--ui-font);
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0,0,0,.55);
+  }
+  .game-shell .chip-picker-menu button { width: 34px; height: 34px; }
+}
+
+/* Baccarat road controls: P/B/T preview the exact next placement in all roads. */
+.road-predict-controls { display: flex; align-items: center; gap: 5px; }
+.road-predict-controls button {
+  display: grid;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+  background: rgba(0,0,0,.25);
+  color: var(--muted);
+  font: 700 12px/1 var(--ui-font);
+}
+.road-predict-controls button:nth-child(1) { color: #4a92ff; }
+.road-predict-controls button:nth-child(2) { color: var(--negative); }
+.road-predict-controls button:nth-child(3) { color: #3ddb8a; }
+.road-predict-controls button.active { border-color: var(--gold); background: var(--gold-wash); box-shadow: none; }
+.game-shell .big-road-column { flex: none; }
+
+@media (max-width: 900px) {
+  .game-shell .road-predict-controls { gap: 4px; }
+  .game-shell .road-predict-controls button { width: 20px; height: 18px; font-size: 12px; }
+}
+
+/* Private support and administrator live-chat center. */
+.support-card { display: grid; grid-template-rows: auto minmax(320px,1fr) auto auto; width: min(820px,100%); min-height: min(650px,calc(100vh - 210px)); margin: 0 auto; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); box-shadow: none; }
+.support-card-head { display: flex; align-items: center; gap: 11px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.support-card-head > div { display: grid; gap: 3px; }
+.support-card-head strong { color: var(--text); font-size: 14px; font-weight: 600; }
+.support-card-head small { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; font-family: var(--ui-font); }
+.support-card-head small i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-dim); }
+.support-card-head small i.is-online { background: var(--tie-light); box-shadow: 0 0 6px rgba(78,231,154,.5); }
+
+.chat-thread { display: flex; min-height: 0; flex-direction: column; gap: 9px; overflow-y: auto; padding: 16px; scroll-behavior: smooth; }
+.chat-thread-empty { width: min(390px,85%); margin: auto; color: var(--muted); font: 12px/1.75 var(--ui-font); text-align: center; word-break: keep-all; text-wrap: balance; }
+.chat-bubble { align-self: flex-start; max-width: min(76%,560px); padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius-xs) var(--radius-md) var(--radius-md); background: var(--panel-2); }
+.chat-bubble.is-mine { align-self: flex-end; border-color: var(--gold-line); border-radius: var(--radius-md) var(--radius-xs) var(--radius-md) var(--radius-md); background: var(--gold-wash); }
+.chat-bubble.is-admin:not(.is-mine) { border-color: rgba(22,159,74,.35); background: rgba(15,92,51,.16); }
+.chat-bubble-meta { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 4px; }
+.chat-bubble-meta strong { color: var(--gold-light); font: 600 12px var(--ui-font); }
+.chat-bubble.is-admin .chat-bubble-meta strong { color: var(--tie-light); }
+.chat-bubble-meta time { color: var(--muted-dim); font: 12px var(--ui-font); font-variant-numeric: tabular-nums; }
+.chat-bubble p { margin: 0; overflow-wrap: anywhere; color: var(--text); font: 12px/1.55 var(--ui-font); white-space: pre-wrap; }
+.chat-composer { display: flex; gap: 8px; padding: 11px 13px; border-top: 1px solid rgba(240,180,28, 0.434); background: rgba(0,0,0,.12); }
+.chat-composer input { flex: 1; min-width: 0; min-height: 40px; padding: 0 13px; border: 1px solid rgba(240,180,28, 0.589); border-radius: var(--radius-sm); outline: none; background: rgba(0,0,0,.34); color: #f8ecc9; font: 12px var(--ui-font); }
+.chat-composer input:focus { border-color: var(--gold-light); box-shadow: 0 0 0 2px rgba(240,180,28, 0.139); }
+.chat-composer input:disabled { opacity: .55; }
+.chat-composer button { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--gold-deep); border-radius: var(--radius-sm); background: var(--gold-btn); color: var(--on-gold); cursor: pointer; }
+.chat-composer button:disabled { opacity: .42; cursor: not-allowed; }
+.chat-error { margin: 0; padding: 0 14px 11px; color: #f06a6a; font: 12px var(--ui-font); }
+.admin-chat-section { margin-top: 12px; scroll-margin-top: 82px; }
+.admin-chat-grid { display: grid; grid-template-columns: minmax(570px,1.35fr) minmax(300px,.75fr); gap: 12px; }
+.admin-chat-grid .admin-panel { padding: 12px; }
+.admin-chat-grid .admin-panel-heading h2 { display: inline-flex; align-items: center; gap: 6px; }
+.admin-support-layout { display: grid; grid-template-columns: 210px minmax(0,1fr); height: 455px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: rgba(0,0,0,.13); }
+.admin-conversation-list { overflow-y: auto; border-right: 1px solid var(--line-strong); }
+.admin-conversation-list > button { display: grid; grid-template-columns: 29px minmax(0,1fr) auto; width: 100%; align-items: center; gap: 7px; padding: 9px 8px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.admin-conversation-list > button:hover,.admin-conversation-list > button.is-selected { background: var(--panel-2); }
+.admin-conversation-list > button.is-selected { box-shadow: inset 2px 0 var(--muted); }
+.admin-conversation-avatar { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--text); }
+.admin-conversation-list button > span:nth-child(2) { min-width: 0; }
+.admin-conversation-list strong,.admin-conversation-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--ui-font); }
+.admin-conversation-list strong { color: var(--text); font-size: 12px; }
+.admin-conversation-list small { margin-top: 3px; color: var(--muted); font-size: 12.5px; }
+.admin-conversation-list i { padding: 3px 5px; border-radius: 999px; font: normal 700 12px var(--ui-font); }
+.admin-conversation-list i.needs-reply { background: rgba(245,196,81,.12); color: var(--warning); }
+.admin-conversation-list i.answered { background: rgba(79,196,127,.11); color: #4fc47f; }
+.admin-chat-empty { margin: 25px 10px; color: var(--muted); font: 12px/1.6 var(--ui-font); text-align: center; }
+.admin-chat-thread-wrap { display: grid; min-width: 0; grid-template-rows: auto minmax(0,1fr) auto; }
+.admin-chat-thread-wrap > header,.admin-room-chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+.admin-chat-thread-wrap > header strong,.admin-room-chat-head strong { color: var(--text); font-size: 12px; }
+.admin-chat-thread-wrap > header small,.admin-room-chat-head small { color: var(--muted); font: 12.5px var(--ui-font); }
+.admin-chat-grid .chat-thread { padding: 11px; }
+.admin-chat-grid .chat-bubble { max-width: 86%; padding: 7px 9px; }
+.admin-chat-grid .chat-composer { padding: 8px; }
+.admin-chat-grid .chat-composer input { min-height: 34px; }
+.admin-chat-grid .chat-composer button { width: 34px; height: 34px; }
+.admin-room-chat-panel { display: grid; height: 522px; grid-template-rows: auto auto auto minmax(0,1fr) auto auto; }
+.admin-room-chat-select { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.admin-room-chat-select span { color: var(--muted); font: 12.5px var(--ui-font); white-space: nowrap; }
+.admin-room-chat-select .dropdown { min-width: 0; flex: 1; }
+.admin-room-chat-select .dropdown-trigger { min-height: 30px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--panel-2); color: var(--text); font: 12px var(--ui-font); }
+.admin-room-chat-select .dropdown-menu { font-size: 12px; }
+.admin-room-chat-head { padding-inline: 4px; }
+.admin-room-chat-panel .chat-thread { padding-inline: 4px; }
+/* One composer, three destinations — room chat, a toast to this room, a toast to everyone. */
+.admin-send-modes { display: inline-flex; gap: 3px; margin: 8px 0 6px; }
+.admin-send-modes button { padding: 5px 9px; border: 1px solid transparent; border-radius: var(--radius-xs); background: transparent; color: var(--muted); font: 12px var(--ui-font); cursor: pointer; }
+.admin-send-modes button:hover { color: var(--text); }
+.admin-send-modes button.active { border-color: var(--line-strong); background: var(--panel-raised); color: var(--text); }
+.admin-table-wrap-short { max-height: min(240px, 34vh); }
+
+@media (max-width: 1050px) {
+  .admin-kpi-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .admin-chat-grid { grid-template-columns: 1fr; }
+  .admin-room-chat-panel { height: 440px; }
+}
+
+@media (max-width: 620px) {
+  .support-card { min-height: calc(100vh - 180px); border-radius: var(--radius-sm); }
+  .support-card-head { gap: 8px; padding: 10px; }
+  .support-card-head strong { font-size: 12px; }
+  .support-card-head small { font-size: 12.5px; }
+  .chat-thread { padding: 11px; }
+  .chat-bubble { max-width: 86%; }
+  .admin-kpi-grid { grid-template-columns: 1fr 1fr; }
+  .admin-support-layout { grid-template-columns: 1fr; height: 610px; }
+  .admin-conversation-list { display: flex; min-height: 92px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--line-strong); }
+  .admin-conversation-list > button { min-width: 175px; border-right: 1px solid var(--line); border-bottom: 0; }
+  .admin-conversation-list > button.is-selected { box-shadow: inset 0 -2px var(--muted); }
+  .admin-chat-thread-wrap { min-height: 0; }
+  .admin-room-chat-panel { height: 420px; }
+}
+
+/* Admin operations: compact header navigation and task-first pages. */
+.topbar.has-header-center { grid-template-columns: auto minmax(0, 1fr) auto; }
+.admin-header-center { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.admin-header-center .admin-lobby-link { flex: 0 0 auto; min-height: 34px; padding-inline: 12px; font-size: 12px; }
+.admin-nav-badge { display: inline-grid; min-width: 16px; height: 16px; place-items: center; padding: 0 4px; border-radius: 999px; background: #cc4433; color: #fff2d6; font: 700 12.5px var(--ui-font); }
+
+/* Sidebar navigation. The header strip this replaces had all seven destinations in one scrolling
+   row, so 충·환전 and 사용자 — the two screens an operator lives in — were mid-row and often
+   clipped. A rail pinned to the window's left edge keeps every destination and its pending-count
+   badge visible at once.
+   The :has() opt-out matters: .app-shell centres a 1380px column, which on the admin console both
+   wasted the outer thirds of a wide monitor AND made the rail jump sideways between pages — a
+   short page has no scrollbar, a long one does, and the centred column shifts by its width. */
+.app-shell:has(.admin-layout) { width: 100%; max-width: none; margin: 0; padding: 0; overflow: visible; }
+/* html/body/#root/.app-shell all carry overflow-x:hidden to stop phones side-scrolling. But
+   `hidden` makes each one a scroll container, and position:sticky resolves against the nearest
+   one — these never scroll (they're as tall as the page), so the rail never stuck. `clip` blocks
+   the same overflow without becoming a scroll container. */
+html:has(.admin-layout), html:has(.admin-layout) body, html:has(.admin-layout) #root { overflow-x: clip; }
+.admin-layout { display: grid; grid-template-columns: 216px minmax(0, 1fr); align-items: start; width: 100%; min-height: calc(100vh - var(--admin-rail-top, 64px)); }
+.admin-layout-main { align-self: stretch; min-width: 0; padding: 30px 30px 70px; border-left: 1px solid var(--line); }
+/* Wider than the old 1380px shell so a 7-column table isn't cramped, but capped — full-bleed on
+   a 27" monitor just stretches rows apart. Centring is safe here (it wasn't on .app-shell): the
+   rail is its own grid column, so only the content inside this column moves. */
+.admin-layout .admin-view { width: 100%; max-width: 1520px; margin: 0 auto; padding: 0; }
+/* max-height, never height: a sticky element taller than its container stops sticking, which is
+   what made the rail drift down the shorter the page it landed on. */
+.admin-sidebar { position: sticky; top: var(--admin-rail-top, 64px); display: grid; align-content: start; gap: 20px; max-height: calc(100vh - var(--admin-rail-top, 64px)); padding: 24px 12px; overflow-y: auto; }
+.admin-sidebar-group { display: grid; gap: 2px; }
+.admin-sidebar-heading { margin: 0 0 6px; padding-inline: 10px; color: var(--muted-dim); font: 700 12px var(--ui-font); letter-spacing: .14em; text-transform: uppercase; }
+.admin-sidebar a { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border-radius: var(--radius-xs); color: var(--muted); font: 600 13px var(--ui-font); text-decoration: none; transition: color .16s ease, background .16s ease; }
+.admin-sidebar a:hover { color: var(--text); background: var(--panel-2); }
+.admin-sidebar a.active { background: var(--panel-raised); color: var(--text); }
+.admin-sidebar .admin-nav-badge { margin-left: auto; }
+/* Laptop widths: narrow the rail rather than dropping it — 14" is still wide enough to keep it. */
+@media (max-width: 1280px) {
+  .admin-layout { grid-template-columns: 184px minmax(0, 1fr); }
+  .admin-layout-main { padding: 24px 20px 60px; }
+}
+@media (max-width: 900px) {
+  .admin-layout { grid-template-columns: 1fr; min-height: 0; }
+  .admin-layout-main { padding: 18px 14px 50px; border-left: 0; }
+  /* Below this the rail becomes a scrolling row — a phone has no width to spare for a permanent
+     column, and the group headings are what would eat it. */
+  .admin-sidebar { position: static; grid-auto-flow: column; justify-content: start; gap: 6px; max-height: none; padding: 12px 14px 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .admin-sidebar::-webkit-scrollbar { display: none; }
+  .admin-sidebar-group { grid-auto-flow: column; gap: 4px; }
+  .admin-sidebar-heading { display: none; }
+  .admin-sidebar a { min-height: 32px; white-space: nowrap; }
+}
+.admin-view { width: min(1400px, 100%); margin: 0 auto; padding: 26px 0 50px; }
+.admin-view-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
+.admin-view-heading h1 { margin: 0; color: var(--text); font: 600 clamp(23px, 3vw, 32px)/1.15 var(--ui-font); letter-spacing: .02em; }
+.admin-view-heading span { color: var(--muted); font: 12px var(--ui-font); }
+.admin-dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.admin-full-panel { margin-top: 0; }
+.admin-panel-heading { min-height: 30px; }
+.admin-panel-heading h2 { margin: 0; color: var(--text); font: 600 15px var(--ui-font); }
+.admin-panel-heading > span { color: var(--muted); font: 12px var(--ui-font); }
+.admin-action-list { display: grid; gap: 4px; }
+.admin-action-row { display: grid; grid-template-columns: 8px minmax(100px,.65fr) minmax(0,1fr) auto; align-items: center; gap: 9px; min-height: 42px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--radius-xs); color: inherit; text-decoration: none; transition: border-color .16s ease, background .16s ease; }
+.admin-action-row:hover { border-color: var(--line-strong); background: var(--panel-2); }
+.admin-action-row strong { color: var(--text); font: 700 12px var(--ui-font); }
+.admin-action-row small { overflow: hidden; color: var(--muted); font: 12px var(--ui-font); text-overflow: ellipsis; white-space: nowrap; }
+.admin-action-row b { color: var(--text); font: 14px var(--ui-font); }
+.admin-action-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 3px rgba(255,255,255,.08); }
+.admin-action-dot.deposit { background: #4fc47f; box-shadow: 0 0 0 3px rgba(79,196,127,.12); }
+.admin-action-dot.withdraw,.admin-action-dot.inquiry { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,196,81,.12); }
+.admin-empty-copy,.admin-empty { color: var(--muted); font: 12px var(--ui-font); }
+.admin-empty-copy { margin: 14px 4px; }
+.admin-inline-link { color: var(--muted); font: 12px var(--ui-font); text-decoration: none; }
+.admin-inline-link:hover { color: var(--text); }
+/* Table cell version of the same idea, bold like the plain-text username it replaces
+   (사용자 관리's 사용자 column) so a table full of links doesn't read as one big link. */
+.admin-user-link { display: block; overflow: hidden; color: var(--text); font: 700 12px var(--ui-font); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.admin-user-link:hover { color: var(--gold-light); text-decoration: underline; }
+.admin-detail-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-bottom: 12px; }
+.admin-history-filters { display: flex; gap: 8px; }
+.admin-load-more { display: flex; justify-content: center; margin-top: 12px; }
+/* 감사 로그(AdminAuditLogPage). 상세 칸이 남는 폭을 다 받고(width:100% + max-width:0), 요약은 한 줄로
+   자른다 — 펼치면 원본 JSON. 폰에서는 표 대신 카드 목록이 된다(가로 스크롤 없이). */
+.admin-audit-filters { display: grid; grid-template-columns: minmax(140px,1.1fr) repeat(2,minmax(110px,1fr)) repeat(2,minmax(124px,.85fr)) auto auto; gap: 8px; margin-bottom: 12px; }
+.admin-audit-filters .admin-search { width: 100%; min-width: 0; }
+.admin-audit-filters .dropdown-trigger { min-height: 29px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--panel-2); color: var(--text); font: 12px var(--ui-font); }
+.admin-audit-filters .dropdown-menu { font-size: 12px; }
+.admin-audit-wrap { max-height: max(390px, calc(100vh - 330px)); }
+.admin-audit-table .audit-time,.admin-audit-table .audit-actor { color: var(--muted); font-variant-numeric: tabular-nums; }
+.admin-audit-table .audit-target { max-width: 180px; }
+.admin-audit-table .audit-detail { width: 100%; max-width: 0; }
+.admin-audit-table details summary { display: flex; align-items: center; gap: 6px; min-width: 0; list-style: none; cursor: pointer; color: var(--text); }
+.admin-audit-table details summary::-webkit-details-marker { display: none; }
+.admin-audit-table details summary::before { content: "▸"; flex: none; color: var(--muted); transition: transform .15s ease; }
+.admin-audit-table details[open] summary::before { transform: rotate(90deg); }
+.admin-audit-table details summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-audit-table details pre { margin: 6px 0 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-xs); background: rgba(0,0,0,.22); color: var(--muted); font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .admin-audit-filters { grid-template-columns: repeat(3,minmax(0,1fr)) auto auto; }
+}
+@media (max-width: 620px) {
+  .admin-audit-filters { grid-template-columns: 1fr 1fr; }
+  .admin-audit-filters .dropdown { grid-column: 1 / -1; }
+  .admin-audit-wrap { max-height: none; overflow: visible; border: 0; }
+  .admin-audit-table { min-width: 0; white-space: normal; }
+  .admin-audit-table thead { display: none; }
+  .admin-audit-table tbody { display: grid; gap: 6px; }
+  .admin-audit-table tr { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-areas: "action time" "actor target" "detail detail"; align-items: center; gap: 4px 10px; padding: 10px 11px; border: 1px solid var(--line); border-radius: var(--radius-xs); background: rgba(0,0,0,.13); }
+  .admin-audit-table td { min-width: 0; max-width: none; padding: 0; border: 0; }
+  .admin-audit-table .audit-action { grid-area: action; }
+  .admin-audit-table .audit-time { grid-area: time; text-align: right; }
+  .admin-audit-table .audit-actor { grid-area: actor; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-audit-table .audit-actor::before { content: "관리자 "; color: var(--muted-dim); }
+  .admin-audit-table .audit-target { grid-area: target; display: flex; align-items: center; justify-content: flex-end; gap: 4px; max-width: none; overflow: hidden; white-space: nowrap; }
+  .admin-audit-table .audit-target::before { content: "대상"; flex: none; color: var(--muted-dim); }
+  .admin-audit-table .audit-detail { grid-area: detail; width: auto; max-width: none; padding-top: 6px; border-top: 1px solid var(--line); }
+  .admin-audit-table .audit-detail.is-empty { display: none; }
+}
+/* 21 rooms is taller than the panel beside it, which pushed everything below the fold. Cap it
+   and let the list scroll inside its own panel instead of stretching the page. */
+.admin-live-room-list { display: grid; gap: 3px; max-height: 330px; overflow-y: auto; padding-right: 4px; }
+.admin-live-room-row { display: grid; grid-template-columns: 8px minmax(0,1fr) auto; align-items: center; gap: 10px; min-height: 42px; padding: 0 3px; border-bottom: 1px solid var(--line); }
+.admin-live-room-row:last-child { border-bottom: 0; }
+.admin-live-room-row strong,.admin-live-room-row small { display: block; }
+.admin-live-room-row strong { color: var(--text); font: 700 12px var(--ui-font); }
+.admin-live-room-row small { margin-top: 3px; color: var(--muted); font: 12px var(--ui-font); }
+.admin-room-led { width: 7px; height: 7px; border-radius: 50%; background: #777; }
+.admin-room-led.live { background: #3ddb8a; box-shadow: 0 0 8px rgba(61,219,138,.7); }
+.admin-room-led.paused { background: var(--warning); }
+.admin-status { min-height: 19px; border-radius: 999px; font: 700 12.5px var(--ui-font); }
+.live-status { color: #4fd191; background: rgba(79,196,127,.12); }
+.warning-status { color: var(--warning); background: rgba(245,196,81,.12); }
+.muted-status { color: var(--muted); background: rgba(255,255,255,.06); }
+.admin-house-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.admin-metric { min-height: 70px; border: 1px solid var(--line); border-radius: var(--radius-xs); background: rgba(0,0,0,.13); }
+.admin-metric small,.admin-metric strong { display: block; }
+.admin-metric small { color: var(--muted); font: 12px var(--ui-font); }
+.admin-metric strong { margin-top: 8px; color: var(--text); font: 700 16px var(--ui-font); }
+.admin-filter-tabs { display: inline-flex; gap: 3px; }
+.admin-filter-tabs button { padding: 5px 8px; border: 1px solid transparent; border-radius: var(--radius-xs); background: transparent; color: var(--muted); font: 12px var(--ui-font); cursor: pointer; }
+.admin-filter-tabs button.active { border-color: var(--line-strong); background: var(--panel-raised); color: var(--text); }
+.admin-search { width: min(220px, 40vw); height: 29px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); outline: none; background: rgba(0,0,0,.22); color: var(--text); font: 12px var(--ui-font); }
+.admin-search:focus { border-color: var(--muted); }
+.admin-small-button { min-height: 27px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--panel-raised); font: 700 12.5px var(--ui-font); }
+.admin-small-button:hover:not(:disabled) { border-color: var(--muted); background: var(--panel-2); }
+.admin-small-button:disabled { cursor: not-allowed; opacity: .45; }
+.admin-small-button.approve { color: #4fd191; border-color: rgba(79,196,127,.35); }
+.admin-small-button.reject { color: #ef7a6a; border-color: rgba(239,122,106,.3); }
+/* Same reason as the dashboard's room list: 21 rooms is a full screen of scrolling before you
+   reach anything else on the page. */
+.admin-game-list { display: grid; gap: 5px; max-height: calc(100vh - 260px); overflow-y: auto; padding-right: 4px; }
+.admin-game-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 14px; min-height: 61px; padding: 0 11px; border: 1px solid var(--line); border-radius: var(--radius-xs); }
+.admin-game-row strong,.admin-game-row small { display: block; }
+.admin-game-row strong { color: var(--text); font: 700 12px var(--ui-font); }
+.admin-game-row small { margin-top: 5px; color: var(--muted); font: 12px var(--ui-font); }
+/* A second (optional) button — "통계 초기화" only on Baccarat/Dragon Tiger rooms — lives in
+   this wrapper so it's one grid item regardless of whether it's showing, instead of needing
+   the row's own column count to change per room type. */
+.admin-game-row-actions { display: flex; align-items: center; gap: 8px; }
+.admin-stats-kpis { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.admin-result-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+
+@media (max-width: 1050px) {
+  .topbar.has-header-center { grid-template-columns: auto minmax(0,1fr) auto; }
+  .admin-dashboard-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .topbar.has-header-center { grid-template-columns: 1fr auto; row-gap: 8px; }
+  .admin-view { padding-top: 18px; }
+  .admin-house-stats,.admin-stats-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-game-row { grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding-block: 10px; }
+  .admin-game-row .admin-status { grid-column: 2; grid-row: 1; }
+  .admin-game-row-actions { grid-column: 2; grid-row: 2; }
+}
+
+@media (max-width: 620px) {
+  .admin-view-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .admin-panel-heading { align-items: flex-start; flex-direction: column; }
+  .admin-panel-heading > .admin-filter-tabs,.admin-panel-heading > .admin-search { align-self: stretch; }
+  .admin-search { width: auto; }
+  .admin-action-row { grid-template-columns: 8px minmax(78px,.7fr) minmax(0,1fr) auto; gap: 6px; }
+  .admin-house-stats,.admin-result-stats { grid-template-columns: 1fr 1fr; }
+}
+
+
+/* --------------------------------------------------------------------- */
+/* Hold'em: a round table with six floating seats instead of the fixed  */
+/* wager print used by the automatic games — the felt shows through     */
+/* everywhere except cards, chips and the seat's own small stack tag.   */
+/* --------------------------------------------------------------------- */
+/* Every .ot-felt (baccarat/blackjack/holdem alike) already carries its own generic pit-table
+   oval via ::before/::after — which is exactly why the Hold'em table looked like "the baccarat
+   felt with stuff pasted on top": that faint oval was still there, redundant with (and not even
+   aligned to) .holdem-table-rail. Hide it here so the rail is the only oval, and swap the green
+   felt tone for a darker neutral "floor" so the rail reads as one table in a room, not a second
+   table nested inside the first. */
+/* Hold'em deliberately drops the whole .ot-felt "panel" treatment — the gold border, rounded
+   corners, green felt background, inner pit oval and drop shadow that baccarat/blackjack use.
+   Those draw a *second* table around this one, which is what made the poker table read as
+   something pasted on top of a baccarat table. Here the poker table IS the screen: no frame,
+   no backdrop, just the rail sized to fill the available space. */
+/* .ot-stage reserves a second 56px row for the footer action rail the other table games still
+   use. Hold'em's rail is gone (족보/chat are floating buttons now), so that row sat empty and
+   stole 56px off the bottom of the table. Collapse it to a single row for this game only. */
+.ot-stage:has(> .holdem-felt) { grid-template-rows: minmax(0, 1fr); }
+
+.holdem-felt {
+  display: grid;
+  /* Explicit definite tracks (not the default `auto`, which is sized *by* the item and so leaves
+     the item's own percentage heights with nothing to resolve against). */
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  /* The bottom reserve is sized to the *tallest* state of the action dock (measured 123px: raise
+     presets + stepper row, then the fold/call/raise/all-in row) plus its 10px offset and a small
+     gap. It was 64px, so the dock covered the player's own cards by ~40px every time it was
+     their turn — the one moment those cards matter most. */
+  padding: 4px 8px 148px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.holdem-felt::before, .holdem-felt::after { display: none; }
+/* Seats are centred on their point, so the top-centre one reaches half a seat above the table's
+   top edge. On a landscape phone that half-seat is taller than the 4px breathing room above, and
+   the seat gets clipped by the top of the screen — give it back some room there. */
+@media (max-height: 540px) and (orientation: landscape) {
+  .holdem-felt { padding-top: 20px; padding-bottom: 104px; }
+  /* The table loses far more height than width on a landscape phone, so a seat that fits the
+     rail on desktop is proportionally much taller here — trim its chrome to keep it inside.
+     Scoped with .game-shell to match the specificity of the existing `.game-shell .holdem-seat`
+     sizing rules; a media query adds no specificity of its own, so unscoped versions lost. */
+  .game-shell .holdem-seat { padding: 2px; gap: 0; }
+  .game-shell .holdem-seat-name { font-size: 12px; }
+  .game-shell .holdem-seat-stack { font-size: 12px; }
+}
+/* A real poker table is a ~1.9:1 racetrack, so the box holding it is given a fixed aspect ratio
+   instead of "100% wide × whatever height is left" — that older sizing stretched the rail to
+   3.7:1 on a desktop felt, which is what made it read as a generic wide casino pit oval rather
+   than a poker table. `max-height` + `aspect-ratio` means whichever axis is scarce decides the
+   size and the other follows, so the shape holds at every viewport. */
+.holdem-table {
+  position: relative;
+  z-index: 2;
+  /* Fills the game screen. A fixed aspect-ratio was tried here and is wrong: with height the
+     scarce axis it sized the table off the height alone and left wide black margins either side.
+     The rail is a racetrack (pill), not an ellipse, so it still reads as a poker table when the
+     screen makes it wide — an ellipse is what looked like a baccarat pit.
+     The max-width only guards genuinely extreme ultrawides: it caps the table at ~3:1 rather
+     than letting it become a letterbox slot. */
+  width: 100%;
+  height: 100%;
+  max-width: calc(100dvh * 2.8);
+}
+/* The padded rail (bumper) a real Texas Hold'em table has — an ellipse sized to the exact same
+   radius/0.72-squish the seats themselves use (see SEAT_ANGLES/radius in HoldemRoomPage.tsx),
+   so seats sit right on its edge at any viewport instead of floating on plain felt.
+   Named .holdem-table-rail (not .holdem-rail) — that name was already the footer action-dock
+   class (<footer className="ot-rail holdem-rail">), and reusing it here bled this ellipse's
+   absolute positioning into the footer too. */
+.holdem-table-rail {
+  position: absolute;
+  z-index: 0;
+  /* 스테이지를 거의 다 덮는다. 예전 4%/2% 여백은 트랙 모양이라 어차피 버려지던 공간을
+     한 번 더 깎던 것이다. */
+  top: 1%;
+  left: 0.6%;
+  width: 98.8%;
+  height: 98%;
+  /* 사각형에 가까운 모서리. 트랙(999px)이던 시절엔 화면 네 귀퉁이를 통째로 버렸다 —
+     세로가 좁은 화면에서 특히 아깝고, 블랙잭이 굳이 둥근 테이블을 안 쓰는 이유와 같다.
+     실제 홀덤 테이블도 위에서 보면 모서리가 둥근 사각형에 가깝지 완전한 타원이 아니다. */
+  /* A plain surface. The 18px gold-and-brown bumper this used to draw sat exactly where the
+     seats do, so the seats overlapped it at every viewport — and none of the other tables
+     (섯다 included) wear one. Flat felt, one hairline. */
+  border: 1px solid rgba(240,180,28,.18);
+  border-radius: clamp(14px, 1.8vw, 22px);
+  background: linear-gradient(160deg, #0c3a27 0%, #082b1c 55%, #051c12 100%);
+}
+.holdem-board {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+}
+.holdem-pot { min-height: 16px; color: var(--gold-light); font-family: var(--ui-font); font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.holdem-board-cards { --card-w: clamp(28px, min(10vw, 7.4vh), 52px); --card-fan: .2; display: flex; align-items: center; }
+/* `.game-shell .ot-timer { top: 46% }` outranks a bare `.holdem-timer` on specificity, which
+   parked the countdown at the middle of the table — directly on top of the community cards.
+   Match that specificity so it sits in the clear felt above the board instead. */
+.holdem-timer,
+.game-shell .holdem-timer { top: 26%; left: 50%; transform: translateX(-50%); }
+
+.holdem-seat {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  /* Explicit bounded track. The default implicit `auto` column sizes to max-content and happily
+     overflows this fixed width, which also made the children's `max-width: 100%` resolve against
+     the *overflowed* track instead of the seat — so a long nickname widened the whole seat. */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 2px;
+  width: 108px;
+  padding: 6px 4px;
+  transform: translate(-50%, -50%);
+  color: #cfb47c;
+  text-align: center;
+  background: none;
+  border: 0;
+}
+/* The "앉기" label clears WCAG AA: .75 alpha is 5.8:1 on the lightest rail green (#0c3a27); the old
+   .55 was 3.8:1. (table-holdem.css / table-sutda.css currently repaint it per room.) */
+.holdem-seat-empty { cursor: pointer; width: 64px; height: 64px; padding: 0; place-items: center; border: 1px dashed rgba(220,194,135,.32); border-radius: 50%; color: rgba(232,217,184,.75); font-size: 12px; transition: border-color .18s, color .18s, background .18s; }
+.holdem-seat-empty span { pointer-events: none; }
+.holdem-seat-empty:hover, .holdem-seat-empty:focus-visible { border-color: rgba(240,180,28, 0.72); color: var(--gold-light); background: rgba(240,180,28, 0.14); }
+.holdem-seat-cards { --card-w: clamp(20px, min(7.6vw, 6vh), 40px); --card-fan: .22; display: flex; align-items: flex-start; height: calc(var(--card-w) * var(--card-ratio)); }
+/* Ellipsis lives on .holdem-seat-nick, not here: this is a flex container (nickname flanked by
+   the dealer chip and ready dot) and text-overflow does nothing on one. */
+.holdem-seat-name { display: flex; align-items: center; justify-content: center; gap: 4px; max-width: 100%; color: var(--text); font-size: 12.5px; font-weight: 600; }
+.holdem-seat-nick { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.holdem-seat-stack { max-width: 100%; overflow: hidden; color: var(--gold-light); font-family: var(--ui-font); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }
+/* The seat's chip-stack replaces the old plain-text bet pill — reuse BetZone's chip visual, but
+   the seat's own grid already centers/stacks its children, so drop the corner-pinned absolute
+   positioning that markup uses on the baccarat/blackjack felt. */
+.holdem-seat .chip-stack { position: relative; right: auto; bottom: auto; animation: chip-pop .24s ease-out; }
+/* After both chip-stack rules, or the base `.chip-stack { animation }` below the old spot won. */
+@media (prefers-reduced-motion: reduce) { .chip-stack, .holdem-seat .chip-stack { animation: none; } }
+.holdem-seat.is-turn { filter: drop-shadow(0 0 10px rgba(240,180,28, .55)); }
+.holdem-seat.is-turn .holdem-seat-name { color: var(--gold-light); }
+.holdem-seat.is-folded { opacity: .42; }
+.holdem-seat.is-away { opacity: .55; }
+
+/* =============================================================================
+   Hold'em action rail v2 — presets + a stepper replace the bare range slider
+   (imprecise on a touchscreen), and fold/all-in read as coloured pills instead
+   of plain text so the felt scans at a glance. Shares the .bj-act-* palette
+   with Blackjack's in-hand actions rather than inventing a second one.
+   ============================================================================= */
+.game-shell .holdem-presets { display: flex; align-items: center; gap: 5px; flex: 1 1 220px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.game-shell .holdem-presets::-webkit-scrollbar { display: none; }
+.game-shell .holdem-preset {
+  flex: 1 1 0; min-width: 58px; min-height: 34px; padding: 3px 8px;
+  border: 1px solid var(--gold-line-soft); border-radius: var(--radius-sm); background: rgba(0,0,0,.32);
+  display: grid; line-height: 1.15; transition: border-color .15s, background .15s;
+}
+.game-shell .holdem-preset span { display: block; font-size: 12.5px; letter-spacing: .08em; color: var(--muted-dim); font-weight: 700; }
+.game-shell .holdem-preset b { display: block; font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; }
+.game-shell .holdem-preset:hover { border-color: var(--gold-line); background: var(--gold-wash); }
+.game-shell .holdem-preset[aria-pressed="true"] { border-color: var(--gold-light); background: var(--gold-wash); }
+.game-shell .holdem-preset[aria-pressed="true"] span,
+.game-shell .holdem-preset[aria-pressed="true"] b { color: var(--gold-light); }
+
+.game-shell .holdem-stepper { display: flex; align-items: center; gap: 6px; flex: none; }
+.game-shell .holdem-step-btn {
+  display: grid; place-items: center; width: 38px; height: 38px; flex: none;
+  border: 1px solid var(--gold-line-soft); border-radius: var(--radius-sm); background: rgba(0,0,0,.35);
+  color: var(--gold-light); font-size: 19px; font-weight: 600; line-height: 1;
+}
+.game-shell .holdem-step-btn:hover:not(:disabled) { background: var(--gold-wash); border-color: var(--gold-line); }
+.game-shell .holdem-step-btn:disabled { opacity: .32; cursor: not-allowed; }
+.game-shell .holdem-step-value {
+  display: grid; justify-items: center; min-width: 94px; padding: 2px 10px;
+  border: 1px solid var(--gold-line); border-radius: var(--radius-sm); background: rgba(1,20,13,.7);
+}
+.game-shell .holdem-step-value small { font-size: 12.5px; letter-spacing: .12em; color: var(--muted-dim); font-weight: 700; }
+.game-shell .holdem-step-value strong { font-size: 15px; color: var(--gold-light); font-variant-numeric: tabular-nums; }
+
+/* Pot gets the same weight it has in the prototype/reference screenshots. */
+.game-shell .holdem-pot span { font-size: 16px; font-weight: 600; }
+
+/* Landscape-mobile tuning — the felt is wide and short here (phone in hand),
+   not narrow and tall, so this scales the table down rather than reflowing it. */
+@media (max-width: 900px) and (max-height: 540px) and (orientation: landscape) {
+  .game-shell .holdem-table { height: clamp(300px, calc(100vh - 190px), 460px); }
+  .game-shell .holdem-seat { width: 82px; }
+  .game-shell .holdem-preset { min-width: 48px; min-height: 30px; }
+  .game-shell .holdem-step-btn { width: 32px; height: 32px; font-size: 16px; }
+}
+
+/* =============================================================================
+   Hold'em ready-check — hands no longer auto-start the instant two seats fill;
+   each seated player has to ready up, and the WAITING-phase rail dock replaces
+   the ordinary "내 좌석" balance readout while that's happening.
+   ============================================================================= */
+
+.holdem-ready-dot {
+  display: inline-block;
+  /* Never shrink: as a flex sibling of the nickname a long name would squash it to nothing. */
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: rgba(220,194,135,.35);
+  border: 1px solid rgba(220,194,135,.5);
+}
+.holdem-ready-dot.is-ready {
+  background: var(--positive);
+  border-color: var(--tie-light);
+  box-shadow: 0 0 6px rgba(47,217,126,.7);
+}
+
+/* Sutda shares the tested six-seat table geometry, with locally served hwatu art. */
+.sutda-felt { background: radial-gradient(circle at 50% 45%, #345b2b 0, #18391d 48%, #102818 100%); }
+.sutda-cards { display: flex; justify-content: center; height: 88px; }
+/* 앞면 그림은 붉은 테두리가 가장자리까지 차 있다 — 크림 테두리·바탕을 두르면 그 바깥에 흰 테가 남아서, 테두리 없이
+   그림 테두리 색(짙은 빨강)을 바탕으로 둔다(그림이 안 불러와졌을 때도 빈 붉은 패로 보인다). */
+.hwatu-card { position: relative; display: inline-block; width: 53px; height: 82px; border-radius: var(--radius-xs); border: 0; background: #b3141a; box-shadow: 0 3px 8px rgba(0,0,0,.45); overflow: hidden; }
+.hwatu-card img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.hwatu-month { position: absolute; top: 2px; left: 2px; z-index: 1; min-width: 1.5em; padding: 0 .3em; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(10,8,4,.75); color: var(--text); font: 600 12px/1.5 var(--ui-font); text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* 이어지는 화투는 살짝 겹쳐 부채꼴로 둔다. 도움말(game-guide.css)과 고스톱 자리는 자기 규칙으로 되돌린다. */
+.hwatu-card + .hwatu-card { margin-left: -10px; transform: rotate(4deg); }
+.hwatu-back { display: inline-block; background: repeating-linear-gradient(45deg, #b51f23 0 5px, #f0c66d 5px 8px, #64121b 8px 13px); }
+.sutda-seat .holdem-seat-name { margin-top: .2rem; }
+@media (max-width: 620px) {
+  .hwatu-card { width: 40px; height: 63px; }
+  .hwatu-month { padding: 0 .25em; }
+  .sutda-cards { height: 66px; }
+}
+
+/* =============================================================================
+   Hold'em betting surface v3 — moved off the footer rail and onto the felt
+   itself (Baccarat keeps its bet zones on the felt too; only the chip
+   tray/controls live in its rail). The footer now only holds secondary
+   controls (stand up / 족보 / chat), so it never competes for the same
+   height budget as the actual fold/call/raise/all-in buttons — which is what
+   was pushing them off-screen on short mobile viewports.
+   ============================================================================= */
+
+@media (max-width: 900px) and (max-height: 540px) and (orientation: landscape) {
+  .game-shell .holdem-felt .holdem-presets { gap: 5px; }
+}
+
+/* =============================================================================
+   Mobile density pass: the outer "shell" screens (lobby, wallet, profile, admin,
+   login) each got their own compact rules over time, but every one of those still
+   left slack — a stray child margin was even collapsing straight through
+   .lobby-toolbar and pushing the whole game switcher (and everything below it)
+   down by an extra 18px with nothing rendered in that space. Kept last so these
+   win over every earlier same-specificity mobile rule regardless of source order.
+   ============================================================================= */
+@media (max-width: 620px) {
+  /* Header bar: shorter, tighter brand mark. */
+  .topbar { min-height: 46px; --topbar-pad-x: 10px; }
+  .brand { gap: 5px; }
+  .brand > span { width: 25px; height: 25px; font-size: 13px; }
+
+  /* Shell padding: less dead air above/below the actual content. */
+  .app-shell { padding: 10px 10px 28px; --shell-pad-x: 10px; }
+
+  /* Wallet / profile headers: match the tighter room-section rhythm above. */
+  .wallet-heading, .profile-heading { margin-bottom: 8px; padding-bottom: 8px; }
+  .wallet-heading h1, .profile-heading h1 { font-size: 17px; }
+  .wallet-summary, .profile-stats { margin-bottom: 8px; }
+  .wallet-stat, .profile-stat { min-height: 56px; padding: 9px 10px; }
+  .wallet-stat strong, .profile-stat strong { font-size: 13px; }
+  .profile-panel { margin-bottom: 12px; padding: 10px; }
+  .profile-panel-heading { margin-bottom: 7px; }
+  .profile-panel-heading h2 { font-size: 15px; }
+
+  /* Admin console: same tightened heading + KPI rhythm. */
+  .admin-kpi { min-height: 54px; padding: 8px 9px; }
+  .admin-kpi strong { font-size: 14px; }
+  .admin-panel { padding: 10px; }
+  .admin-panel-heading h2 { font-size: 15px; }
+
+  /* Login / signup card: shorter, less generous whitespace. */
+  .login-card { padding: 18px 16px; }
+  .login-card .brand { margin-bottom: 14px; }
+  .login-rule { margin-bottom: 16px; }
+  .login-card form { gap: 11px; }
+}
+
+/* Landscape phone, shell pages. The ≤980 rule gave the picker two ~390px columns here, ~280px a
+   row under a 64px sticky header on a 390px screen: one row (2 of 10 games) per screen, a
+   4.6-screen lobby against 1.3 in portrait. Five across puts all ten in two rows on one screen. */
+@media (max-width: 900px) and (max-height: 540px) and (orientation: landscape) {
+  .topbar { min-height: 46px; }
+  .app-shell { padding-top: 12px; }
+  .lobby-title { font-size: 17px; margin-bottom: 10px; }
+}
+
+/* ── 디스플레이 컷아웃(카메라 홀)과 모바일 성능 (2026-09-21) ────────────────
+   갤럭시 가로 모드에서 왼쪽에 흰 띠가 보인다는 제보. viewport-fit=cover 로 그 영역까지
+   페이지가 덮게 하고(index.html), 여기서 안전 영역만큼 안쪽으로 밀어 내용이 카메라에
+   가리지 않게 한다. 배경은 이미 어두우므로 흰 띠는 사라진다. */
+@layer base {
+  html, body { background: var(--bg); }
+}
+.topbar { padding-left: max(var(--topbar-pad-x, 28px), env(safe-area-inset-left)); padding-right: max(var(--topbar-pad-x, 28px), env(safe-area-inset-right)); }
+.app-shell { padding-left: max(var(--shell-pad-x, 30px), env(safe-area-inset-left)); padding-right: max(var(--shell-pad-x, 30px), env(safe-area-inset-right)); }
+
+/* ── Touch minimums ──────────────────────────────────────────────────────────
+   A tablet is a thumb device just like a phone, but the compact sizes were tied to the
+   620px phone breakpoint, so every icon control between 621 and 900px sat at 34–36px.
+   Also keyed to `pointer: coarse` so a touchscreen laptop — which matches no width rule
+   at all — gets the same floor. 40px is the smallest target a thumb hits reliably.
+   ──────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px), (pointer: coarse) {
+  .account .profile-trigger { min-width: 40px; min-height: 40px; }
+  .game-rooms-back { width: 40px; height: 40px; }
+  /* `.wallet-heading .lobby-return-button` sets 34px at (0,2,0), so match its specificity. */
+  .lobby-return-button, .wallet-heading .lobby-return-button { min-height: 40px; }
+}
+
+/* ── Tablet portrait: the felt was a stretched phone ─────────────────────────
+   On an 820x1180 iPad the felt runs 1059px tall while its content — hands at 98, roads at 595,
+   bet print at 796 — is all pinned to phone-sized pixel offsets, leaving ~680px (64% of the
+   table) as empty cloth, and the cards stay at 74px because `--card-w` caps at 74 regardless
+   of how much room there is. Two fixes, no new layout: cap the felt so its bottom-anchored
+   roads and print rise to meet the hands, and let the cards grow into a screen this size.
+   ──────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 621px) and (max-width: 900px) and (orientation: portrait) {
+  .game-shell .ot-felt { max-height: min(100%, 880px); align-self: center; }
+}
+
+/* ── Touch targets: 44×44 on a coarse pointer ────────────────────────────────
+   Only `pointer: coarse`, so a mouse-driven desktop keeps its compact controls. Where the
+   layout has room the control itself grows; in the game bar and the road's P/B/T row, where
+   a taller control would take height from the table, a transparent ::after grows the hit area
+   to 44×44 instead, and the row's gap is widened so neighbouring hit areas never overlap a
+   button you can see. PvP-only controls (.pvp-tool, the PvP chat button, Hold'em presets) are
+   sized by the PvP sheets and are left to them. */
+@media (pointer: coarse) {
+  .brand-home { min-height: 44px; }
+  .account .profile-trigger { height: 44px; min-height: 44px; }
+  .game-rooms-back { width: 44px; height: 44px; }
+  .lobby-return-button, .wallet-heading .lobby-return-button, .profile-heading .lobby-return-button, .admin-header-center .admin-lobby-link { min-height: 44px; }
+  .lobby-footer-links a { min-height: 44px; }
+  .outline-button { min-height: 44px; }
+  select, .dropdown-trigger { min-height: 44px; }
+  .dropdown-menu li { display: flex; align-items: center; min-height: 44px; }
+  .profile-dropdown a, .profile-dropdown button { min-height: 44px; }
+  .room-tile-admin { min-height: 44px; padding-inline: 14px; }
+  .chat-composer input, .admin-chat-grid .chat-composer input { min-height: 44px; }
+  .chat-composer button, .admin-chat-grid .chat-composer button { width: 44px; height: 44px; }
+  .room-chat-toggle { min-width: 44px; min-height: 44px; }
+  .room-chat-head button, .room-chat-panel.is-fullscreen .room-chat-head button { min-width: 44px; min-height: 44px; }
+  .room-chat-composer input { min-height: 44px; }
+  .room-chat-composer button, .room-chat-panel.is-fullscreen .room-chat-composer button { width: 44px; height: 44px; }
+  .derived-roads-toggle { min-height: 44px; }
+
+  /* Admin console on a tablet. */
+  .admin-sidebar a { min-height: 44px; }
+  .admin-small-button, .admin-balance-adjust .admin-small-button { min-width: 44px; min-height: 44px; }
+  .admin-balance-input, .admin-search { min-height: 44px; }
+  .admin-filter-tabs button, .admin-send-modes button { min-height: 44px; }
+  .admin-room-chat-select .dropdown-trigger, .admin-audit-filters .dropdown-trigger, .admin-audit-table details summary { min-height: 44px; }
+  .admin-user-link { display: flex; align-items: center; min-height: 44px; }
+  .admin-inline-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .admin-temp-password-close { min-width: 44px; min-height: 44px; }
+
+  /* Game bar and road controls: hit area, not size. */
+  .game-shell .game-back,
+  .game-shell .game-bar-actions .mute-button,
+  .game-shell .game-bar-actions .profile-trigger,
+  .road-predict-controls button { position: relative; }
+  .game-shell .game-back::after,
+  .game-shell .game-bar-actions .mute-button::after,
+  .game-shell .game-bar-actions .profile-trigger::after,
+  .road-predict-controls button::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+  }
+  /* The icon-only trigger clips its label with overflow:hidden, which would clip the hit area too. */
+  .game-shell .game-bar-actions .profile-trigger { overflow: visible; }
+  .game-shell .game-bar-actions { gap: 16px; }
+  .road-predict-controls, .game-shell .road-predict-controls { gap: 12px; }
+  .road-predict-controls button, .game-shell .road-predict-controls button { width: 32px; height: 28px; }
+}
+
+/* DEAL(components/DealButton.tsx): 각 게임 조작 줄 버튼(.tg-act·.bac-act…)의 높이·모서리를 그대로 쓰고 금색과 폭만 바꾼다. */
+button.deal-button { min-width: 68px; padding: 0 12px; border-color: var(--gold-deep); background: var(--gold-btn); color: var(--on-gold); font: 800 14px var(--ui-font); letter-spacing: .06em; white-space: nowrap; }
+button.deal-button:hover:not(:disabled) { background: var(--gold-btn-hover); }

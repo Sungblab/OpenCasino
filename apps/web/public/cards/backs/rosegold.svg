@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="46%" r="72%">
+      <stop offset="0" stop-color="#7a3a44"/>
+      <stop offset=".5" stop-color="#4a1f28"/>
+      <stop offset="1" stop-color="#1a0a0e"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe9de"/>
+      <stop offset=".45" stop-color="#e8a28c"/>
+      <stop offset=".7" stop-color="#fff0e8"/>
+      <stop offset="1" stop-color="#b96e5a"/>
+    </linearGradient>
+    <pattern id="lattice" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45 250 350)">
+      <path d="M0 0H28M0 0V28" stroke="#2a1015" stroke-width="2.2" opacity=".55"/>
+      <path d="M14 0V28M0 14H28" stroke="#f0b8a4" stroke-width=".8" opacity=".4"/>
+      <circle cx="14" cy="14" r="1.8" fill="#f6cdbd" opacity=".7"/>
+    </pattern>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffb9a3" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ffb9a3" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="inner"><rect x="26" y="26" width="448" height="648" rx="18"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="496" height="696" rx="34" fill="#fbf8f1" stroke="#d9d2c2" stroke-width="2"/>
+  <g clip-path="url(#inner)">
+    <rect x="26" y="26" width="448" height="648" fill="url(#felt)"/>
+    <rect x="26" y="26" width="448" height="648" fill="url(#lattice)"/>
+    <circle cx="250" cy="350" r="200" fill="url(#halo)"/>
+  </g>
+  <rect x="26" y="26" width="448" height="648" rx="18" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <rect x="40" y="40" width="420" height="620" rx="12" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity=".9"/>
+  <g fill="url(#gold)">
+    <path d="M250 52l9 14-9 14-9-14z"/>
+    <path d="M250 620l9 14-9 14-9-14z"/>
+    <path d="M52 350l14-9 14 9-14 9z"/>
+    <path d="M420 350l14-9 14 9-14 9z"/>
+    <path d="M62 62l18 4-14 14z"/>
+    <path d="M438 62l-18 4 14 14z"/>
+    <path d="M62 638l18-4-14-14z"/>
+    <path d="M438 638l-18-4 14-14z"/>
+  </g>
+  <g transform="translate(250 350)">
+    <circle r="104" fill="#1a0a0d" stroke="url(#gold)" stroke-width="6"/>
+    <circle r="92" fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-dasharray="2 5"/>
+    <circle r="84" fill="#2a1217" stroke="url(#gold)" stroke-width="2.2"/>
+    <g fill="url(#gold)" opacity=".9">
+      <path d="M0-104l7 11h-14z"/><path d="M0 104l7-11h-14z"/><path d="M-104 0l11 7v-14z"/><path d="M104 0l-11 7v-14z"/>
+    </g>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#gold)" stroke="#12060a" stroke-width="1.6" paint-order="stroke">OC</text>
+    <path d="M-46 44H46" stroke="url(#gold)" stroke-width="1.6"/>
+    <path d="M-46 -48H46" stroke="url(#gold)" stroke-width="1.6"/>
+  </g>
+</svg>

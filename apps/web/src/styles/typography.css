@@ -1,0 +1,41 @@
+/* =============================================================================
+   Display serif (--display-font = Cinzel): English CAPS signage only — the wordmark, game names, betting-zone names, the result
+   headline. Everything Korean, and every number you read for information, is --ui-font (Poppins / Noto Sans KR).
+   Why this rule: Cinzel has no Hangul (it falls through to the sans), and a Korean serif looked bookish rather than casino. So the
+   test for adding a selector here is "is the text always English?" — room names, page titles, dialog titles, buttons: no.
+   Imported last and every selector carries an `html` prefix so it wins over the per-component `font:` shorthands (some of
+   those stylesheets load lazily, after this one). Odds, chips, amounts and buttons are never here.
+   ============================================================================= */
+
+/* The wordmark — header, login card. */
+html .brand strong { font-family: var(--display-font); font-weight: 700; letter-spacing: .16em; }
+
+/* Game names on the lobby rows and on a PvP game's room list (the Korean name next to it is sans). */
+html .game-row-head h2,
+html .game-rooms-head h1 { font-family: var(--display-font); font-weight: 700; letter-spacing: .08em; }
+html .game-rooms-head h1 .game-rooms-ko,
+html .game-rooms-head h1 span { font-family: var(--ui-font); letter-spacing: 0; }
+
+/* Betting zones: the printed name of each spot (PLAYER, BIG, 1st 12, a wheel value…). The odds line, chips and amounts on the
+   spot stay on --ui-font. */
+html .bac-zone-name,
+html .ct-hand-label,
+html .rlt-cell,
+html .rlt-cell.tone-outside,
+html .sb-word,
+html .sb-total,
+html .mw-spot-value,
+html .tg-spot-label,
+html .tg-bacbo-name,
+html .bjt-side b {
+  font-family: var(--display-font);
+  font-weight: 700;
+}
+html .ct-hand-label .num { font-family: var(--ui-font); }
+
+/* The round's result headline (PLAYER WIN, DRAGON WIN…) — always English. */
+html .ct-banner-title {
+  font-family: var(--display-font);
+  font-weight: 700;
+  letter-spacing: .06em;
+}

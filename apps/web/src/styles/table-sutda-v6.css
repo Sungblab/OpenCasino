@@ -1,0 +1,282 @@
+/* =============================================================================
+   섯다 v6 — 게임 영역 전체를 덮는 캔버스 판(features/sutda) + 같은 좌표로 겹친 DOM. 베팅 독도 판 안
+   아래에 올라탄다(PvP 는 판과 베팅을 가를 이유가 없다 — 폰은 주로 가로로 한다). 캔버스는 독 높이만큼을
+   비워 두고 그 위에 판을 짠다(insetBottom). 판 위 자리는 전부 캔버스가 알려 준 px 이다.
+   ============================================================================= */
+
+.sutda-v6 .sv6-table {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: #1d2210;
+  box-shadow: 0 0 0 1px rgba(92,57,14, .88), 0 0 0 4px rgba(10,8,5, .96), 0 26px 56px -30px rgba(0,0,0, .9);
+}
+/* 내 차례: 판 테두리가 금빛으로. 캔버스가 판을 덮으므로 테두리는 위에 얹는 층으로 그린다. */
+.sutda-v6 .sv6-table::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px transparent;
+  transition: box-shadow .25s ease;
+}
+.sutda-v6 .sv6-table.is-my-turn::after { box-shadow: inset 0 0 0 2px rgba(240,180,28, .6), inset 0 0 60px rgba(240,180,28, .12); }
+
+.sutda-v6 .sv6-stage { position: absolute; inset: 0; }
+
+/* 겹친 층: 빈 곳은 캔버스로 흘려보내고 올린 조각만 누를 수 있다. */
+.sutda-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.sutda-overlay > * { pointer-events: auto; }
+.sutda-overlay > .sv6-badge, .sutda-overlay > .sv6-bubble, .sutda-overlay > .sv6-pot-anchor, .sutda-overlay > .sv6-shout, .sutda-overlay > .sv6-cut-flash { pointer-events: none; }
+
+.sutda-v6 .sv6-topline { top: 8px; left: 10px; right: 10px; align-items: center; }
+/* 진행 상황은 지금 단계 한 마디(다섯 칸 막대 대신). */
+.sutda-v6 .sv6-phase { padding: 6px 14px; border: 1px solid rgba(232,217,184, .16); border-radius: 999px; background: rgba(6,4,2, .55); color: var(--gold-light); font: 700 13px var(--ui-font); white-space: nowrap; }
+
+/* 이름표: 상대는 패 아래 가운데에, 나는 패 왼쪽에 오른쪽 끝을 붙인다. */
+.sutda-v6 .sv6-seat { width: 124px; padding: 0; gap: 0; }
+.sutda-v6 .sv6-seat[data-side="below"] { transform: translate(-50%, 0); }
+.sutda-v6 .sv6-seat[data-side="left"] { transform: translate(-100%, -50%); }
+.sutda-v6 .sv6-seat[data-side="right"] { transform: translate(0, -50%); }
+.sutda-v6 .sv6-seat .holdem-seat-plate { width: 100%; min-width: 0; margin: 0; padding: 5px 10px 6px; }
+.sutda-v6 .sv6-seat.is-mine { width: 132px; }
+.sutda-v6 .sv6-seat.is-lost .holdem-seat-plate { filter: grayscale(.5) brightness(.8); }
+.sutda-v6 .sv6-seat.is-winner .holdem-seat-plate { border-color: var(--gold-light); box-shadow: 0 0 14px rgba(240,180,28, .45), 0 6px 16px rgba(0,0,0, .55); }
+.sutda-v6 .holdem-seat-empty { z-index: 2; }
+
+/* 배지: 패 아랫단 가운데에 걸친다. */
+.sv6-badge { position: absolute; z-index: 4; transform: translate(-50%, -70%); }
+.sv6-badge .pvp-badge { position: static; display: block; transform: none; }
+
+/* 말풍선: 점에 꼬리가 닿게. 위쪽 줄 자리는 도구 줄을 피해 패 오른쪽으로. */
+.sv6-bubble { position: absolute; z-index: 8; width: 0; height: 0; }
+.sv6-bubble .table-bubble { bottom: 7px; }
+.sv6-bubble[data-side="right"] .table-bubble { left: 8px; bottom: auto; top: 0; transform: translateY(-50%); }
+.sv6-bubble[data-side="right"] .table-bubble::after { display: none; }
+.sv6-bubble[data-side="left"] .table-bubble { left: auto; right: 8px; bottom: auto; top: 0; transform: translateY(-50%); }
+.sv6-bubble[data-side="left"] .table-bubble::after { display: none; }
+.sv6-bubble[data-side="center"] .table-bubble { left: 0; bottom: auto; top: 0; transform: translate(-50%, -50%); max-width: 100px; }
+.sv6-bubble[data-side="center"] .table-bubble::after { display: none; }
+
+
+.sv6-open-tag { position: absolute; z-index: 5; transform: translate(-50%, -70%); padding: 0 7px; border: 1px solid rgba(126,200,255, .7); border-radius: 999px; background: rgba(10,30,52, .92); color: #cfe9ff; font: 700 12px/1.5 var(--ui-font); pointer-events: none; }
+
+.sv6-cut-flash { position: absolute; z-index: 5; transform: translate(-50%, 0); padding: 2px 9px; border-radius: 999px; background: rgba(8,6,4, .85); color: var(--gold-light); font: 600 12px/1.5 var(--ui-font); font-style: normal; white-space: nowrap; }
+
+.sv6-pot-anchor { position: absolute; width: 44px; height: 20px; transform: translate(-50%, -50%); }
+
+/* 족보 태그: 넓은 화면은 내 패 오른쪽, 세로 폰은 내 패 아래 가운데. */
+.sutda-v6 .sv6-tag { position: absolute; z-index: 3; max-width: 300px; }
+.sutda-v6 .sv6-tag[data-side="right"] { transform: translate(0, -50%); }
+/* 가운데에 둔 절대 위치 상자는 기준점 오른쪽 폭만 받아 좁게 접혔다(설명 한 줄이 두 줄로) — 폭은 내용대로. */
+.sutda-v6 .sv6-tag[data-side="below"] { transform: translate(-50%, 0); width: max-content; max-width: calc(100% - 16px); padding: 6px 12px 7px; }
+.sutda-v6 .sv6-tag[data-side="right"] { width: max-content; }
+.sutda-overlay.is-wide:not(.is-narrow) .sv6-short { display: none; }
+.sutda-overlay:is(:not(.is-wide), .is-narrow) .sv6-long { display: none; }
+/* 넓은 판의 빈자리는 한 치수 크게 — 판이 화면 전체라 64px 동그라미는 점처럼 보였다. */
+.sutda-overlay.is-wide .holdem-seat-empty { width: 82px; height: 82px; font-size: 13px; }
+
+.sv6-shout { position: absolute; z-index: 9; width: 0; height: 0; }
+/* 자리 표시(.sv6-shout)가 폭 0 이라 그대로 두면 "내 차 / 례"처럼 글자마다 줄이 바뀌었다. */
+.sv6-shout .pvp-turn-shout { left: 0; top: 0; white-space: nowrap; }
+
+/* 독: 판 안 아래에 올라탄다. 높이는 고정 — 내 차례·대기·결과가 바뀌어도 판이 흔들리지 않는다.
+   국내 섯다 앱처럼 얇은 한 줄: 머리줄 없이 버튼은 이름만(설명은 마우스를 올리면). */
+.sutda-v6 .sv6-dock-slot { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 6; display: grid; height: 54px; }
+.sutda-v6 .sv6-dock-slot > .pvp-dock { min-height: 0; align-content: center; overflow: hidden; padding: 6px 8px; gap: 0; border-radius: 12px; }
+.sutda-v6 .sv6-dock-slot .pvp-dock-head { display: none; }
+.sutda-v6 .sv6-dock-slot .pvp-act { min-height: 40px; padding: 4px 6px; }
+.sutda-v6 .sv6-dock-slot .pvp-act small { display: none; }
+.sutda-v6 .sv6-dock-slot .pvp-act strong { font-size: 14px; }
+.sutda-v6 .sv6-dock-slot .pvp-dock-status { min-height: 0; }
+.sutda-v6 .sv6-dock-slot .pvp-dock-status p { margin: 0; font-size: 13px; }
+.sutda-v6 .sv6-dock-slot > .felt-prompt { position: static; transform: none; align-self: center; justify-self: center; }
+.game-shell .sutda-v6 .room-chat-panel { top: 104px; right: 26px; bottom: auto; height: min(440px, calc(100dvh - 130px)); }
+
+/* 봇 실력: 한 글자 라벨("보")은 뜻을 알 수 없었다 — "봇 보통"처럼 두 말을 다 쓴다. */
+.sutda-v6 .pvp-bot-skill .bot-skill-short { display: none; }
+.sutda-v6 .pvp-bot-skill .bot-skill-caption { display: none; }
+.sutda-v6 .pvp-bot-skill .bot-skill-full { display: inline; }
+.sutda-v6 .pvp-bot-skill .bot-skill-full::before { content: "봇 "; font-weight: 600; opacity: .7; }
+.sutda-v6 .squeeze-mode-caption { opacity: .7; font-weight: 600; }
+.sutda-v6 .pvp-squeeze-mode strong { font-weight: 800; }
+
+/* "⋯" 메뉴: 넓은 화면에선 껍데기가 없어 안의 도구가 줄에 그대로 선다(세로 폰에서만 접힌다). */
+.sutda-v6 .pvp-more, .sutda-v6 .pvp-more-menu { display: contents; }
+.sutda-v6 .pvp-more-toggle { display: none; }
+
+/* =============================================================================
+   폰(가로 short · 세로 tall) — PC 와 따로 짠다. 캔버스가 고른 모드(data-mode)를 따르므로 헤더 모양이나
+   화면 크기 경계에서 캔버스와 어긋나지 않는다. 조각은 한 치수씩 작고 촘촘하게 — 단 글씨는 12px, 누르는 곳은 44px 아래로 내리지 않는다.
+   ============================================================================= */
+.sv6-stage:not([data-mode="wide"]) .sv6-topline { top: 6px; left: 6px; right: 6px; gap: 6px; }
+.sv6-stage:not([data-mode="wide"]) .sv6-phase { padding: 4px 10px; font-size: 12px; }
+.game-shell .sv6-stage:not([data-mode="wide"]) .pvp-tools { gap: 4px; }
+.game-shell .sv6-stage:not([data-mode="wide"]) .pvp-tool { min-height: 26px; padding: 0 9px; font-size: 12px; }
+.game-shell .sv6-stage:not([data-mode="wide"]) .pvp-tools .room-chat-toggle { width: 30px; height: 30px; margin-left: 8px; }
+/* 채팅·⛶·≡ 의 44px 누르는 영역과 그 사이 틈은 game-guide.css 의 가로 폰 규칙이 PvP 공통으로 맡는다. */
+
+.sv6-stage:not([data-mode="wide"]) .sv6-seat { width: 88px; }
+.sv6-stage:not([data-mode="wide"]) .sv6-seat.is-mine { width: 94px; }
+.sv6-stage:not([data-mode="wide"]) .sv6-seat .holdem-seat-plate { padding: 2px 5px 3px; gap: 0; border-radius: 10px; }
+.sv6-stage:not([data-mode="wide"]) .sv6-seat :is(.holdem-seat-name, .holdem-seat-stack) { font-size: 12px; line-height: 1.25; }
+.game-shell .sv6-stage:not([data-mode="wide"]) .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet { transform: scale(.8); transform-origin: 100% 100%; right: -8px; bottom: -7px; }
+/* 폰 이름표는 두 줄(이름·코인)만 — 도우미의 상대 패 범위 줄까지 얹으면 옆줄과 부딪혔다. */
+.sv6-stage:not([data-mode="wide"]) .sv6-seat .assist-range { display: none; }
+
+/* 빈자리: 동그라미 대신 이름표만 한 납작한 칸. */
+.sutda-overlay:not(.is-wide) .holdem-seat-empty { display: flex; align-items: center; justify-content: center; gap: 3px; width: 76px; height: 30px; border-radius: 9px; font-size: 12px; }
+.sutda-overlay:not(.is-wide) .holdem-seat-empty::before { content: ""; position: absolute; inset: -8px 0; }
+
+/* 12px 배지는 70% 만 걸치면 아랫단이 바로 밑 이름표 윗줄을 덮는다 — 폰에선 패 쪽으로 더 올린다. */
+.sutda-overlay:not(.is-wide) .sv6-badge { transform: translate(-50%, -88%); }
+.sutda-overlay:not(.is-wide) .pvp-badge { padding: 0 7px; font-size: 12px; line-height: 1.5; max-width: 96px; }
+.sutda-overlay:not(.is-wide) .table-bubble { max-width: 150px; padding: 3px 8px; font-size: 12px; border-radius: 10px; }
+
+.sutda-v6 .sutda-overlay:not(.is-wide) .sv6-tag { padding: 5px 9px 6px; gap: 6px; border-radius: 10px; max-width: 240px; }
+.sutda-overlay:not(.is-wide) .pvp-hand-tag strong { font-size: 14px; }
+.sutda-overlay:not(.is-wide) .pvp-hand-tag :is(small, .pvp-hand-tag-text > span) { font-size: 12px; }
+/* 세로 폰 족보 태그: 족보 이름 옆에 강도 막대 — 특수패 설명까지 네 줄이 되면 독에 걸렸다. */
+.sutda-overlay.is-tall .sv6-tag:not(.is-hint) .pvp-hand-tag-text { grid-template-columns: auto auto; column-gap: 8px; align-items: center; justify-content: start; }
+.sutda-overlay.is-tall .sv6-tag:not(.is-hint) .pvp-hand-tag-text > :not(:nth-child(-n+2)) { grid-column: 1 / -1; }
+.sutda-v6 .sutda-overlay.is-tall .sv6-tag[data-side="below"] { max-width: calc(100% - 16px); }
+
+.sutda-overlay:not(.is-wide) .sv6-open-tag { padding: 0 6px; }
+.sutda-overlay:not(.is-wide) .sv6-cut-flash { font-size: 12px; }
+/* 가로 폰: 가운데 띠가 낮아 큰 외침이 상대 이름표·판돈을 덮는다 — 독의 금테와 머리줄이 이미 알린다. */
+.sutda-overlay.is-short .sv6-shout { display: none; }
+.sutda-overlay.is-tall .pvp-turn-shout strong { font-size: 26px; }
+.sutda-overlay.is-tall .pvp-turn-shout span { font-size: 12px; }
+
+/* 폰 독: 가로는 버튼 한 줄(50 — 버튼 44), 세로는 두 줄(4 + 3). */
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot { left: 6px; right: 6px; bottom: 6px; height: 50px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot > .pvp-dock { padding: 2px 5px; border-radius: 10px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-act { min-height: 44px; align-content: center; padding: 2px 4px; border-radius: 8px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-act strong { font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-status p { font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot :is(.pvp-dock-results li, .pvp-dock-ready, .pvp-dock-meta, .sutda-choice header strong) { font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-ready button { min-height: 44px; padding: 0 12px; font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot > .felt-prompt { padding: 5px 14px; font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot > .felt-prompt small { font-size: 12px; }
+.sv6-stage[data-mode="tall"] ~ .sv6-dock-slot { height: 80px; }
+.sv6-stage[data-mode="tall"] ~ .sv6-dock-slot .pvp-act-row { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.sv6-stage[data-mode="tall"] ~ .sv6-dock-slot .pvp-dock-ready small { display: none; }
+/* 폰 결과: 폭이 좁아 결과 칩이 두세 줄로 접혀 독을 넘쳤다(여럿이 나눠 가진 판) — 진행 문장 한 줄 + 결과 한 줄.
+   세로는 위아래로 쌓고, 가로는 한 줄에 나란히. */
+.sv6-stage[data-mode="tall"] ~ .sv6-dock-slot .pvp-dock-status { flex-direction: column; align-items: stretch; justify-content: center; gap: 4px; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-status p { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sv6-stage[data-mode="tall"] ~ .sv6-dock-slot .pvp-dock-status p { text-align: center; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-results { flex-wrap: nowrap; justify-content: center; overflow: hidden; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-results li { min-width: 0; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-results li span { max-width: 64px; }
+/* 족보는 판 위 배지에 있다 — 폰 결과 칩은 이름과 금액만. */
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot .pvp-dock-results li b { display: none; }
+
+/* 세로 폰: 진행 단계는 머리줄이 말하므로 빼고, 앉은 사람용 도구는 "⋯" 안으로(두 줄로 넘쳐 위쪽 자리를 덮었다). */
+.sv6-stage[data-mode="tall"] .sv6-topline .sv6-phase { display: none; }
+.sv6-stage[data-mode="tall"] .sv6-topline { justify-content: flex-end; }
+.game-shell .sv6-stage[data-mode="tall"] .sv6-topline .pvp-tools { flex-wrap: nowrap; }
+.sv6-stage[data-mode="tall"] .pvp-more { display: block; position: relative; }
+.sv6-stage[data-mode="tall"] .pvp-more-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; font-size: 15px; letter-spacing: .05em; }
+.sv6-stage[data-mode="tall"] .pvp-more-menu {
+  display: none;
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  flex-direction: column; align-items: stretch; gap: 5px; min-width: 120px; padding: 6px;
+  border: 1px solid rgba(232,217,184, .18); border-radius: 10px; background: rgba(6,4,2, .94);
+  box-shadow: 0 12px 28px rgba(0,0,0, .5);
+}
+.sv6-stage[data-mode="tall"] .pvp-more.is-open .pvp-more-menu { display: flex; }
+.sv6-stage[data-mode="tall"] .pvp-more-menu .pvp-tool { width: 100%; justify-content: center; }
+
+/* =============================================================================
+   고르는 창(SutdaPickers) — 3장 섯다 공개 패·최종 두 장, 직접 쪼기. 독 자리에서 위로 자라 내 패 자리를
+   덮는다(그동안 내 패는 이 창 안에 크게 있다). 캔버스는 다시 짜지 않는다 — 판이 흔들리지 않게.
+   ============================================================================= */
+.sutda-v6 .sv6-dock-slot.is-sheet { left: 50%; right: auto; width: max-content; max-width: calc(100% - 20px); height: auto; transform: translateX(-50%); z-index: 12; }
+.sv6-sheet { display: grid; gap: 8px; padding: 10px 14px 12px; border: 1px solid rgba(232,217,184, .22); border-radius: 14px; background: rgba(8,6,4, .94); box-shadow: 0 -10px 30px rgba(0,0,0, .55); }
+.sv6-sheet.is-urgent, .sv6-sheet.is-squeeze { border-color: rgba(240,180,28, .8); animation: sv6-sheet-glow 1.6s ease-in-out infinite; }
+@keyframes sv6-sheet-glow { 50% { box-shadow: 0 -10px 30px rgba(0,0,0, .55), 0 0 0 4px rgba(240,180,28, .18); } }
+.sv6-sheet header { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.sv6-sheet header strong { color: #ffe9b0; font: 700 15px var(--ui-font); white-space: nowrap; }
+.sv6-sheet header small { color: var(--muted); font: 500 12px var(--ui-font); white-space: nowrap; }
+.sv6-sheet-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.sv6-sheet-note { margin: 0; overflow: hidden; color: var(--muted); font: 500 12px var(--ui-font); text-align: center; white-space: nowrap; text-overflow: ellipsis; }
+
+.sv6-sheet-card, .sv6-sheet-pair { position: relative; display: grid; justify-items: center; gap: 5px; padding: 7px 8px 6px; border: 1px solid rgba(232,217,184, .2); border-radius: 11px; background: rgba(255,255,255, .03); color: var(--text); cursor: pointer; transition: transform .12s ease, border-color .12s ease, opacity .12s ease; }
+.sv6-sheet-card:hover, .sv6-sheet-pair:hover { transform: translateY(-3px); border-color: rgba(240,180,28, .65); }
+.sv6-sheet-card:focus-visible, .sv6-sheet-pair:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+.sv6-sheet-card.is-on, .sv6-sheet-pair.is-on { border-color: var(--gold-light); background: rgba(240,180,28, .14); }
+.sv6-sheet-card.is-off, .sv6-sheet-pair.is-off { opacity: .45; }
+.sv6-sheet-card b, .sv6-sheet-pair b { font: 700 13px var(--ui-font); white-space: nowrap; }
+.sv6-sheet-card.is-on b { color: #cfe9ff; }
+.sv6-sheet-card .hwatu-card { width: 64px; height: 105px; margin: 0; }
+.sv6-sheet-pair-cards { display: flex; gap: 3px; }
+.sv6-sheet-pair .hwatu-card { width: 42px; height: 69px; margin: 0; }
+.sv6-sheet-pair .hand-meter { grid-template-columns: auto auto; gap: 5px; }
+.sv6-sheet-pair .hand-meter-label { font-size: 12px; }
+.sv6-sheet :is(.sv6-sheet-card, .sv6-sheet-pair, .sv6-sheet-known) .hwatu-month { font-size: 12px; }
+.sv6-sheet-flag { position: absolute; top: -9px; right: -7px; z-index: 1; padding: 1px 7px; border-radius: 999px; background: var(--tie); color: #08301f; font: 800 12px/1.3 var(--ui-font); white-space: nowrap; }
+.sv6-sheet-flag.is-special { right: auto; left: -7px; background: #8fd0ff; color: #06243a; }
+
+.sv6-sheet-known { opacity: .8; }
+.sv6-sheet-known .hwatu-card { width: 48px; height: 78px; margin: 0; }
+.sv6-sheet-squeeze .table-squeeze { display: block; }
+.sv6-sheet-squeeze .hwatu-card { display: block; width: 78px; height: 128px; margin: 0; transform: none; box-shadow: 0 6px 16px rgba(0,0,0, .55); }
+.sv6-sheet-open { align-self: center; min-height: 44px; padding: 0 16px; border: 1px solid rgba(240,180,28, .7); border-radius: 10px; background: rgba(240,180,28, .12); color: var(--gold-light); font: 700 13px var(--ui-font); cursor: pointer; }
+.sv6-sheet-open:hover { background: rgba(240,180,28, .22); }
+
+/* 지금 단계 알약: 내가 골라야 하는 단계면 금색으로. */
+.sutda-v6 .sv6-phase.is-mine { border-color: var(--gold-light); background: var(--gold-light); color: #1a1204; animation: sv6-sheet-glow 1.6s ease-in-out infinite; }
+
+/* 기리: 자를 사람에게만, 판 가운데에 뭉치를 옆으로 펼친다. 누른 장 오른쪽이 벌어져 어디서 자르는지 보인다. */
+/* 더미 바로 왼쪽에 오른쪽 끝을 붙인다 — 판돈 자리 가운데에 두면 더미를 덮었다. */
+.sv6-cutter-at { position: absolute; z-index: 9; transform: translate(-100%, -50%); }
+.sv6-cutter header { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.sv6-cutter { display: grid; justify-items: center; gap: 4px; padding: 4px 10px 8px 14px; border: 1px solid rgba(240,180,28, .7); border-radius: 12px; background: rgba(8,6,4, .88); box-shadow: 0 10px 26px rgba(0,0,0, .5); }
+.sv6-cutter p { margin: 0; color: var(--text); font: 600 12px var(--ui-font); white-space: nowrap; }
+.sv6-cutter p strong { margin-right: 6px; color: var(--gold-light); font-size: 14px; }
+.sv6-cut-strip { display: flex; padding: 2px 12px 2px 2px; }
+.sv6-cut-strip button { width: 11px; height: 52px; margin: 0 -1px 0 0; padding: 0; border: 0; border-radius: 2px; background: linear-gradient(90deg, #f1e3bf 0 2px, #8c1017 2px 100%); box-shadow: -1px 0 2px rgba(0,0,0, .45); cursor: pointer; transition: transform .12s ease, background .12s ease; }
+.sv6-cut-strip button:hover, .sv6-cut-strip button:focus-visible { outline: none; background: linear-gradient(90deg, var(--gold-light) 0 3px, #a8141c 3px 100%); transform: translateY(-4px); }
+.sv6-cut-strip button:hover ~ button, .sv6-cut-strip button:focus-visible ~ button { transform: translateX(12px); }
+.sv6-cut-skip { position: relative; min-height: 32px; padding: 2px 6px; border: 0; background: none; color: var(--muted); font: 500 12px var(--ui-font); cursor: pointer; }
+.sv6-cut-skip:hover { color: var(--text); }
+/* 누르는 영역만 44px — 글자 줄을 키우면 기리 창이 위아래 이름표에 닿는다. */
+.sv6-cut-skip::before { content: ""; position: absolute; inset: -6px -4px; }
+
+/* 폰: 창과 패를 한 치수 작게 — 가로 폰은 판이 300px 남짓이라 창이 위쪽 줄까지 올라가지 않게. */
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-dock-slot.is-sheet { left: 50%; right: auto; bottom: 6px; height: auto; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet { gap: 6px; padding: 7px 10px 9px; border-radius: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet header strong { font-size: 13px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet header small, .sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-note { font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-row { gap: 8px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-card .hwatu-card { width: 52px; height: 85px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-pair .hwatu-card { width: 34px; height: 56px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) :is(.sv6-sheet-card, .sv6-sheet-pair) { padding: 5px 6px 4px; gap: 3px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) :is(.sv6-sheet-card, .sv6-sheet-pair) b { font-size: 12px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-known .hwatu-card { width: 34px; height: 56px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-squeeze .hwatu-card { width: 54px; height: 88px; }
+.sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-open { min-height: 44px; padding: 0 12px; font-size: 12px; }
+.sutda-overlay:not(.is-wide) .sv6-cut-strip button { width: 9px; height: 40px; }
+.sutda-overlay:not(.is-wide) .sv6-cutter { padding: 2px 8px 6px 12px; gap: 2px; }
+
+/* 고르는 창 뒤의 판: 한 톤 눌러 창이 "지금 할 일"로 읽히게. 머리줄(단계·도구)과 외침은 그 위에. */
+.sv6-scrim { position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0, .42); pointer-events: none; animation: sv6-scrim-in .2s ease-out; }
+@keyframes sv6-scrim-in { from { opacity: 0; } }
+.sutda-v6 .sv6-topline { z-index: 11; }
+.sutda-v6 .sv6-shout { z-index: 12; }
+/* 내 차례 독: "추천" 꼬리표가 버튼 위로 삐져나온다 — 다른 때처럼 잘라 두면 글자가 반만 보였다. */
+.sutda-v6 .sv6-dock-slot > .pvp-dock.is-turn { overflow: visible; }
+/* 창이 떠 있는 동안 내 패는 창 안에 있다 — 판 위의 내 이름표·공개 표시·말풍선이 창 가장자리로 반쯤 삐져나와 지저분했다. */
+.sv6-table.has-sheet :is(.sv6-seat.is-mine, .sv6-open-tag, .sv6-bubble.is-mine) { visibility: hidden; }
+
+/* 직접 쪼기 창: 독 위, 오른쪽 아래(내 패 오른쪽 — 가운데는 판돈·더미). 독 높이는 stageLayout 의 DOCK_INSET 과 같다. */
+.sv6-squeeze-float { position: absolute; right: 10px; bottom: 72px; z-index: 12; }
+.sv6-stage:not([data-mode="wide"]) ~ .sv6-squeeze-float { right: 6px; bottom: 62px; }
+.sv6-stage[data-mode="tall"] ~ .sv6-squeeze-float { bottom: 98px; }
+.sv6-sheet.is-squeeze { animation: none; }
+.sv6-sheet.is-squeeze .sv6-sheet-open { line-height: 1.25; }

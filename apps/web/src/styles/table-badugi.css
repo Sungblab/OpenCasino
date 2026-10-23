@@ -1,0 +1,97 @@
+/* =============================================================================
+   바둑이 — 홀덤 v6 틀(.holdem-v6 / .hv6-*)을 그대로 쓰고, 바둑이만의 것만 여기에: 남청 담요 바탕, 자리마다
+   교체 장수 배지, 교체 창(트럼프 4장을 크게, 누르면 버릴 카드로 위로 들림), 세로 폰의 두 줄 독, 팟 앵커.
+   방 페이지가 import 해서 공용 표 시트들보다 뒤에 온다.
+   ============================================================================= */
+
+.badugi .hv6-table { background: #06141d; }
+.badugi-overlay > :is(.bd-pot-anchor, .bd-draw-tag) { pointer-events: none; }
+.bd-pot-anchor { position: absolute; width: 44px; height: 20px; transform: translate(-50%, -50%); }
+
+.badugi .bd-tag .bd-dead { color: #ff9aa0; font-weight: 700; }
+/* 세로 폰: 족보 칸은 이름표 아래 한 줄 — 두 줄로 접히면 독에 걸렸다. 남는 글자는 말줄임. */
+.badugi .badugi-overlay.is-tall .bd-tag { max-width: calc(100% - 16px); }
+.badugi .badugi-overlay.is-tall .bd-tag .pvp-hand-tag-text { flex-wrap: nowrap; gap: 6px; }
+.badugi .badugi-overlay.is-tall .bd-tag strong { flex: 0 0 auto; white-space: nowrap; }
+.badugi .badugi-overlay.is-tall .bd-tag small { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.badugi .badugi-overlay.is-tall .bd-tag .hand-meter-label { display: none; }
+
+/* 교체 장수 배지 — 카드 뭉치 오른쪽 위 모서리. 바둑이에서 남에게 보이는 유일한 정보라 판 위에서 가장 또렷하게.
+   패스(0장)는 메이드 신호라 금색으로. 교체 창이 열려 있는 동안엔 고름/고르는 중. */
+.bd-draw-tag {
+  position: absolute; z-index: 5; transform: translate(-50%, -50%);
+  padding: 1px 8px; border: 1px solid rgba(126,200,255, .7); border-radius: 999px;
+  background: rgba(10,30,52, .94); color: #cfe9ff; font: 800 12px/1.5 var(--ui-font); white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0,0,0, .5);
+}
+.bd-draw-tag[data-side="right"] { transform: translate(0, -50%); }
+.bd-draw-tag.is-pass { border-color: var(--gold-light); background: linear-gradient(180deg, #f4c542, #c9941a); color: #1a1206; }
+.bd-draw-tag.is-waiting { border-color: rgba(232,217,184, .3); background: rgba(6,4,2, .82); color: var(--muted); font-weight: 600; animation: bd-wait 1.2s ease-in-out infinite; }
+.bd-draw-tag.is-chosen { border-color: rgba(78,231,154, .6); background: rgba(16,60,36, .94); color: #c8ffe0; }
+@keyframes bd-wait { 50% { opacity: .55; } }
+
+/* 위쪽 자리는 패 아랫단 배지가 바로 밑 이름표 윗줄에 걸치지 않게 카드 쪽으로 더 올린다(폰은 홀덤 규칙이 이미 올린다). */
+.badugi .hv6-badge { transform: translate(-50%, -92%); }
+
+/* 베팅 독: 다이·체크/콜·삥·따당·하프·올인 + 남은 초. 세로 폰은 세 칸씩 두 줄(줄마다 44px) — badugiLayout 의 DOCK_INSET 과 짝. */
+.badugi .bd-act-row .pvp-act strong { white-space: nowrap; }
+.badugi .bd-stage[data-mode="tall"] ~ .hv6-dock-slot { height: 98px; }
+.badugi .bd-stage[data-mode="tall"] ~ .hv6-dock-slot .hv6-act-row { align-content: center; }
+.badugi .bd-stage[data-mode="tall"] ~ .hv6-dock-slot .hv6-act-row .pvp-act-slot { flex: 1 1 calc(33.3% - 4px); }
+.badugi .bd-stage[data-mode="tall"] ~ .hv6-dock-slot .hv6-clock { display: none; }
+.badugi .bd-stage[data-mode="tall"] ~ .hv6-dock-slot.is-sheet { height: auto; }
+/* 폰의 교체 창: 홀덤의 폰 독 규칙(left·right 6px, 높이 50)이 창 자리 규칙을 덮어 창이 왼쪽 밖으로 밀려났다 — 가운데로 되돌린다. */
+.badugi .bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot.is-sheet { left: 50%; right: auto; height: auto; transform: translateX(-50%); }
+
+/* =============================================================================
+   교체 창 — 섯다 고르는 창(.sv6-sheet)과 같은 겉모양. 카드는 크기 그대로 위로 들려 "버림"이 된다.
+   ============================================================================= */
+.badugi .hv6-dock-slot.is-sheet { width: max-content; max-width: calc(100% - 20px); }
+.bd-sheet { display: grid; gap: 8px; padding: 10px 14px 12px; border: 1px solid rgba(232,217,184, .22); border-radius: 14px; background: rgba(8,6,4, .95); box-shadow: 0 -10px 30px rgba(0,0,0, .55); }
+.bd-sheet.is-urgent { border-color: rgba(240,180,28, .8); animation: bd-sheet-glow 1.6s ease-in-out infinite; }
+@keyframes bd-sheet-glow { 50% { box-shadow: 0 -10px 30px rgba(0,0,0, .55), 0 0 0 4px rgba(240,180,28, .18); } }
+.bd-sheet header { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.bd-sheet header strong { color: #ffe9b0; font: 700 15px var(--ui-font); white-space: nowrap; }
+.bd-sheet header small { color: var(--muted); font: 500 12px var(--ui-font); white-space: nowrap; }
+.bd-sheet-body { display: flex; align-items: center; justify-content: center; gap: 14px; }
+/* 위쪽 여백은 들린 카드가 머리줄에 닿지 않을 만큼. */
+.bd-sheet-row { display: flex; gap: 8px; padding-top: 14px; }
+.bd-sheet-card { position: relative; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; }
+.bd-sheet-face { display: block; width: 70px; height: 98px; border-radius: 6px; box-shadow: 0 6px 14px rgba(0,0,0, .5); transition: transform .14s ease, box-shadow .14s ease, filter .14s ease; }
+.bd-sheet-face .card-face-image { --_cw: 70px; width: 100%; height: 100%; }
+.bd-sheet-card b { color: var(--muted); font: 700 12px var(--ui-font); white-space: nowrap; }
+.bd-sheet-card.is-dead .bd-sheet-face { filter: brightness(.62); }
+.bd-sheet-card.is-dead b { color: #ff9aa0; }
+.bd-sheet-card.is-picked .bd-sheet-face { transform: translateY(-14px); box-shadow: 0 0 0 2px #ff7078, 0 14px 20px rgba(0,0,0, .6); filter: none; }
+.bd-sheet-card.is-picked b { color: #ff9aa0; }
+.bd-sheet-card:hover:not(.is-picked) .bd-sheet-face { transform: translateY(-4px); }
+.bd-sheet-card:focus-visible { outline: none; }
+.bd-sheet-card:focus-visible .bd-sheet-face { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+.bd-sheet-actions { display: grid; gap: 6px; min-width: 112px; }
+.bd-sheet-go { min-height: 48px; padding: 0 16px; border: 1px solid rgba(78,231,154, .6); border-radius: 10px; background: linear-gradient(180deg, rgba(46,160,90, .45), rgba(20,90,50, .45)); color: #d7ffe7; font: 800 15px var(--ui-font); white-space: nowrap; cursor: pointer; }
+.bd-sheet-go.is-pass { border-color: rgba(240,180,28, .7); background: rgba(240,180,28, .16); color: #ffe9b0; }
+.bd-sheet-go:disabled { opacity: .45; cursor: default; }
+.bd-sheet-suggest { min-height: 36px; padding: 0 10px; border: 1px solid rgba(232,217,184, .22); border-radius: 9px; background: rgba(255,255,255, .04); color: var(--text); font: 700 12px var(--ui-font); white-space: nowrap; cursor: pointer; }
+.bd-sheet-suggest small { margin-left: 3px; color: var(--muted); font-weight: 600; }
+.bd-sheet-suggest:disabled { opacity: .45; cursor: default; }
+.bd-sheet-note { margin: 0; overflow: hidden; color: var(--muted); font: 500 12px var(--ui-font); text-align: center; white-space: nowrap; text-overflow: ellipsis; }
+.bd-sheet-note b { margin-right: 4px; color: #ffe9b0; font-weight: 800; }
+@media (pointer: coarse) { .bd-sheet-suggest { min-height: 44px; } }
+
+/* 폰: 한 치수 작게 — 가로 폰은 판이 300px 남짓이라 창이 위쪽 상대 줄까지 올라가지 않게. */
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet { gap: 5px; padding: 6px 10px 8px; border-radius: 12px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet header strong { font-size: 13px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-body { gap: 10px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-row { gap: 6px; padding-top: 10px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-face { width: 54px; height: 76px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-face .card-face-image { --_cw: 54px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-card.is-picked .bd-sheet-face { transform: translateY(-10px); }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-actions { min-width: 96px; }
+.bd-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .bd-sheet-go { min-height: 44px; padding: 0 12px; font-size: 13px; }
+/* 세로 폰: 카드 넉 장과 버튼이 한 줄에 안 들어간다 — 카드 줄 아래에 버튼 두 개를 나란히. */
+.bd-stage[data-mode="tall"] ~ .hv6-dock-slot .bd-sheet-body { flex-direction: column; gap: 6px; }
+.bd-stage[data-mode="tall"] ~ .hv6-dock-slot .bd-sheet-actions { grid-auto-flow: column; grid-template-columns: 1fr 1.6fr; width: 100%; }
+.bd-stage[data-mode="tall"] ~ .hv6-dock-slot .bd-sheet header { flex-wrap: wrap; gap: 2px 10px; }
+
+/* 도움말 족보표: 묶음에서 빠진 죽은 패는 흐리게. */
+.guide-poker-card.is-dead { opacity: .38; filter: grayscale(.4); }

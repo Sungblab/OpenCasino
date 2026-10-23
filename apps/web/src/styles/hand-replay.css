@@ -1,0 +1,208 @@
+/* =============================================================================
+   PvP 판 리플레이(HandReplaySheet) — 도움말·기록 창(game-guide.css)의 틀에 판 한 장, 단계 버튼 줄,
+   행동 목록을 얹는다. 창 높이를 고정해 단계를 넘겨도 들썩이지 않고, 목록만 안에서 스크롤한다.
+   ============================================================================= */
+.hand-replay-root { z-index: 310; }
+.game-guide.hand-replay {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  width: min(760px, calc(100vw - 32px));
+  height: min(860px, calc(100dvh - 32px));
+  max-height: none;
+}
+.hand-replay-empty { grid-row: 2 / -1; align-self: start; margin: 32px 16px; color: var(--muted); font-size: 13px; text-align: center; }
+
+/* ── 판 ─────────────────────────────────────────────────────────────────── */
+.hand-replay-table { display: grid; gap: 8px; padding: 0 16px 10px; }
+.hand-replay-status { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 26px; color: var(--text); font: 700 13px var(--ui-font); }
+.hand-replay-status b { padding: 2px 10px; border: 1px solid var(--gold-line); border-radius: 99px; background: rgba(240, 180, 28, .12); color: var(--gold-light); font-variant-numeric: tabular-nums; }
+.hand-replay-status small { color: var(--muted); font-size: 12px; font-weight: 500; }
+
+.hand-replay-board { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 62px; padding: 6px 10px; border: 1px solid rgba(232, 217, 184, .12); border-radius: 10px; background: rgba(11, 74, 50, .5); }
+.is-gostop .hand-replay-board { min-height: 50px; background: rgba(110, 62, 18, .38); }
+.hand-replay-board-label { flex: none; color: var(--muted); font: 600 12px var(--ui-font); }
+
+.hand-replay-cards { display: inline-flex; align-items: center; gap: 3px; min-width: 0; }
+.hand-replay-cards.is-board { flex-wrap: wrap; justify-content: center; gap: 4px; }
+.hand-replay-card { display: inline-flex; flex: none; border-radius: 4px; }
+.hand-replay-card.is-used { box-shadow: 0 0 0 2px var(--gold-light); }
+.hand-replay-card.is-open { box-shadow: 0 0 0 2px #4a93e0; }
+
+/* 트럼프 카드: 판의 딜 애니메이션·부채꼴 겹침 없이 가지런히. */
+.hand-replay .playing-card { --card-w: 30px; --card-fan: 0; animation: none; }
+.hand-replay-board .playing-card { --card-w: 36px; }
+.hand-replay-slot { display: inline-block; width: 36px; height: calc(36px * 1.4); border: 1px dashed rgba(232, 217, 184, .2); border-radius: 4px; }
+.hand-replay-seat .hand-replay-slot { width: 30px; height: 42px; }
+
+/* 화투: styles.css 의 53×82 고정·겹침 회전을 걷어 낸다. */
+.hand-replay .hwatu-card { width: 26px; height: 40px; margin: 0; transform: none; border-radius: 3px; }
+.hand-replay .hwatu-card + .hwatu-card { margin-left: 0; transform: none; }
+.hand-replay .hwatu-month { font-size: 12px; line-height: 1.25; padding: 0 .2em; }
+.is-gostop .hand-replay-board .hwatu-card { width: 24px; height: 37px; }
+.is-gostop .hand-replay-seat .is-hand .hwatu-card { width: 22px; height: 34px; }
+.hand-replay-cards.is-pile .hand-replay-card + .hand-replay-card { margin-left: -9px; }
+.hand-replay-cards.is-pile .hwatu-card { width: 18px; height: 28px; box-shadow: -1px 0 2px rgba(0, 0, 0, .45); }
+.hand-replay-cards.is-pile .hwatu-month { display: none; }
+
+/* 고스톱 이번 수: 높이를 고정해 수가 아닌 단계에서 판이 들썩이지 않게. */
+.hand-replay-move { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 4px 10px; border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--muted); font: 600 12px var(--ui-font); }
+.hand-replay-move i { color: var(--gold-light); font-style: normal; font-weight: 700; }
+.hand-replay-move-who { max-width: 88px; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+.hand-replay-move em { font-style: normal; }
+.hand-replay-move .hwatu-card { width: 24px; height: 37px; }
+
+/* 자리 */
+.hand-replay-seats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.hand-replay-seats.seats-2, .hand-replay-seats.seats-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.is-gostop .hand-replay-seats { grid-template-columns: minmax(0, 1fr); }
+.hand-replay-seat {
+  display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 6px 8px;
+  border: 1px solid rgba(232, 217, 184, .12); border-radius: 10px; background: rgba(0, 0, 0, .3);
+  transition: border-color .15s, background-color .15s;
+}
+.hand-replay-seat.is-mine { border-color: rgba(240, 180, 28, .35); }
+.hand-replay-seat.is-active { border-color: var(--gold-light); background: rgba(240, 180, 28, .1); box-shadow: inset 0 0 0 1px var(--gold-light); }
+.hand-replay-seat.is-winner { border-color: var(--positive); box-shadow: inset 0 0 0 1px var(--positive); }
+.hand-replay-seat.is-folded .hand-replay-cards { opacity: .45; }
+.hand-replay-seat-head { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; }
+.hand-replay-seat-name { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--text); font: 700 12.5px var(--ui-font); text-overflow: ellipsis; white-space: nowrap; }
+.hand-replay-chip { flex: none; padding: 0 6px; border: 1px solid var(--gold-line-soft); border-radius: 99px; color: var(--gold-pale); font: 700 12px/1.4 var(--ui-font); }
+.hand-replay-chip.is-me { border-color: var(--gold-light); background: var(--gold-btn); color: var(--on-gold); }
+.hand-replay-seat-bet { flex: none; color: var(--gold-light); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums; }
+.hand-replay-seat .is-hand { min-height: 42px; }
+/* 고스톱 자리: 넓은 창은 손패 | 먹은 패 두 칸, 폰은 위아래로(아래 미디어 쿼리). */
+.is-gostop .hand-replay-seat { grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; column-gap: 12px; }
+.is-gostop .hand-replay-seat-head, .is-gostop .hand-replay-seat-foot { grid-column: 1 / -1; }
+.is-gostop .hand-replay-seat .is-hand { min-height: 34px; }
+.hand-replay-hidden { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font: 600 12px var(--ui-font); }
+.hand-replay-shown { display: inline-flex; gap: 2px; margin-left: 6px; }
+.hand-replay-captured { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 28px; color: var(--muted-dim); font-size: 12px; }
+.hand-replay-seat-foot { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 18px; width: 100%; font: 600 12px var(--ui-font); }
+.is-gostop .hand-replay-seat-foot { justify-content: flex-start; }
+.hand-replay-seat-foot em { color: var(--muted); font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hand-replay-seat-foot b { font-variant-numeric: tabular-nums; }
+.hand-replay-seat-foot b.is-up { color: var(--positive); }
+.hand-replay-seat-foot b.is-down { color: var(--negative); }
+.hand-replay-label { overflow: hidden; color: var(--gold-pale); text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── 단계 버튼 줄 ───────────────────────────────────────────────────────── */
+.hand-replay-controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-block: 1px solid var(--gold-line-soft); }
+.hand-replay-controls button {
+  display: grid; place-items: center; width: 46px; height: 40px; padding: 0;
+  border: 1px solid var(--gold-line-soft); border-radius: 10px; background: rgba(0, 0, 0, .3); color: var(--text); cursor: pointer;
+}
+.hand-replay-controls button:hover:not(:disabled) { border-color: var(--gold-light); color: var(--gold-light); }
+.hand-replay-controls button.is-play { width: 58px; border-color: var(--gold-light); background: linear-gradient(to bottom, var(--gold-btn), #b98306); color: var(--on-gold); }
+.hand-replay-controls button:disabled { opacity: .35; cursor: default; }
+.hand-replay-count { min-width: 56px; color: var(--muted); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+
+/* ── 행동 목록 ───────────────────────────────────────────────────────────── */
+.hand-replay-steps { min-height: 0; margin: 0; padding: 6px 10px 12px; overflow-y: auto; list-style: none; overscroll-behavior: contain; }
+.hand-replay-steps button {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 4px 8px;
+  border: 0; border-radius: 8px; background: none; color: var(--muted); font: 500 13px var(--ui-font); text-align: left; cursor: pointer;
+}
+.hand-replay-steps button:hover { background: rgba(232, 217, 184, .06); }
+.hand-replay-step-no { color: var(--muted-dim); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.hand-replay-step-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hand-replay-steps button.is-street, .hand-replay-steps button.is-deal { color: var(--text); font-weight: 700; }
+.hand-replay-steps button.is-show { color: var(--gold-pale); }
+.hand-replay-steps button.is-result { color: var(--gold-light); font-weight: 700; }
+.hand-replay-steps button.is-mine .hand-replay-step-text { color: var(--gold-pale); }
+.hand-replay-steps button[aria-current="step"] { background: rgba(240, 180, 28, .16); box-shadow: inset 3px 0 0 var(--gold-light); color: var(--gold-light); font-weight: 700; }
+
+@media (pointer: coarse) {
+  .hand-replay-controls button { height: 44px; }
+  .hand-replay-steps button { min-height: 44px; }
+}
+
+/* 폰: 아래에서 올라온 시트가 화면 높이를 다 쓴다. 자리는 두 줄씩(셋이면 한 줄에 셋). */
+@media (max-width: 620px) {
+  .game-guide.hand-replay { width: calc(100% - 16px); height: calc(100dvh - 16px); max-height: none; }
+  .hand-replay-table { gap: 6px; padding: 0 10px 8px; }
+  .hand-replay-seats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hand-replay-seats.seats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hand-replay-seat { padding: 5px 6px; }
+  .hand-replay .playing-card { --card-w: 28px; }
+  .hand-replay-board .playing-card { --card-w: 34px; }
+  .hand-replay-slot { width: 34px; height: calc(34px * 1.4); }
+  .hand-replay-controls { gap: 5px; padding: 6px 10px; }
+  .hand-replay-controls button { width: 44px; }
+  .hand-replay-controls button.is-play { width: 54px; }
+  .hand-replay-steps { padding: 4px 6px 10px; }
+  .is-gostop .hand-replay-seat { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
+}
+/* 가로 폰·낮은 창: 높이가 모자라 목록이 먼저 줄어든다. */
+@media (max-height: 520px) {
+  .game-guide.hand-replay { height: calc(100dvh - 12px); }
+  .hand-replay-board { min-height: 50px; }
+  .hand-replay-board .playing-card { --card-w: 28px; }
+  .hand-replay-slot { width: 28px; height: calc(28px * 1.4); }
+}
+
+/* ── 기록 화면의 "리플레이" 버튼(게임 기록·기록 창·관리자 기록) ───────────────────────── */
+.replay-button {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 26px; margin-left: 6px; padding: 0 9px;
+  border: 1px solid var(--gold-line); border-radius: 99px; background: rgba(240, 180, 28, .1); color: var(--gold-light);
+  font: 700 12px var(--ui-font); white-space: nowrap; vertical-align: middle; cursor: pointer;
+}
+.replay-button:hover { background: rgba(240, 180, 28, .2); }
+.replay-button svg { flex: none; }
+@media (pointer: coarse) { .replay-button::after { content: ""; position: absolute; inset: -9px -4px; } }
+@media (max-width: 620px) {
+  .replay-button { margin-left: 4px; padding: 0 7px; }
+  .replay-button span { display: none; }
+}
+/* 게임 안 기록 창: 줄 끝에 리플레이 칸을 하나 더 — PvP 게임 창에서만 생긴다. */
+.game-history-list.has-replay li { grid-template-columns: 38px minmax(0, 1fr) auto 64px 40px; }
+.game-history-list.has-replay .replay-button { width: 36px; height: 30px; margin: 0; padding: 0; justify-self: end; }
+.game-history-list.has-replay .replay-button span { display: none; }
+@media (max-width: 620px) {
+  .game-history-list.has-replay li { grid-template-columns: 34px minmax(0, 1fr) auto 56px 36px; gap: 6px; }
+  .game-history-list.has-replay .replay-button { width: 34px; }
+}
+
+/* 작은 글씨 보정: 틀(game-guide)의 폰 부제 11.5px, <small> 의 기본 smaller(10px) — 12px 아래로 내려가지 않게. */
+.hand-replay .game-guide-head p { font-size: 12px; }
+.hand-replay-hidden small, .hand-replay-captured small { font-size: 12px; }
+
+/* 넓은 창의 고스톱: 바닥 | 이번 수를 한 줄에, 자리는 [이름·점수 | 손패 | 먹은 패] 한 줄로 — 낮은 창(1280×580)에서도
+   목록이 남는다. 폰은 위의 쌓는 배치 그대로. */
+@media (min-width: 621px) {
+  .is-gostop .hand-replay-table { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .is-gostop .hand-replay-status, .is-gostop .hand-replay-seats { grid-column: 1 / -1; }
+  .is-gostop .hand-replay-seat {
+    grid-template-columns: minmax(84px, 120px) auto minmax(0, 1fr);
+    grid-template-areas: "head hand cap" "foot hand cap";
+    row-gap: 2px; padding: 5px 8px;
+  }
+  .is-gostop .hand-replay-seat-head { grid-area: head; grid-column: auto; }
+  .is-gostop .hand-replay-seat-foot { grid-area: foot; grid-column: auto; }
+  .is-gostop .hand-replay-seat .is-hand { grid-area: hand; }
+  .is-gostop .hand-replay-captured { grid-area: cap; }
+}
+
+/* 7포커·바둑이: 일곱(넉) 장이 한 줄에 들어가도록 자리를 한 줄씩 — [이름·낸 돈 / 교체·족보·손익 | 패].
+   패 칸은 장수만큼 폭을 잡아 두어 다이로 덜 받은 자리도 줄이 맞고, 단계를 넘겨도 들썩이지 않는다. */
+.is-seven_poker .hand-replay-seats, .is-badugi .hand-replay-seats { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.is-seven_poker .hand-replay-seat, .is-badugi .hand-replay-seat {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "head hand" "foot hand";
+  justify-items: stretch; align-items: center; column-gap: 10px; row-gap: 2px; padding: 4px 8px;
+}
+.is-seven_poker .hand-replay-seat-head, .is-badugi .hand-replay-seat-head { grid-area: head; }
+.is-seven_poker .hand-replay-seat-foot, .is-badugi .hand-replay-seat-foot { grid-area: foot; justify-content: flex-start; min-width: 0; }
+.is-seven_poker .hand-replay-seat .is-hand, .is-badugi .hand-replay-seat .is-hand { grid-area: hand; justify-content: flex-start; }
+.is-seven_poker .hand-replay-seat .is-hand { width: calc(7 * 30px + 6 * 3px); }
+.is-badugi .hand-replay-seat .is-hand { width: calc(4 * 30px + 3 * 3px); }
+/* 넓은 창은 두 줄씩 — 한 줄짜리 자리는 이름과 패 사이가 휑하다. 홀수면 마지막 자리를 가운데로. */
+@media (min-width: 621px) {
+  .is-seven_poker .hand-replay-seats, .is-badugi .hand-replay-seats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .is-seven_poker .hand-replay-seat:last-child:nth-child(odd), .is-badugi .hand-replay-seat:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 3px); }
+}
+.hand-replay-draws { flex: none; padding: 0 6px; border: 1px solid rgba(232, 217, 184, .18); border-radius: 99px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 620px) {
+  .hand-replay.is-seven_poker .playing-card { --card-w: 26px; }
+  .is-seven_poker .hand-replay-seat .is-hand { gap: 2px; width: calc(7 * 26px + 6 * 2px); }
+  .is-badugi .hand-replay-seat .is-hand { width: calc(4 * 28px + 3 * 3px); }
+  .is-seven_poker .hand-replay-seat, .is-badugi .hand-replay-seat { column-gap: 8px; padding: 4px 6px; }
+}

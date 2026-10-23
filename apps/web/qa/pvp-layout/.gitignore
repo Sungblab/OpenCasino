@@ -1,0 +1,4 @@
+shots/
+profile/
+# every QA browser profile — 20MB of cookies and cache, never source
+profile-*/

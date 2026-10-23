@@ -1,0 +1,65 @@
+/* =============================================================================
+   로비 보상(components/LobbyRewards.tsx): 데일리 휠 + 보상함. 카드 틀(.eco-card·.eco-head·.eco-button)은 economy.css.
+   ============================================================================= */
+
+.lobby-rewards-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 12px; }
+
+/* ── 데일리 휠 ─────────────────────────────────────────────────────────────── */
+.wheel-body { display: grid; grid-template-columns: 128px minmax(0, 1fr); align-items: center; gap: 14px; }
+.daily-wheel { position: relative; width: 128px; aspect-ratio: 1; }
+.daily-wheel svg {
+  display: block; width: 100%; height: 100%; overflow: visible;
+  transition-property: transform; transition-timing-function: cubic-bezier(.12, .72, .16, 1);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .55));
+}
+.daily-wheel-pointer {
+  position: absolute; top: -6px; left: 50%; z-index: 1; width: 0; height: 0;
+  border: 8px solid transparent; border-top: 14px solid var(--gold-light); transform: translateX(-50%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7));
+}
+.wheel-slice { stroke: rgba(240, 180, 28, .55); stroke-width: .8; }
+.wheel-slice.tone-red { fill: #8e1b24; }
+.wheel-slice.tone-dark { fill: #1d1712; }
+.wheel-slice.tone-top { fill: #c9962c; }
+.daily-wheel text { fill: #f6ead0; font: 700 14px var(--ui-font); text-anchor: middle; dominant-baseline: central; }
+.daily-wheel g:has(.tone-top) text { fill: #2b1d02; }
+.wheel-rim { fill: none; stroke: var(--gold); stroke-width: 5; }
+.wheel-hub { fill: var(--gold); stroke: #6b4a0b; stroke-width: 2; }
+.wheel-side { display: grid; gap: 8px; min-width: 0; }
+.wheel-pips { display: flex; gap: 4px; }
+.wheel-pips i { flex: 1; height: 7px; border-radius: 4px; background: var(--line-strong); }
+.wheel-pips i.is-done { background: var(--gold); }
+.wheel-pips i.is-today { background: var(--positive); box-shadow: 0 0 6px rgba(47, 217, 126, .6); }
+.wheel-streak-text { margin: 0; color: var(--muted); font: 500 12px var(--ui-font); }
+.wheel-streak-text b { color: var(--text); font-weight: 700; }
+.wheel-side .eco-button, .wheel-side .eco-done { margin: 0; }
+.wheel-vip { color: var(--gold-light); font: 600 12px var(--ui-font); }
+
+/* ── 보상함 ────────────────────────────────────────────────────────────────── */
+.rewards-card .eco-head-note { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; }
+.rewards-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.rewards-list li {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-sunken);
+}
+.rewards-list li > svg, .rewards-list li > .user-rank { justify-self: center; color: var(--gold); }
+.rewards-list li > span { display: grid; gap: 3px; min-width: 0; color: var(--text); font: 600 13px var(--ui-font); }
+.rewards-list small { color: var(--muted); font: 500 12px var(--ui-font); white-space: nowrap; }
+.rewards-list small a { color: var(--gold-light); text-decoration: none; }
+.rewards-list b.is-ready { color: var(--positive); font: 700 14px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rewards-list em { color: var(--muted); font: 600 12px var(--ui-font); font-style: normal; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rewards-level { display: flex; align-items: center; gap: 6px; }
+.rewards-level .meta-bar { flex: 1; height: 5px; }
+.rewards-items { margin: 0; color: var(--gold-light); font: 600 12px var(--ui-font); }
+.rewards-card > .eco-button { margin-top: 2px; }
+
+@media (max-width: 620px) {
+  .lobby-rewards-cards { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+  .wheel-body { grid-template-columns: 112px minmax(0, 1fr); }
+  .daily-wheel { width: 112px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-wheel svg { transition-duration: 0ms !important; }
+}
+/* 받을 게 없을 때는 받기 버튼처럼 보이지 않게(초록이 흐려진 것도 눌러 볼 버튼으로 읽혔다). */
+.rewards-card > .eco-button:disabled, .wheel-side .eco-button:disabled { background: var(--panel-raised); color: var(--muted); opacity: 1; }

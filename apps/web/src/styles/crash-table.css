@@ -1,0 +1,261 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   크래시: 위 그래프(2D 캔버스) + 옆 이번 판 참가자 · 아래 베팅 패널.
+   CrashRoomPage 가 불러오므로 크래시 방에 들어갈 때만 받는다. 규칙은 .crh-room 아래로 묶는다.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.crh-room) { width: 100%; padding: 0; }
+
+.crh-room {
+  --crh-green: #2fd97e;
+  --crh-green-deep: #18a85a;
+  --crh-red: #ff4d5c;
+  --crh-gold: #ffd24a;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px 10px;
+  box-sizing: border-box;
+  font-family: var(--ui-font);
+}
+.crh-top { display: grid; grid-template-columns: minmax(0, 1fr) 288px; gap: 8px; min-height: 0; }
+
+/* ── 그래프 ───────────────────────────────────────────────────────────────── */
+.crh-stage {
+  position: relative; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  border-radius: 14px; background: linear-gradient(180deg, #15110b 0%, #0c0a07 100%);
+  box-shadow: 0 0 0 1px rgba(92, 57, 14, .88), 0 0 0 4px rgba(10, 8, 5, .96);
+}
+.crh-recent {
+  flex: none; display: flex; gap: 6px; margin: 0; padding: 10px 12px 0; overflow: hidden; list-style: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+.crh-recent li {
+  flex: none; padding: 4px 9px; border: 1px solid; border-radius: 99px;
+  font: 700 12px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+.crh-recent .tone-red, .crh-players .tone-red { color: #ff7a85; border-color: rgba(255, 77, 92, .42); background: rgba(255, 77, 92, .1); }
+.crh-recent .tone-green { color: #57eaa0; border-color: rgba(47, 217, 126, .42); background: rgba(47, 217, 126, .1); }
+.crh-recent .tone-gold { color: var(--crh-gold); border-color: rgba(255, 210, 74, .6); background: rgba(255, 210, 74, .14); }
+.crh-recent li.is-latest { box-shadow: 0 0 0 1px currentColor; }
+
+.crh-graph { position: relative; flex: 1 1 auto; min-height: 0; }
+.crh-graph canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.crh-mult {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 2px;
+  pointer-events: none; text-align: center;
+}
+.crh-mult span {
+  color: #fff; font: 800 clamp(48px, 7.5vw, 112px) Poppins, var(--ui-font); font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em; line-height: 1; text-shadow: 0 4px 28px rgba(0, 0, 0, .7);
+}
+.crh-mult span:empty { display: none; }
+.crh-mult small { color: var(--crh-red); font: 800 clamp(15px, 1.6vw, 20px) var(--ui-font); letter-spacing: .08em; }
+.crh-graph.is-crashed .crh-mult span { color: var(--crh-red); animation: crh-burst .35s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes crh-burst { from { transform: scale(1.25); opacity: .4; } }
+
+/* 비행 전: 다음 비행까지 남은 시간(단계·시간은 여기 한 곳). */
+.crh-wait {
+  position: absolute; left: 50%; top: 52%; z-index: 2; transform: translate(-50%, -50%);
+  display: grid; justify-items: center; gap: 6px; pointer-events: none;
+}
+.crh-wait small { color: var(--muted); font: 700 14px var(--ui-font); letter-spacing: .04em; }
+.crh-wait strong { color: var(--crh-gold); font: 800 clamp(44px, 6vw, 84px) Poppins, var(--ui-font); line-height: 1; font-variant-numeric: tabular-nums; }
+.crh-wait strong em { margin-left: 4px; font-size: .36em; font-style: normal; color: var(--muted); }
+.crh-wait strong.is-go { color: #fff; }
+.crh-wait-bar { display: block; width: min(220px, 50vw); height: 5px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, .1); }
+.crh-wait-bar i { display: block; height: 100%; border-radius: inherit; background: var(--crh-gold); transform-origin: left; animation: crh-drain linear forwards; }
+@keyframes crh-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+.crh-players-toggle { display: none; }
+
+/* ── 이번 판 참가자 ─────────────────────────────────────────────────────────── */
+.crh-side {
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  border: 1px solid var(--gold-line-soft); border-radius: 14px; background: var(--panel);
+}
+.crh-side > header {
+  flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 11px 12px 9px; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.crh-side > header strong { color: var(--text); font-weight: 600; }
+.crh-side > header b { color: var(--gold-light); font-variant-numeric: tabular-nums; }
+.crh-side > header span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.crh-empty { flex: 1 1 auto; display: grid; place-items: center; margin: 0; padding: 16px; color: var(--muted); font-size: 13px; text-align: center; }
+.crh-players { flex: 1 1 auto; min-height: 0; margin: 0; padding: 4px 6px; overflow-y: auto; list-style: none; scrollbar-width: thin; }
+.crh-players li {
+  display: grid; grid-template-columns: minmax(0, 1fr) 40px 80px 56px; align-items: center; gap: 6px;
+  min-height: 30px; padding: 0 8px; border-radius: 7px; font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.crh-players li:nth-child(odd) { background: rgba(255, 255, 255, .025); }
+.crh-player-name { overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+.crh-player-bet { color: var(--muted); text-align: right; }
+.crh-player-out { color: var(--muted-dim); text-align: right; font-weight: 700; white-space: nowrap; }
+.crh-player-out small { margin-left: 3px; color: inherit; font-size: 12px; font-weight: 600; opacity: .8; }
+.crh-player-pay { text-align: right; font-weight: 700; }
+.crh-players li.is-cashed { background: rgba(47, 217, 126, .1); }
+.crh-players li.is-cashed :is(.crh-player-out, .crh-player-pay) { color: var(--crh-green); }
+.crh-players li.is-lost :is(.crh-player-name, .crh-player-bet) { opacity: .45; }
+.crh-players li.is-lost .crh-player-out { color: var(--crh-red); }
+.crh-players li.is-me { box-shadow: inset 3px 0 0 var(--gold); }
+.crh-players li.is-me .crh-player-name { color: var(--gold-light); font-weight: 700; }
+.crh-stats { flex: none; display: grid; gap: 6px; padding: 10px 12px 11px; border-top: 1px solid var(--line); font-size: 12px; }
+.crh-stats header { display: flex; justify-content: space-between; color: var(--muted); font-weight: 600; }
+.crh-stats header b { color: var(--gold-light); font-variant-numeric: tabular-nums; }
+.crh-stat { display: grid; grid-template-columns: 64px minmax(0, 1fr) 36px; align-items: center; gap: 8px; color: var(--text); }
+.crh-stat i { height: 8px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, .06); }
+.crh-stat i b { display: block; height: 100%; border-radius: inherit; }
+.crh-stat.tone-red i b { background: var(--crh-red); }
+.crh-stat.tone-green i b { background: var(--crh-green); }
+.crh-stat.tone-gold i b { background: var(--crh-gold); }
+.crh-stat em { color: var(--muted); font-style: normal; font-variant-numeric: tabular-nums; text-align: right; }
+.crh-side .winner-feed { flex: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; }
+.crh-side .winner-feed ul { max-height: 112px; padding: 4px 6px; overflow-y: auto; scrollbar-width: none; }
+.crh-side .winner-feed li { padding: 4px 6px; }
+
+/* ── 베팅 패널: 금액 | 칩 | 자동 캐시아웃 | 큰 버튼 | 채팅 ────────────────────── */
+.crh-panel {
+  position: relative; display: flex; align-items: flex-end; gap: 12px; min-width: 0;
+  padding: 8px 12px 10px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--panel);
+}
+.crh-message {
+  position: absolute; top: -6px; left: 50%; z-index: 6; transform: translate(-50%, -100%);
+  max-width: calc(100% - 16px); margin: 0; padding: 4px 12px; overflow: hidden; border-radius: 99px;
+  background: rgba(0, 0, 0, .85); color: var(--gold-light); font: 600 13px var(--ui-font);
+  text-align: center; text-overflow: ellipsis; white-space: nowrap; pointer-events: none;
+}
+.crh-message:empty { display: none; }
+.crh-field { display: grid; flex: none; gap: 4px; }
+.crh-field label { color: var(--muted); font-size: 12px; font-weight: 600; }
+.crh-stepper, .crh-auto-box {
+  display: flex; align-items: center; height: 46px; overflow: hidden;
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-sunken);
+}
+.crh-stepper button {
+  display: grid; place-items: center; width: 40px; height: 100%; padding: 0; border: 0;
+  background: transparent; color: var(--gold-light); cursor: pointer;
+}
+.crh-stepper button:disabled { color: var(--muted-dim); opacity: .45; cursor: not-allowed; }
+.crh-stepper input, .crh-auto-box input {
+  width: 64px; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent;
+  color: var(--gold-light); font: 700 19px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center;
+}
+.crh-stepper input:disabled, .crh-auto-box input:disabled { color: var(--text); opacity: 1; -webkit-text-fill-color: currentColor; }
+.crh-stepper:focus-within, .crh-auto-box:focus-within { border-color: var(--gold-line); }
+.crh-auto-box { padding-right: 12px; }
+.crh-auto-box input { width: 72px; }
+.crh-auto-box input::placeholder { color: var(--muted-dim); font-weight: 600; }
+.crh-auto-box span { color: var(--muted); font-weight: 700; }
+.crh-auto.is-invalid .crh-auto-box { border-color: var(--crh-red); }
+
+.crh-action {
+  flex: 0 0 272px; display: grid; place-content: center; justify-items: center; gap: 1px; height: 62px; padding: 0 12px;
+  border: 1px solid transparent; border-radius: 12px; cursor: pointer; font-family: var(--ui-font); line-height: 1.15;
+  transition: background .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.crh-action:active:not(:disabled) { transform: translateY(1px); }
+.crh-action-main { font-size: 17px; font-weight: 800; }
+.crh-action-sub { font: 700 14px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; opacity: .9; }
+.crh-action.is-bet { border-color: var(--gold-deep); background: var(--gold-btn); color: var(--on-gold); }
+.crh-action.is-bet:hover:not(:disabled) { background: var(--gold-btn-hover); }
+.crh-action.is-cancel { border-color: var(--gold-line); background: var(--panel-raised); color: var(--gold-light); }
+.crh-action.is-cashout {
+  border-color: #7bf5b5; background: var(--crh-green-deep); color: #031a0c;
+  box-shadow: 0 0 0 3px rgba(47, 217, 126, .28), 0 0 26px rgba(47, 217, 126, .4);
+  animation: crh-pulse 1.1s ease-in-out infinite;
+}
+.crh-action.is-cashout:hover:not(:disabled) { background: var(--crh-green); }
+.crh-action.is-cashout .crh-action-sub { font-size: 21px; font-weight: 800; opacity: 1; }
+.crh-action.is-idle { border-color: var(--line-strong); background: var(--panel-raised); color: var(--muted); cursor: default; }
+.crh-action.tone-win { border-color: rgba(47, 217, 126, .55); background: rgba(47, 217, 126, .12); color: var(--crh-green); }
+.crh-action.tone-lose { border-color: rgba(255, 77, 92, .5); background: rgba(255, 77, 92, .1); color: var(--crh-red); }
+.crh-action:disabled:not(.is-idle) { opacity: .6; cursor: wait; }
+@keyframes crh-pulse { 50% { box-shadow: 0 0 0 5px rgba(47, 217, 126, .18), 0 0 34px rgba(47, 217, 126, .55); } }
+
+.game-shell .crh-room .crh-panel .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; align-self: flex-end; width: 46px; height: 46px; margin-bottom: 8px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+.game-shell .crh-room .ot-tray { flex: 1 1 auto; justify-content: center; align-self: center; min-width: 0; margin: 0; }
+.game-shell .crh-room .ot-tray.is-art .chip-option { display: grid; }
+.game-shell .crh-room .ot-tray.is-art .chip-picker-trigger { display: none; }
+.game-shell .crh-room .chip.chip-art {
+  width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; outline: 0; text-shadow: none; transition: transform .15s ease;
+}
+.game-shell .crh-room .chip.chip-art img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.game-shell .crh-room .chip.chip-art.active { box-shadow: 0 0 0 2px var(--gold-light), 0 8px 16px rgba(255, 210, 74, .3); }
+.game-shell .crh-room .chip.chip-art:disabled { opacity: .32; transform: none; box-shadow: none; }
+.game-shell .crh-room .chip.chip-art.active:disabled { opacity: .7; }
+
+@media (max-width: 1180px) and (min-width: 901px) {
+  .crh-top { grid-template-columns: minmax(0, 1fr) 244px; }
+  .crh-players li { grid-template-columns: minmax(0, 1fr) 38px 76px 0; }
+  .crh-player-pay { display: none; }
+  .crh-action { flex-basis: 210px; }
+  .game-shell .crh-room .ot-tray { gap: 4px; }
+  .game-shell .crh-room .chip.chip-art { width: 38px; height: 38px; }
+}
+
+/* ── 세로 폰: 그래프(남는 높이 전부) → 패널 두 줄. 참가자는 그래프 위로 펼친다 ─────── */
+@media (max-width: 900px) and (orientation: portrait) {
+  .crh-room { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .crh-top { position: relative; display: block; flex: 1 1 auto; min-height: 0; }
+  .crh-stage { height: 100%; border-radius: 12px; }
+  .crh-recent { gap: 4px; padding: 7px 8px 0; }
+  .crh-recent li { padding: 3px 7px; }
+  .crh-wait small { font-size: 13px; }
+  .crh-side { display: none; position: absolute; inset: 92px 8px 8px; z-index: 6; background: var(--panel); box-shadow: 0 12px 30px rgba(0, 0, 0, .6); }
+  .crh-side.is-open { display: flex; }
+  .crh-side :is(.winner-feed, .crh-stats) { display: none; }
+  .crh-players-toggle {
+    position: absolute; left: 50px; top: 44px; z-index: 7; display: flex; align-items: center; gap: 6px;
+    min-height: 36px; padding: 0 12px; border: 1px solid var(--gold-line); border-radius: 99px;
+    background: rgba(0, 0, 0, .66); color: var(--text); font: 600 13px var(--ui-font); cursor: pointer;
+  }
+  .crh-players-toggle[aria-expanded="true"] { border-color: var(--gold-light); color: var(--gold-light); }
+  .crh-players-toggle em { color: var(--crh-green); font-style: normal; font-weight: 700; }
+
+  .crh-panel {
+    display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "amount chip auto chat" "action action action action";
+    align-items: end; gap: 6px 8px; padding: 6px 8px 8px; border-radius: 12px;
+  }
+  .crh-amount { grid-area: amount; }
+  .crh-auto { grid-area: auto; justify-self: stretch; }
+  .crh-auto-box { padding-right: 10px; }
+  .crh-auto-box input { flex: 1 1 auto; width: 0; }
+  .crh-field label { font-size: 12px; }
+  .crh-stepper, .crh-auto-box { height: 44px; }
+  .crh-stepper button { width: 36px; }
+  .crh-stepper input { width: 52px; font-size: 17px; }
+  .crh-auto-box input { font-size: 17px; }
+  .crh-action { grid-area: action; height: 58px; }
+  .game-shell .crh-room .crh-panel .room-chat-toggle { grid-area: chat; width: 44px; height: 44px; margin: 0; }
+  .game-shell .crh-room .ot-tray { grid-area: chip; position: relative; align-self: end; margin: 0; }
+  .game-shell .crh-room .ot-tray.is-art .chip-option { display: none; }
+  .game-shell .crh-room .ot-tray.is-art .chip-picker-trigger {
+    display: grid; width: 44px; height: 44px; min-width: 44px; padding: 0; background: none; box-shadow: 0 0 0 2px var(--gold);
+  }
+  .game-shell .crh-room .ot-tray.is-art :is(.chip-picker-trigger, .chip-picker-menu button) img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .game-shell .crh-room .ot-tray.is-art .chip-picker-menu { bottom: calc(100% + 12px); left: 0; flex-wrap: wrap; max-width: calc(100vw - 24px); gap: 8px; padding: 8px 10px; transform: none; }
+  .game-shell .crh-room .ot-tray.is-art .chip-picker-menu button { width: 48px; height: 48px; background: none; box-shadow: none; }
+  .game-shell .crh-room .ot-tray.is-art .chip-picker-menu button.selected { transform: none; outline: 0; box-shadow: 0 0 0 3px var(--gold-light); }
+  .game-shell .crh-room .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
+}
+@media (max-width: 380px) and (orientation: portrait) {
+  .crh-panel {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas: "amount auto chat" "chip chip chip" "action action action";
+  }
+  .crh-stepper button { width: 32px; }
+  .crh-stepper input { width: 42px; }
+  .game-shell .crh-room .ot-tray { justify-self: center; }
+}
+@media (max-width: 900px) and (orientation: portrait) and (pointer: coarse) {
+  .crh-players-toggle { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crh-action.is-cashout, .crh-graph.is-crashed .crh-mult span { animation: none; }
+}

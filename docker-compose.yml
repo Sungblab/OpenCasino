@@ -1,0 +1,58 @@
+# 로컬 개발용. 기본은 PostgreSQL 만 띄운다(npm run db:up). API 는 보통 `npm run dev` 로 호스트에서 돈다.
+#
+#   docker compose up -d postgres                 DB 만
+#   docker compose --profile app up -d --build    DB + 마이그레이션 + API 컨테이너(운영 이미지 점검용)
+#
+# POSTGRES_* 를 바꾸려면 루트 .env 에 적는다(compose 가 자동으로 읽는다). 기본값은 .env.example 과 같다.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-opencasino}
+      POSTGRES_USER: ${POSTGRES_USER:-opencasino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opencasino}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - opencasino-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: opencasino-api:dev
+    command: ["sh", "-c", "node apps/api/dist/migrate.js && node apps/api/dist/seed.js"]
+    environment: &app-env
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-opencasino}:${POSTGRES_PASSWORD:-opencasino}@postgres:5432/${POSTGRES_DB:-opencasino}
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-at-least-32-characters}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://127.0.0.1:5173}
+      API_PORT: 5100
+      TRUST_PROXY: loopback,uniquelocal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: opencasino-api:dev
+    environment: *app-env
+    ports:
+      - "127.0.0.1:${API_PORT:-5100}:5100"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    init: true
+
+volumes:
+  opencasino-postgres-data:

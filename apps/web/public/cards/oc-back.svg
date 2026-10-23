@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="50%" r="70%">
+      <stop offset="0" stop-color="#a3172b"/>
+      <stop offset="1" stop-color="#6a0a18"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6dc8a"/>
+      <stop offset=".45" stop-color="#c9982f"/>
+      <stop offset=".7" stop-color="#f1d277"/>
+      <stop offset="1" stop-color="#9c6f1c"/>
+    </linearGradient>
+    <pattern id="lattice" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45 250 350)">
+      <path d="M0 0H28M0 0V28" stroke="#c43a4c" stroke-width="2.2" opacity=".55"/>
+      <path d="M14 0V28M0 14H28" stroke="#e8b44a" stroke-width=".8" opacity=".35"/>
+      <circle cx="14" cy="14" r="1.6" fill="#e8b44a" opacity=".55"/>
+    </pattern>
+    <clipPath id="inner"><rect x="26" y="26" width="448" height="648" rx="18"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="496" height="696" rx="34" fill="#fbf8f1" stroke="#d9d2c2" stroke-width="2"/>
+  <g clip-path="url(#inner)">
+    <rect x="26" y="26" width="448" height="648" fill="url(#felt)"/>
+    <rect x="26" y="26" width="448" height="648" fill="url(#lattice)"/>
+  </g>
+  <rect x="26" y="26" width="448" height="648" rx="18" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <rect x="40" y="40" width="420" height="620" rx="12" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity=".9"/>
+  <g fill="url(#gold)">
+    <path d="M250 52l9 14-9 14-9-14z"/>
+    <path d="M250 620l9 14-9 14-9-14z"/>
+    <path d="M52 350l14-9 14 9-14 9z"/>
+    <path d="M420 350l14-9 14 9-14 9z"/>
+    <path d="M62 62l18 4-14 14z"/>
+    <path d="M438 62l-18 4 14 14z"/>
+    <path d="M62 638l18-4-14-14z"/>
+    <path d="M438 638l-18-4 14-14z"/>
+  </g>
+  <g transform="translate(250 350)">
+    <circle r="104" fill="#5c0814" stroke="url(#gold)" stroke-width="6"/>
+    <circle r="92" fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-dasharray="2 5"/>
+    <circle r="84" fill="url(#felt)" stroke="url(#gold)" stroke-width="2.2"/>
+    <g fill="url(#gold)" opacity=".9">
+      <path d="M0-104l7 11h-14z"/><path d="M0 104l7-11h-14z"/><path d="M-104 0l11 7v-14z"/><path d="M104 0l-11 7v-14z"/>
+    </g>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#gold)" stroke="#4a0610" stroke-width="1.2" paint-order="stroke">OC</text>
+    <path d="M-46 44H46" stroke="url(#gold)" stroke-width="1.6"/>
+    <path d="M-46 -48H46" stroke="url(#gold)" stroke-width="1.6"/>
+  </g>
+</svg>

@@ -1,0 +1,320 @@
+/* =============================================================================
+   In-game help: the GameGuide sheet (족보표 / 게임 방법 / 용어), opened from the profile menu's
+   도움말, and the history sheet that borrows its frame. One look across all six games.
+   ============================================================================= */
+
+/* ── The sheet ───────────────────────────────────────────────────────────── */
+.game-guide-root { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; font-family: var(--ui-font); }
+.game-guide-scrim { position: absolute; inset: 0; background: rgba(2,1,0,.62); backdrop-filter: blur(3px); }
+.game-guide {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(600px, calc(100vw - 32px));
+  max-height: min(84dvh, 760px);
+  overflow: hidden;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(170deg, #1d1408 0%, #0f0904 60%, var(--bg) 100%);
+  box-shadow: 0 30px 80px rgba(0,0,0,.7), inset 0 1px 0 rgba(232,217,184,.1);
+  animation: game-guide-in .22s cubic-bezier(.2,.85,.32,1);
+}
+@keyframes game-guide-in { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.game-guide-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 10px; }
+.game-guide-head h2 { margin: 0 0 4px; font: 700 18px var(--ui-font); color: var(--gold-light); letter-spacing: .02em; }
+.game-guide-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.game-guide-close { display: grid; flex: none; width: 34px; height: 34px; place-items: center; border: 1px solid var(--gold-line-soft); border-radius: 50%; background: rgba(0,0,0,.3); color: var(--muted); cursor: pointer; }
+.game-guide-close:hover { border-color: var(--gold-light); color: var(--gold-light); }
+.game-guide-tabs { display: flex; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--gold-line-soft); overflow-x: auto; scrollbar-width: none; }
+.game-guide-tabs::-webkit-scrollbar { display: none; }
+.game-guide-tab {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: 700 13px var(--ui-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.game-guide-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold-light); }
+.game-guide-body { min-height: 0; overflow-y: auto; padding: 14px 16px 22px; overscroll-behavior: contain; }
+
+/* Phones: a sheet from the bottom that uses most of the height. 화면 끝에 붙이지 않고 좌우·아래를 8px 띄운
+   떠 있는 카드로 — 끝에 붙으면 화면 밖으로 넘친 것처럼 보였다. 폭은 100vw 가 아니라 100%(스크롤바 폭을 뺀 화면). */
+@media (max-width: 620px) {
+  .game-guide-root { align-items: end; }
+  .game-guide { width: calc(100% - 16px); max-height: calc(88dvh - 8px); margin-bottom: calc(8px + env(safe-area-inset-bottom)); animation: game-guide-up .26s cubic-bezier(.2,.85,.32,1); }
+  .game-guide-head { padding: 14px 14px 8px; }
+  .game-guide-head h2 { font-size: 16px; }
+  .game-guide-head p { font-size: 11.5px; }
+  .game-guide-body { padding: 12px 12px 16px; }
+  @keyframes game-guide-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+}
+/* Landscape phones are short: the sheet fills the height instead. */
+@media (max-height: 520px) {
+  .game-guide { max-height: calc(100dvh - 12px); }
+  .game-guide-head { padding: 10px 14px 6px; }
+  .game-guide-head p { display: none; }
+  .game-guide-tab { min-height: 34px; font-size: 12px; }
+}
+
+/* ── Content blocks ──────────────────────────────────────────────────────── */
+.guide-note { margin: 0 0 12px; padding: 9px 11px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.55; }
+.guide-note.is-gold { border: 1px solid rgba(240,180,28,.35); background: rgba(240,180,28,.1); color: var(--gold-pale); }
+.guide-note.is-red { border: 1px solid rgba(255,77,92,.4); background: rgba(204,10,28,.12); color: #ffc4c9; }
+.guide-note.is-green { border: 1px solid rgba(47,217,126,.35); background: rgba(6,145,74,.14); color: #c7f5da; }
+.guide-heading { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 8px; }
+.guide-heading h3 { margin: 0; font: 600 14px var(--ui-font); color: var(--gold-light); }
+.guide-heading span { color: var(--muted-dim); font-size: 11px; }
+
+.guide-steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: none; }
+.guide-steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; padding: 9px 11px; border: 1px solid rgba(240,180,28,.2); border-radius: var(--radius-sm); background: rgba(255,255,255,.025); }
+.guide-step-num { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 50%; background: var(--gold-btn); color: var(--on-gold); font-size: 12px; font-weight: 700; }
+.guide-step-text { display: grid; gap: 2px; }
+.guide-step-text strong { font-size: 13px; color: var(--text); }
+.guide-step-text span { font-size: 11.5px; line-height: 1.55; color: var(--muted); }
+
+.guide-actions { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.guide-actions li { display: grid; grid-template-columns: 78px 1fr; gap: 10px; align-items: center; padding: 7px 9px; border: 1px solid rgba(240,180,28,.18); border-radius: var(--radius-sm); background: rgba(255,255,255,.02); }
+.guide-action-chip { display: grid; place-items: center; min-height: 32px; padding: 0 8px; border: 1px solid; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; text-align: center; }
+.guide-action-chip.red { background: linear-gradient(to bottom, #8a2028, #4d1015); border-color: var(--banker-light); color: #ffe9ea; }
+.guide-action-chip.gold { background: linear-gradient(to bottom, var(--gold), var(--gold-deep)); border-color: var(--gold-light); color: var(--on-gold); }
+.guide-action-chip.blue { background: linear-gradient(to bottom, #2970a8, #123b63); border-color: #4a93e0; color: #eef8ff; }
+.guide-action-chip.green { background: linear-gradient(to bottom, #12a35d, #0a6234); border-color: var(--tie-light); color: #eafff3; }
+.guide-action-chip.purple { background: linear-gradient(to bottom, #6b4bab, #3b2765); border-color: #a184e0; color: #f2ecff; }
+.guide-action-body { font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+
+.guide-terms { display: grid; gap: 6px; margin: 0; }
+.guide-term { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 8px 10px; border: 1px solid rgba(240,180,28,.18); border-radius: var(--radius-sm); background: rgba(255,255,255,.02); }
+.guide-term dt { font-size: 12.5px; font-weight: 600; color: var(--gold-light); }
+.guide-term dd { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+
+.guide-payouts { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.guide-payouts th { padding: 6px 8px; border-bottom: 1px solid var(--gold-line-soft); color: var(--muted-dim); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-align: left; }
+.guide-payouts td { padding: 8px; border-bottom: 1px solid rgba(240,180,28,.12); color: var(--muted); vertical-align: top; line-height: 1.45; }
+.guide-payouts td:first-child { color: var(--text); font-weight: 700; white-space: nowrap; }
+.guide-payouts td:nth-child(2) { color: var(--gold-light); font-weight: 600; white-space: nowrap; }
+
+/* Ranking rows (both games) */
+.guide-rank-groups { display: grid; gap: 14px; }
+.guide-rank-group h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; padding-left: 2px; font: 600 12px var(--ui-font); letter-spacing: .06em; color: var(--gold-light); }
+.guide-rank-group h4 span { color: var(--muted-dim); font-size: 12.5px; font-weight: 600; letter-spacing: 0; }
+.guide-rank-group ul, .guide-rank-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.guide-rank-row {
+  display: grid;
+  grid-template-columns: 22px auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 9px 6px 7px;
+  border: 1px solid rgba(240,180,28,.18);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.025);
+}
+.guide-rank-num { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: rgba(240,180,28,.16); color: var(--gold-light); font-size: 12px; font-weight: 600; }
+.guide-rank-cards { display: flex; align-items: center; gap: 3px; }
+.guide-rank-cards-hwatu .hwatu-card { width: 30px; height: 47px; margin: 0; transform: none; border-radius: 3px; }
+.guide-rank-cards-hwatu .hwatu-month { font-size: 12.5px; padding: 0 .25em; }
+.guide-rank-cards-hwatu .hwatu-card + .hwatu-card { margin-left: 0; transform: none; }
+.guide-poker-card { display: block; width: 26px; height: calc(26px * 1.4); overflow: hidden; border-radius: 3px; box-shadow: 0 2px 5px rgba(0,0,0,.5); }
+.guide-poker-card img { display: block; width: 100%; height: 100%; object-fit: fill; }
+.guide-rank-text { display: grid; gap: 2px; min-width: 0; }
+.guide-rank-text strong { font-size: 13px; color: var(--text); }
+.guide-rank-text strong em { margin-left: 5px; color: var(--muted-dim); font-size: 12px; font-style: normal; font-weight: 500; }
+.guide-rank-text small { font-size: 11px; line-height: 1.45; color: var(--muted); }
+.guide-rank-text small.is-effect { color: var(--gold-pale); font-weight: 600; }
+/* Tier colours follow the hand meter's palette so the panel and the guide agree. */
+.guide-rank-row.tier-gwangddaeng { border-left-color: var(--gold-light); background: linear-gradient(90deg, rgba(240,180,28,.16), rgba(255,255,255,.02)); }
+.guide-rank-row.tier-ddaeng { border-left-color: #ff6b74; }
+.guide-rank-row.tier-named { border-left-color: #b48cff; }
+.guide-rank-row.tier-gabo { border-left-color: var(--positive); }
+.guide-rank-row.tier-kkeut { border-left-color: #4a92ff; }
+.guide-rank-row.tier-mangtong { border-left-color: rgba(220,194,135,.35); }
+.guide-rank-row.poker-tier-5 { border-left-color: var(--gold-light); background: linear-gradient(90deg, rgba(240,180,28,.14), rgba(255,255,255,.02)); }
+.guide-rank-row.poker-tier-4 { border-left-color: #ff6b74; }
+.guide-rank-row.poker-tier-3 { border-left-color: #b48cff; }
+.guide-rank-row.poker-tier-2 { border-left-color: var(--positive); }
+.guide-rank-row.poker-tier-1 { border-left-color: #4a92ff; }
+.guide-special-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.guide-special-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid rgba(180,140,255,.35); border-radius: var(--radius-sm); background: rgba(107,75,171,.12); }
+
+@media (max-width: 620px) {
+  .guide-rank-row { gap: 8px; padding: 5px 7px 5px 6px; }
+  .guide-rank-cards-hwatu .hwatu-card { width: 26px; height: 41px; }
+  .guide-rank-cards-hwatu .hwatu-month { font-size: 12.5px; }
+  .guide-poker-card { width: 22px; height: calc(22px * 1.4); }
+  .guide-rank-text strong { font-size: 12.5px; }
+  .guide-rank-text small { font-size: 12.5px; }
+  .guide-term { grid-template-columns: 80px 1fr; }
+  .guide-actions li { grid-template-columns: 68px 1fr; }
+}
+
+/* ── 내 기록 창(GameHistorySheet): 도움말 시트 틀에 요약 한 줄과 목록을 얹는다 ───────────── */
+.game-history-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0 16px 10px; border-bottom: 1px solid var(--gold-line-soft); }
+.game-history-stats > div { padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, .28); }
+.game-history-stats dt { color: var(--muted); font-size: 11.5px; }
+.game-history-stats dd { margin: 2px 0 0; color: var(--text); font: 700 15px var(--ui-font); font-variant-numeric: tabular-nums; }
+.game-history-sheet .pos { color: var(--positive); }
+.game-history-sheet .neg { color: var(--negative); }
+.game-history-empty { margin: 18px 0; color: var(--muted); font-size: 13px; text-align: center; }
+.game-history-list { display: grid; margin: 0; padding: 0; list-style: none; }
+/* 열 폭을 고정해 줄마다 결과·금액이 같은 자리에 선다. 결과는 한 글자(승·패·무·BJ). */
+.game-history-list li { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto 72px; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid rgba(255, 255, 255, .05); font-family: var(--ui-font); }
+.game-history-list li:last-child { border-bottom: 0; }
+.game-history-list .outcome-chip { min-width: 0; padding: 3px 0; }
+.game-history-list .outcome-chip b { display: none; }
+.game-history-list .outcome-chip i { display: inline; }
+.game-history-what { display: grid; gap: 1px; min-width: 0; }
+.game-history-what :is(strong, small) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-history-what strong { color: var(--text); font-size: 13px; }
+.game-history-what small { color: var(--muted); font-size: 11.5px; }
+.game-history-bet { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.game-history-list b { font: 700 14px var(--ui-font); font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 620px) {
+  .game-history-stats { padding: 0 12px 8px; }
+  .game-history-list li { grid-template-columns: 34px minmax(0, 1fr) auto 60px; gap: 8px; }
+}
+
+/* ── 폰 방향 안내(OrientationGate): 게임과 반대로 들었을 때 테이블 자리를 덮는다. 게임 바는 그대로 쓴다. ── */
+.game-shell .game-body:has(> .orientation-gate) { position: relative; }
+.orientation-gate {
+  position: absolute; inset: 0; z-index: 45; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 24px; background: rgba(8, 6, 3, .97); color: var(--text); font-family: var(--ui-font); text-align: center; word-break: keep-all;
+}
+.orientation-gate strong { color: var(--gold-light); font-size: 17px; }
+.orientation-gate p { max-width: 280px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.orientation-gate button {
+  min-height: 44px; margin-top: 6px; padding: 0 22px; border: 1px solid rgba(255, 210, 74, .45); border-radius: 12px;
+  background: linear-gradient(165deg, #6b5112, #3b2b07); color: var(--gold-light); font: 700 15px var(--ui-font); cursor: pointer;
+}
+.orientation-gate-icon { color: var(--gold-light); animation: orientation-turn 2.4s ease-in-out infinite; }
+.orientation-gate.is-portrait .orientation-gate-icon { animation-direction: reverse; }
+@keyframes orientation-turn { 0%, 25% { transform: rotate(0deg); } 55%, 100% { transform: rotate(90deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .orientation-gate-icon { animation: none; }
+}
+
+/* ── 가로 폰의 전체 화면 권유(GameShell): 게임 바 안의 금색 알약 ─────────────────────── */
+.fullscreen-suggest {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px;
+  border: 1px solid rgba(255, 210, 74, .55); border-radius: 99px; background: linear-gradient(165deg, #6b5112, #3b2b07);
+  color: var(--gold-light); font: 700 12px var(--ui-font); white-space: nowrap; cursor: pointer;
+  animation: fullscreen-suggest-glow 2.4s ease-in-out 3;
+}
+@keyframes fullscreen-suggest-glow { 50% { box-shadow: 0 0 0 4px rgba(255, 210, 74, .18); } }
+@media (prefers-reduced-motion: reduce) {
+  .fullscreen-suggest { animation: none; }
+}
+
+/* 잔액의 "코인"은 평소엔 숫자와 같은 글씨(가로 폰 레일에서만 둘째 줄로 내린다). */
+.balance-unit { font: inherit; }
+
+/* ── 가로 전용 게임(블랙잭·홀덤·섯다·고스톱)을 가로로 든 폰 ─────────────────────────────
+   위 띠를 걷어 테이블이 화면 높이를 다 쓴다. 남은 초는 테이블(알약·좌석 링)이 이미 보여 주고, ← · 코인 ·
+   ≡ 메뉴(소리·전체 화면·도움말·게임 기록·프로필)만 게임마다 비는 자리에 둔다(LandscapeControls): 블랙잭은
+   오른쪽 조작 기둥 맨 위, PvP 는 테이블 윗줄 양끝. PC 창을 낮게 줄인 경우엔 띠를 그대로 둔다(터치에서만). */
+.land-only { display: none; }
+.profile-dropdown-balance { margin: 0; padding: 8px 11px 6px; color: var(--muted); font: 600 12px var(--ui-font); }
+.profile-dropdown-balance b { color: var(--gold-light); }
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+  .game-shell.is-landscape-game { position: relative; grid-template-rows: minmax(0, 1fr); }
+  .game-shell.is-landscape-game .game-bar { display: none; }
+  .game-shell.is-landscape-game .land-only { display: inline-flex; align-items: center; }
+  .land-back { justify-content: center; width: 30px; min-width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 9px; }
+  .land-balance { justify-content: center; color: var(--gold-light); font: 700 12px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .land-balance small { font: inherit; }
+  .land-menu { gap: 5px; }
+  .land-menu .fullscreen-suggest { width: 30px; height: 30px; padding: 0; border-radius: 9px; }
+  .land-menu .profile-menu { max-width: none; }
+  .land-menu .profile-trigger { display: grid; place-items: center; width: 30px; min-width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 9px; }
+  .land-menu.is-start .profile-dropdown { right: auto; left: 0; }
+  /* 가로 폰은 높이가 320~430px 이라 메뉴 아홉 줄이 화면 밖으로 나갔다 — 항목을 촘촘히, 넘치면 판 안에서 스크롤. */
+  .land-menu .profile-dropdown { z-index: 90; max-height: calc(100dvh - 76px); overflow-y: auto; overscroll-behavior: contain; }
+  /* 메뉴를 연 동안엔 메뉴를 품은 줄을 맨 위로 — 칩 버튼(31)·채팅 버튼(40)·좌석이 판 위로 비쳤다. */
+  .game-shell.is-landscape-game :is(.pvp-topline, .bjt-corner):has(.profile-dropdown) { z-index: 90; }
+  /* PvP 도구 줄의 채팅 버튼을 ⛶·≡ 와 같은 30px 로 — 터치 기기의 44px 최소 크기 때문에 혼자 컸고, 그 높이가
+     도구 줄 전체를 키워 고스톱에선 바로 아래 산과 겹쳤다. */
+  .game-shell.is-landscape-game .pvp-tools .room-chat-toggle { width: 30px; height: 30px; min-width: 30px; min-height: 30px; margin-left: 13px; }
+  /* 보이는 크기는 30px 로 두고, 누르는 영역만 투명하게 44px 이상으로 키운다. 옆으로도 44px 이 되게
+     PvP 윗줄의 30px 버튼 사이는 14~15px 벌린다(블랙잭 기둥은 폭이 모자라 그대로). */
+  .game-shell.is-landscape-game :is(.land-back, .land-menu .fullscreen-suggest, .land-menu .profile-trigger) { position: relative; overflow: visible; }
+  .game-shell.is-landscape-game :is(.land-back, .land-menu .fullscreen-suggest, .land-menu .profile-trigger)::after { content: ""; position: absolute; inset: -7px -2px; }
+  .game-shell.is-landscape-game .pvp-topline :is(.land-back, .land-menu .fullscreen-suggest, .land-menu .profile-trigger)::after { inset: -7px; }
+  .game-shell.is-landscape-game .pvp-topline .land-menu { gap: 14px; }
+  .game-shell.is-landscape-game .pvp-topline .land-back + .land-menu { margin-left: 4px; }
+  .game-shell.is-landscape-game .pvp-tools > .land-menu { margin-left: 12px; }
+  /* 위는 판 가장자리에 잘리므로 아래로 더 편다. */
+  .game-shell.is-landscape-game .pvp-tools .room-chat-toggle::before { inset: -8px -8px -11px; }
+  .game-shell.is-landscape-game .pvp-tools .pvp-tool::before { content: ""; position: absolute; inset: -11px -1px; }
+  .land-menu .profile-dropdown :is(a, button) { padding: 7px 11px; }
+  .land-menu .profile-dropdown-balance { padding: 6px 11px 4px; }
+  /* PvP 윗줄: [← · 단계] ······ [도구 · ⛶ · ≡] */
+  .game-shell.is-landscape-game .pvp-topline { justify-content: flex-start; }
+  .game-shell.is-landscape-game .pvp-topline > .pvp-tools { margin-left: auto; }
+}
+
+/* ── 고스톱 도구 줄의 "⋯"(PvpTools moreMenu): 봇·자리 비우기·표정 ───────────────────────────
+   넓은 화면에선 겉껍데기를 없애 줄에 그대로 세우고, 가로 폰에선 "⋯" 하나로 접는다 — 앉으면 줄이 길어져
+   위쪽 상대 좌석을 덮었다(섯다는 table-sutda-v6.css 가 따로 맡는다). */
+.gostop-shell :is(.pvp-more, .pvp-more-menu) { display: contents; }
+.gostop-shell .pvp-more-toggle { display: none; }
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+  .game-shell.is-landscape-game .gostop-shell .pvp-more { display: block; position: relative; }
+  /* 폭은 보이는 크기로 44px — 옆으로 넓힌 투명 영역은 글자 넘침으로 잡히고 이웃 도구와 겹친다. */
+  .game-shell.is-landscape-game .gostop-shell .pvp-more-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 30px; font-size: 15px; letter-spacing: .05em; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-more-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: none;
+    flex-direction: column; align-items: stretch; gap: 5px; min-width: 120px; padding: 6px;
+    border: 1px solid rgba(232, 217, 184, .18); border-radius: 10px; background: rgba(6, 4, 2, .94); box-shadow: 0 12px 28px rgba(0, 0, 0, .5);
+  }
+  .game-shell.is-landscape-game .gostop-shell .pvp-more.is-open .pvp-more-menu { display: flex; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-more-menu .pvp-tool { width: 100%; justify-content: center; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-topline:has(.pvp-more.is-open) { z-index: 90; }
+  /* 결과 독: 셋이 친 판은 결과 칩이 두 줄로 접혀 독이 110px 까지 커졌고, 그 높이가 내 줄을 바닥 위로 밀어
+     올렸다. 가로 폰에선 칩 셋을 한 줄에 나란히 두고(좁으면 사유 줄부터 말줄임), 내 결과 요약은 제목 아래
+     금액 두 줄로 좁힌다. */
+  .game-shell.is-landscape-game .gostop-shell .pvp-dock-status { gap: 10px; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-dock-status .round-result-notice { flex: 0 0 auto; grid-template-columns: 24px auto; column-gap: 7px; row-gap: 0; width: auto; max-width: none; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-dock-status .round-result-icon { grid-row: span 2; align-self: center; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-dock-status .round-result-net { grid-column: 2; font-size: 16px; line-height: 1.2; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-dock-results { flex: 1 1 auto; flex-wrap: nowrap; }
+  .game-shell.is-landscape-game .gostop-shell .pvp-dock-results li small { white-space: nowrap; }
+}
+/* 작은 가로 폰(높이 360 안팎)에선 바닥 12칸의 위 끝이 위쪽 상대 줄(이름표·먹은 패)에 몇 px 닿는다 — 칸을
+   한 치수 줄여 바닥 높이를 낮춘다(가운데 기준이라 위아래로 반씩 줄어든다). */
+@media (orientation: landscape) and (max-height: 380px) and (pointer: coarse) {
+  .game-shell.is-landscape-game .gostop-slot { min-height: 30px; }
+  .game-shell.is-landscape-game .gostop-slot .hwatu-card { width: 19px; height: 29px; }
+  /* 고를 두 장을 3px 더 벌려 각자 44px 누르는 영역이 서로 겹치지 않게. */
+  .game-shell.is-landscape-game .gostop-slot.is-choice .gostop-fly + .gostop-fly { margin-left: 27px; }
+  .game-shell.is-landscape-game .gostop-pick::before { inset: -8px -13px; }
+}
+
+/* ── 전체 채팅(위 띠 버튼 → 도움말 창 틀) ─────────────────────────────────── */
+.game-guide.lobby-chat { grid-template-rows: auto minmax(0, 1fr) auto auto; width: min(460px, calc(100vw - 32px)); height: min(78dvh, 680px); }
+.lobby-chat-list { gap: 10px; padding: 12px 16px; border-top: 1px solid var(--gold-line-soft); overscroll-behavior: contain; }
+.lobby-chat-list .room-chat-author { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.lobby-chat-list .room-chat-author time { color: var(--muted-dim); font: 500 12px var(--ui-font); font-variant-numeric: tabular-nums; }
+.lobby-chat-list .room-chat-text { font-size: 14px; font-weight: 400; line-height: 1.5; }
+.lobby-chat .room-chat-composer { padding: 12px 14px; }
+.lobby-chat-guest { margin: 0; padding: 14px 16px; border-top: 1px solid var(--gold-line); color: var(--muted); font-size: 13px; text-align: center; }
+.lobby-chat-guest a { color: var(--gold-light); font-weight: 600; }
+@media (max-width: 620px) {
+  .game-guide.lobby-chat { width: calc(100% - 16px); height: calc(88dvh - 8px); }
+  /* 폰 위 띠는 .account button 을 다 숨긴다(styles.css) — 채팅 버튼만은 남긴다. */
+  .account .lobby-chat-toggle { display: inline-grid; width: 40px; height: 40px; }
+}
+
+/* ── 소리 조절(프로필 메뉴, 게임 안): 켜고 끄는 단추 + 크기 슬라이더 ─────────────────────────────── */
+.profile-mixer { display: grid; gap: 2px; min-width: 232px; padding: 4px 4px 6px; }
+.profile-mixer-row { display: grid; grid-template-columns: 40px minmax(110px, 1fr) 30px; align-items: center; gap: 6px; }
+.profile-dropdown .profile-mixer-toggle { width: 40px; height: 40px; min-height: 40px; padding: 0; justify-content: center; }
+.profile-dropdown .profile-mixer-toggle[aria-pressed="true"] svg { color: var(--muted-dim); }
+.profile-dropdown .profile-mixer-toggle:disabled { opacity: .45; cursor: default; }
+.profile-mixer-row label { display: grid; gap: 3px; min-width: 0; color: var(--muted); font: 600 12px var(--ui-font); }
+.profile-mixer-row input[type="range"] { width: 100%; height: 18px; margin: 0; accent-color: var(--gold); cursor: pointer; }
+.profile-mixer-row input[type="range"]:disabled { opacity: .4; cursor: default; }
+.profile-mixer-row output { color: var(--text); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums; text-align: right; }

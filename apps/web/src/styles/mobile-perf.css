@@ -1,0 +1,33 @@
+/* ── 폰에서 무거운 합성 효과 끄기 (2026-09-21) ────────────────────────────
+   데스크톱에서는 공짜처럼 보이지만 폰 GPU 에서는 프레임을 잡아먹는 것들이다. backdrop-filter
+   는 뒤 배경을 매 프레임 다시 합성하고, 장식용 filter 는 요소마다 합성 레이어를 만들며,
+   box-shadow 를 키프레임으로 돌리면 매 프레임 리페인트가 난다. 폰에서는 걷어내고 같은
+   인상을 주는 정적인 색·불투명도로 대신한다. 데스크톱은 그대로 둔다.
+
+   이 파일은 main.tsx 에서 **맨 마지막에** 불러온다. 처음에는 styles.css 안에 넣었는데,
+   styles.css 가 제일 먼저 로드되는 탓에 뒤따라 오는 table-*.css 의 같은 특정도 규칙에
+   전부 밀려 아무 효과가 없었다. 여기서는 순서로 이긴다. */
+@media (max-width: 900px), (max-height: 620px) {
+  .topbar,
+  .ot-feed .winner-feed,
+  .felt-prompt,
+  .round-result-notice,
+  .game-guide-scrim,
+  .game-shell .sutda-shell .holdem-seat-plate { backdrop-filter: none; }
+
+  /* 덱 뭉치의 밝기 단계도 불투명도로. */
+  .deck-shoe { filter: none; }
+  .deck-shoe-card.lower { filter: none; opacity: .42; }
+  .deck-shoe-card.lower-mid { filter: none; opacity: .52; }
+  .deck-shoe-card.mid { filter: none; opacity: .64; }
+  .deck-shoe-card.upper-mid { filter: none; opacity: .78; }
+  .deck-shoe-card.top { filter: none; opacity: 1; }
+
+  /* 카드는 자기 상자 밖으로 나가는 자식이 없으니 독립적으로 그려도 된다 — 한 장이 바뀔 때
+     판 전체를 다시 계산하지 않는다.
+
+     좌석(.holdem-seat)과 베팅존에는 일부러 넣지 않았다. 말풍선이 `bottom: calc(100% + 7px)`
+     으로 좌석 위에 떠 있고 승리 표시도 상자 밖에 걸치는데, contain: paint 는 그런 자식을
+     상자 경계에서 잘라 버린다. 프레임 몇 개 아끼자고 말풍선을 지울 수는 없다. */
+  .playing-card, .hwatu-card { contain: layout paint; }
+}

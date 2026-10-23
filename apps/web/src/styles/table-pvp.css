@@ -1,0 +1,901 @@
+/* =============================================================================
+   PvP 테이블 공통 (섯다 · 홀덤 · 고스톱) — 한 파일.
+
+   예전엔 레일 시절 규칙(table-pvp.css)과 그걸 덮어쓰는 v5 규칙(table-pvp-v5.css) 두 파일이었고,
+   좌석 반경 변수가 다섯 군데에서 서로를 이기려고 특정도 싸움을 했다(고스톱의 34% 는 한 번도 안
+   쓰였고, 실제 값은 `:not(.sutda-mat)` 규칙이 박아 넣은 43% 였다). 이제:
+
+     · 좌석 기하 변수(--seat-rx/ry/cy, --row-y)는 아래 "좌석 기하" 한 곳에서만 정한다 — 게임 × 화면별로.
+     · 좌석 자리는 JSX 가 단 data 속성으로 고른다(features/pvp/seatLayout). 인라인 style 문자열을
+       `[style*="--sy: -1.0000"]` 처럼 더듬던 선택자는 없다.
+     · 3띠 레이아웃: 위 띠 .pvp-topline(진행 단계 · 도구) / 가운데(상대 자리 · 판돈 · 보드) /
+       아래 띠 .pvp-dock-wrap = .pvp-me(내 이름표 · 패 · 족보 태그) + .pvp-dock(독).
+     · 좌석은 패 + 이름표 두 층. 배지(.pvp-badge)는 패 아랫단, 베팅 칩(.pvp-bet)은 이름표 모서리.
+
+   게임별 모양(장판·테이블·화투 크기·판정)은 table-sutda.css / table-holdem*.css / table-gostop.css.
+   apps/web/qa/pvp-layout 의 러너가 상태 × 뷰포트마다 겹침·넘침을 좌표로 검사한다.
+
+   폰 규칙: "가로 폰" 질의 (max-width: 900px), (max-height: 560px) 는 세로 폰에도 걸린다(폭 900 이하).
+   세로 폰 질의가 그 뒤에 와서 필요한 것만 되돌린다.
+   ============================================================================= */
+
+/* 상대 차례 호(TurnArc)의 남은 비율. 등록해 두면 초 단위 값 사이를 transition 으로 흘러간다. */
+@property --turn-left { syntax: "<number>"; inherits: false; initial-value: 1; }
+
+/* ── 좌석 기하 — 유일한 출처 ─────────────────────────────────────────────
+   --seat-rx/--seat-ry  타원 반지름(테이블 폭·높이의 %)      --seat-cy  타원 중심의 세로 위치
+   --row-y              "위쪽 한 줄" 배치의 세로 위치           (가로 폰의 상대 줄, 고스톱은 늘)
+   홀덤·섯다는 데스크톱에서 같은 타원을 쓴다. 섯다 장판은 가로 폰에서 판돈 띠가 더 아래(55%). */
+.game-shell .holdem-shell-v5 .holdem-table,
+.game-shell .sutda-shell .sutda-mat { --seat-rx: 40%; --seat-ry: 26%; --seat-cy: 40%; --row-y: 30%; }
+/* 고스톱은 상대가 최대 둘이라 늘 위쪽 한 줄. 3인의 두 상대는 ±0.42 × 43% 에 선다. */
+.game-shell .gostop-shell .gostop-mat { --seat-rx: 43%; --seat-ry: 37%; --row-y: 20%; }
+@media (max-width: 900px), (max-height: 560px) {
+  /* 보드는 상대 줄(30%)과 내 줄 사이 띠의 가운데. 49% 면 액션 독이 가장 높을 때(프리셋 + 버튼)도
+     내 줄이 보드에 닿지 않는다(pvp-layout 러너 실측). */
+  .game-shell .holdem-shell-v5 .holdem-table { --seat-rx: 42%; --seat-cy: 49%; }
+  .game-shell .sutda-shell .sutda-mat { --seat-rx: 42%; --seat-cy: 55%; }
+  .game-shell .gostop-shell .gostop-mat { --row-y: 15%; }
+}
+/* 가로 폰 전용 — 고스톱 3인에서 오른쪽 좌석이 오른쪽 정렬된 툴바 밑으로 들어온다. 툴바가 끝나는 자리
+   (오른쪽에서 약 300px)보다 안쪽에 두면서 두 좌석이 서로 붙지 않는 값이 18% 다(좌석 사이 약 40px).
+   세로 폰에 같이 걸면 좌석 둘이 서로 겹친다. */
+@media (max-height: 560px) and (orientation: landscape) {
+  .game-shell .gostop-shell .gostop-mat { --seat-rx: 18%; }
+}
+/* 세로 폰: 위 띠의 도구 줄이 두 줄이 되므로(아래 참고) 타원을 그만큼 내려 맨 위 자리가 둘째 줄 밑에서
+   시작하게 한다. 아래쪽은 여유가 있다 — 내 줄과 독은 화면 아래 3분의 1 에 있다. */
+@media (orientation: portrait) and (max-width: 900px) {
+  .game-shell .holdem-shell-v5 .holdem-table { --seat-rx: 38%; --seat-ry: 22%; --seat-cy: 38%; }
+  .game-shell .sutda-shell .sutda-mat { --seat-rx: 38%; --seat-ry: 20%; --seat-cy: 39.5%; }
+  .game-shell .gostop-shell .gostop-mat { --row-y: 17%; }
+}
+
+/* 자리: 타원 둘레(ring) 또는 위쪽 한 줄(row). 내 자리는 독 위의 내 줄(흐름 배치)이라 속성이 없다. */
+.holdem-seat[data-seat-layout="ring"] {
+  left: calc(50% + var(--sx) * var(--seat-rx));
+  top: calc(var(--seat-cy, 50%) + var(--sy) * var(--seat-ry));
+}
+.holdem-seat[data-seat-layout="row"] {
+  left: calc(50% + var(--ux) * var(--seat-rx));
+  top: var(--row-y);
+}
+@media (max-width: 900px), (max-height: 560px) {
+  /* 가로 폰: 상대는 위쪽 한 줄(--ux). */
+  .holdem-seat[data-seat-layout="ring"] { left: calc(50% + var(--ux) * var(--seat-rx)); top: var(--row-y); }
+}
+@media (orientation: portrait) and (max-width: 900px) {
+  /* 세로 폰: 다시 타원(위쪽이 넓은 초타원). */
+  .holdem-seat[data-seat-layout="ring"] { left: calc(50% + var(--sx) * var(--seat-rx)); top: calc(var(--seat-cy) + var(--sy) * var(--seat-ry)); }
+}
+
+/* ── 셸: 레일 없이 한 칸 ────────────────────────────────────────────────── */
+.game-shell .holdem-room-shell .ot-stage { grid-template-columns: minmax(0, 1fr); }
+
+/* ── 진행 단계 ───────────────────────────────────────────────────────────── */
+.step-bar { display: flex; align-items: center; gap: 0; margin: 0; padding: 0; list-style: none; flex: none; }
+/* flex-basis:auto, not 0: equal shares squeezed the longest label ("쇼다운") 4px short and
+   ellipsized it even though the bar had room to spare. Each step now starts from its own
+   text width and only then shares what's left. */
+.step-bar li { position: relative; flex: 1 1 auto; min-width: 0; display: grid; justify-items: center; gap: 3px; color: var(--muted-dim); font: 700 12px var(--ui-font); letter-spacing: .02em; text-align: center; }
+.step-bar li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; border: 1px solid rgba(220,194,135,.45); background: rgba(0,0,0,.35); }
+.step-bar li::after { content: ""; position: absolute; top: 3px; left: calc(50% + 6px); width: calc(100% - 12px); height: 1px; background: rgba(220,194,135,.25); }
+.step-bar li:last-child::after { display: none; }
+.step-bar li span { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.step-bar li.is-done { color: var(--muted); }
+.step-bar li.is-done::before { background: var(--gold-deep); border-color: var(--gold); }
+.step-bar li.is-done::after { background: rgba(240,180,28,.5); }
+.step-bar li.is-current { color: var(--gold-light); }
+.step-bar li.is-current::before { background: var(--gold-light); border-color: var(--gold-light); box-shadow: 0 0 8px rgba(240,180,28,.75); }
+/* 전체 이름이 기본, 다섯 단어가 안 들어가는 가로 폰에서만 짧은 이름. */
+.step-bar .step-short { display: none; }
+
+/* ── 패 강도 막대 ─────────────────────────────────────────────────────────── */
+.hand-meter { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 7px; min-width: 0; }
+.hand-meter-bars { display: inline-flex; gap: 2px; }
+.hand-meter-bars i { display: block; width: 9px; height: 8px; border-radius: 2px; background: rgba(255,255,255,.1); }
+.hand-meter-label { font: 600 12.5px var(--ui-font); white-space: nowrap; }
+.hand-meter-detail { min-width: 0; overflow: hidden; color: var(--muted); font: 12px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; }
+.hand-meter.tier-1 .hand-meter-bars i.is-on { background: #6e8ab5; } .hand-meter.tier-1 .hand-meter-label { color: #9fb6d9; }
+.hand-meter.tier-2 .hand-meter-bars i.is-on { background: #4a92ff; } .hand-meter.tier-2 .hand-meter-label { color: #7fb2ff; }
+.hand-meter.tier-3 .hand-meter-bars i.is-on { background: var(--positive); } .hand-meter.tier-3 .hand-meter-label { color: #5ee89a; }
+.hand-meter.tier-4 .hand-meter-bars i.is-on { background: #ff6b74; } .hand-meter.tier-4 .hand-meter-label { color: #ff8a91; }
+.hand-meter.tier-5 .hand-meter-bars i.is-on { background: var(--gold-light); box-shadow: 0 0 6px rgba(240,180,28,.6); } .hand-meter.tier-5 .hand-meter-label { color: var(--gold-light); }
+
+/* 족보 태그 안의 보조 줄: 노려볼 패(섯다), 드로우(홀덤). */
+.hand-panel-outlook { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; }
+.hand-panel-outlook > small { flex: 0 0 100%; color: var(--muted-dim); font: 700 12px var(--ui-font); letter-spacing: .08em; }
+.hand-panel-outlook span { padding: 2px 7px; border: 1px solid rgba(240,180,28,.35); border-radius: 999px; background: rgba(240,180,28,.1); color: var(--text); font: 700 12px var(--ui-font); white-space: nowrap; }
+.hand-panel-outlook span.tier-gwangddaeng { border-color: rgba(240,180,28,.7); color: var(--gold-light); }
+.hand-panel-outlook span.tier-ddaeng { border-color: rgba(255,107,116,.55); color: #ff9ca3; }
+.hand-panel-outlook span.tier-named { border-color: rgba(180,140,255,.55); color: #d9c2ff; }
+.hand-panel-outlook span em { margin-left: 3px; color: var(--muted-dim); font-style: normal; font-weight: 600; }
+.hand-panel-draws { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.hand-panel-draws li { position: relative; padding-left: 12px; color: #7fd6ff; font: 700 12px/1.4 var(--ui-font); }
+.hand-panel-draws li::before { content: "◆"; position: absolute; left: 0; top: 0; font-size: 12.5px; color: #4a92ff; }
+
+/* ── 액션 버튼(용어 + 쉬운 말 한 줄) ──────────────────────────────────────── */
+.pvp-act {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: 100%;
+  min-height: 48px;
+  padding: 5px 8px;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-family: var(--ui-font);
+  line-height: 1.15;
+  cursor: pointer;
+  transition: filter .15s, transform .12s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 6px 14px rgba(0,0,0,.35);
+}
+/* 손가락이 닿는 영역만 위아래로 4px 넓힌다 — 폰에서 보이는 높이는 38px 까지 줄지만 누를 수 있는
+   높이는 44px 아래로 내려가지 않는다. 옆으로는 버튼 사이 틈(4~6px)만큼만. */
+.pvp-act::before { content: ""; position: absolute; inset: -5px -2px; }
+.pvp-act:hover:not(:disabled) { filter: brightness(1.12); }
+.pvp-act:active:not(:disabled) { transform: translateY(1px); }
+.pvp-act:disabled { cursor: not-allowed; opacity: .42; filter: saturate(.4); }
+.pvp-act strong { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.pvp-act small { max-width: 100%; overflow: hidden; font-size: 12px; font-weight: 600; opacity: .85; white-space: nowrap; text-overflow: ellipsis; }
+.pvp-act.tone-red { background: linear-gradient(to bottom, #8a2028, #4d1015); border-color: var(--banker-light); color: #ffe9ea; }
+.pvp-act.tone-gold { background: linear-gradient(to bottom, var(--gold), var(--gold-deep)); border-color: var(--gold-light); color: var(--on-gold); }
+.pvp-act.tone-blue { background: linear-gradient(to bottom, #2970a8, #123b63); border-color: #4a93e0; color: #eef8ff; }
+.pvp-act.tone-green { background: linear-gradient(to bottom, #12a35d, #0a6234); border-color: var(--tie-light); color: #eafff3; }
+.pvp-act.tone-purple { background: linear-gradient(to bottom, #6b4bab, #3b2765); border-color: #a184e0; color: #f2ecff; }
+
+/* ── 관전 안내 — 독 자리에(관전자는 독이 없다) ──────────────────────────── */
+.felt-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  z-index: 6;
+  transform: translateX(-50%);
+  max-width: calc(100% - 28px);
+  padding: 7px 14px;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  background: rgba(2,14,9,.86);
+  color: var(--text);
+  font: 700 12px var(--ui-font);
+  white-space: nowrap;
+  text-align: center;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.45);
+}
+.felt-prompt small { display: block; margin-top: 1px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 600; text-overflow: ellipsis; }
+
+/* ═══ 쪼기와 말풍선 ═══════════════════════════════════════════════════════ */
+/* 쪼기 — 엎어 온 패의 뒷면을 위로 밀어 올리면 손을 따라 올라가며 아래부터 앞면이 드러난다(--peel 0~1).
+   놓으면 도로 내려오고(전환), 끝까지 밀면 열린다. */
+.table-squeeze { position: relative; display: inline-block; overflow: hidden; border-radius: var(--radius-xs, 4px); touch-action: none; cursor: grab; }
+.table-squeeze-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: var(--radius-xs, 4px);
+  border: 1px solid #7c050a;
+  background: #a80f16 url("/cards/hwatu/back.svg") center / cover no-repeat;
+  box-shadow: 0 5px 9px rgba(0, 0, 0, .55);
+  transform: translateY(calc(var(--peel, 0) * -102%));
+  transition: transform .28s cubic-bezier(.2, .9, .3, 1.2);
+  pointer-events: none;
+}
+.table-squeeze.is-dragging { cursor: grabbing; }
+.table-squeeze.is-dragging .table-squeeze-cover { transition: none; }
+.table-squeeze.is-open { cursor: default; }
+.table-squeeze.is-open .table-squeeze-cover { transition: transform .3s ease-out; }
+.table-squeeze-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(8, 6, 4, .78);
+  color: var(--gold-light);
+  font: 600 12px var(--ui-font);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: table-hint 1.7s ease-in-out infinite;
+}
+@keyframes table-hint { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+/* 말풍선 — 이름표 위에서 톡 튀어나온다. 액션 성격에 따라 색만 살짝 달리해서, 누가 세게 지르고
+   누가 접었는지 판 위에서 바로 읽힌다. */
+.table-bubble {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  z-index: 8;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 180px;
+  padding: 5px 11px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #fbf3e2, #ecdfc4);
+  color: #241a12;
+  font: 600 12px var(--ui-font);
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .55);
+  animation: table-bubble-in .26s cubic-bezier(.18, 1.3, .5, 1) backwards;
+}
+.table-bubble b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.table-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #ecdfc4;
+}
+.table-bubble.tone-push { background: linear-gradient(180deg, #ffe6a8, #f0c86a); }
+.table-bubble.tone-push::after { border-top-color: #f0c86a; }
+.table-bubble.tone-out { background: linear-gradient(180deg, #d9cfc4, #bfb2a4); color: #3a2f27; }
+.table-bubble.tone-out::after { border-top-color: #bfb2a4; }
+@keyframes table-bubble-in { from { opacity: 0; transform: translate(-50%, 7px) scale(.86); } }
+
+
+/* ── 좌석: 패 + 이름표 두 층 ─────────────────────────────────────────────── */
+.game-shell .pvp-seat { width: 112px; padding: 0; gap: 0; }
+/* 빈 자리의 "앉기"도 최소 글자 크기를 지킨다(styles.css 기본은 11px). */
+.game-shell .holdem-room-shell .holdem-seat-empty { font-size: 12px; }
+.pvp-cardwrap { position: relative; z-index: 1; display: flex; justify-content: center; }
+.game-shell .pvp-seat .holdem-seat-plate {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: -8px;
+  padding: 6px 14px 6px;
+  border-radius: 12px;
+}
+.game-shell .pvp-seat .holdem-seat-name { width: 100%; min-width: 0; }
+.game-shell .pvp-seat .holdem-seat-nick { min-width: 0; max-width: 100%; }
+.game-shell .pvp-seat.is-mine .holdem-seat-plate { border-color: rgba(240,180,28, .55); }
+/* 봇 표시("봇" 원)는 styles.css 에서 10px 로 그린다 — PvP 이름표에서는 최소 글자 크기(12px)를 지킨다. */
+.game-shell .pvp-seat .seat-avatar { width: 18px; height: 18px; font-size: 12px; }
+/* 스택 숫자가 움직이면 그 자리에서 +N/-N 이 떠오른다(features/pvp/seats SeatPlate). */
+.game-shell .pvp-seat .holdem-seat-stack { position: relative; overflow: visible; transition: color .25s ease; }
+.game-shell .holdem-seat-stack.is-up { color: #7ee2a8; }
+.game-shell .holdem-seat-stack.is-down { color: #ff8a93; }
+.seat-delta {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: seat-delta-float 1.5s ease-out forwards;
+}
+.holdem-seat-stack.is-up .seat-delta { color: #7ee2a8; text-shadow: 0 0 10px rgba(126,226,168, .5); }
+.holdem-seat-stack.is-down .seat-delta { color: #ff8a93; text-shadow: 0 0 10px rgba(255,138,147, .45); }
+@keyframes seat-delta-float {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  20% { opacity: 1; }
+  to { opacity: 0; transform: translate(-50%, -22px); }
+}
+/* 모서리 마커 — 이름 줄에 끼우지 않는다. 줄 높이를 안 흔들고 긴 이름의 칸도 안 뺏는다. */
+.pvp-markers { position: absolute; top: -8px; left: -8px; z-index: 3; display: flex; gap: 2px; }
+.pvp-marker {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid rgba(255,240,200, .75);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--gold-light), var(--gold));
+  color: var(--on-gold);
+  font: 800 12px/1 var(--ui-font);
+  letter-spacing: .02em;
+  box-shadow: 0 2px 6px rgba(0,0,0, .5);
+}
+.pvp-marker.is-sb { border-color: rgba(140,180,255, .7); background: linear-gradient(180deg, #4a92ff, #1f5fd0); color: #eef6ff; }
+.pvp-marker.is-bb { border-color: rgba(255,150,160, .7); background: linear-gradient(180deg, #ff6b74, #b3202b); color: #fff0f1; }
+/* 베팅 칩 — 이름표 오른쪽 아래 모서리에 걸친다. 아래로 한 줄 더 차지하지 않게. */
+.game-shell .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet { position: absolute; right: -11px; bottom: -9px; z-index: 3; width: 26px; height: 30px; margin: 0; pointer-events: none; }
+/* 배지 — 다이/폴드·올인·족보·WIN 은 한 자리에 하나만, 패의 아랫단에. 금액은 만·억으로 줄여서
+   넣고(lib/pvpFormat) 정확한 값은 title 에 — 잘린 숫자는 틀린 숫자보다 나쁘다. */
+.pvp-badge {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  z-index: 3;
+  /* px 로 — 기준 상자(.pvp-cardwrap)는 패 폭만큼이라 한 장뿐이면 26px 이다. %로 잡으면 "다이"도 잘린다. */
+  max-width: 116px;
+  padding: 1px 9px;
+  transform: translateX(-50%);
+  border: 1px solid;
+  border-radius: 999px;
+  font: 700 12px/1.5 var(--ui-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pvp-badge.is-hand { border-color: rgba(240,180,28, .5); background: rgba(14,10,6, .94); color: var(--text); font-family: var(--ui-font); font-size: 12px; }
+.pvp-badge.is-win { border-color: rgba(255,240,200, .7); background: linear-gradient(180deg, var(--gold-light), var(--gold)); color: var(--on-gold); }
+.pvp-badge.is-fold { border-color: rgba(232,217,184, .25); background: rgba(40,30,22, .92); color: var(--muted); }
+.pvp-badge.is-allin { border-color: rgba(216,106,85, .7); background: rgba(60,18,12, .92); color: #ffb9a6; }
+.game-shell .pvp-seat.is-winner { opacity: 1; }
+.game-shell .pvp-seat.is-winner .holdem-seat-plate { border-color: var(--gold-light); box-shadow: 0 0 0 1px rgba(240,180,28, .35), 0 0 22px rgba(240,180,28, .4); }
+.game-shell .pvp-seat.is-lost .pvp-badge.is-hand { border-color: rgba(232,217,184, .18); color: var(--muted); }
+
+/* 차례를 알리는 이름표. 숨 쉬는 빛은 box-shadow 를 키프레임으로 돌리지 않는다(매 프레임 다시
+   그린다) — 빛을 미리 칠해 둔 가상 요소의 불투명도만 오르내린다. 합성 단계에서 끝난다. */
+.game-shell .pvp-seat.is-turn .holdem-seat-plate { border-color: var(--gold-light); box-shadow: 0 0 0 1px rgba(240,180,28, .3), 0 6px 16px rgba(0,0,0, .5); }
+.game-shell .pvp-seat .holdem-seat-plate::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px rgba(240,180,28, .5), 0 0 22px rgba(240,180,28, .38);
+  opacity: 0;
+  pointer-events: none;
+}
+.game-shell .pvp-seat.is-turn .holdem-seat-plate::after { animation: pvp-breathe 1.9s ease-in-out infinite; }
+@keyframes pvp-breathe { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+
+/* 상대 차례의 남은 시간 — 이름표를 두르는 호(features/pvp/phaseClock TurnArc). 링 모양은 마스크로
+   가운데를 파서 만든다. 줄어드는 건 conic-gradient 의 각도 하나(--turn-left). */
+.pvp-turn-arc {
+  position: absolute;
+  inset: -4px;
+  z-index: 2;
+  padding: 2.5px;
+  border-radius: 15px;
+  background: conic-gradient(from 0deg, var(--gold-light) calc(var(--turn-left) * 1turn), rgba(240,180,28, .14) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  transition: --turn-left 1s linear;
+  pointer-events: none;
+}
+.pvp-turn-arc.is-closing { background: conic-gradient(from 0deg, #ff6b74 calc(var(--turn-left) * 1turn), rgba(255,107,116, .16) 0); }
+
+/* ── 내 차례를 놓치지 않게: 테두리 반응 + 외침 ───────────────────────────── */
+.game-shell .holdem-room-shell .holdem-table.is-my-turn { box-shadow: inset 0 0 0 2px rgba(240,180,28, .55), inset 0 0 60px rgba(240,180,28, .12); }
+/* 차례가 온 순간의 번쩍임도 그림자를 돌리지 않는다 — 진한 테두리를 칠한 덮개가 1.7초 동안 사라진다. */
+.game-shell .holdem-room-shell .holdem-table.is-turn-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 5px rgba(240,180,28, .95), inset 0 0 120px rgba(240,180,28, .34);
+  pointer-events: none;
+  animation: pvp-turn-edge 1.7s ease-out forwards;
+}
+@keyframes pvp-turn-edge { from { opacity: 1; } to { opacity: 0; } }
+.pvp-turn-shout {
+  position: absolute;
+  left: 25%;
+  top: var(--seat-cy, 40%);
+  z-index: 9;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pvp-shout 1.7s cubic-bezier(.2, .9, .25, 1) forwards;
+}
+.pvp-turn-shout strong {
+  font-family: var(--ui-font);
+  font-size: clamp(26px, 4.6vw, 46px);
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: #ffe9b0;
+  text-shadow: 0 0 30px rgba(255,210,138, .7), 0 2px 0 rgba(0,0,0, .55);
+}
+.pvp-turn-shout span {
+  padding: 2px 11px;
+  border: 1px solid rgba(240,180,28, .55);
+  border-radius: 999px;
+  background: rgba(10,7,4, .82);
+  color: var(--gold-light);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+@keyframes pvp-shout {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.7); }
+  14% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+  24% { transform: translate(-50%, -50%) scale(1); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -62%) scale(.98); }
+}
+@keyframes pvp-strip-pop {
+  0% { transform: scale(.96); border-color: var(--gold-light); }
+  40% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* ── 위 띠: 진행 단계(왼쪽) · 도구(오른쪽) ────────────────────────────── */
+/* z-index 는 이 띠 자체보다 안에 든 채팅 패널 때문에 높다. 패널은 position:fixed 라도 이 띠가 만든
+   쌓임 맥락 안에서 그려지므로, 6 이면 아래 독(6)·외침(9)·지난 핸드(12)가 전부 패널 위에 올라왔다. */
+.pvp-topline {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+.pvp-topline > * { pointer-events: auto; }
+.pvp-topline .step-bar { width: min(360px, 34%); padding: 7px 12px 6px; border: 1px solid rgba(232,217,184, .12); border-radius: 999px; background: rgba(6,4,2, .5); }
+.pvp-tools { display: flex; align-items: center; gap: 6px; }
+.pvp-tool {
+  position: relative;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(232,217,184, .22);
+  border-radius: 999px;
+  background: rgba(6,4,2, .55);
+  color: var(--text);
+  font: 600 12px var(--ui-font);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+/* 보이는 알약은 폰에서 26px 까지 낮아지지만, 누르는 영역은 위아래로 늘려 44px 를 지킨다. 옆은
+   알약 사이 틈의 절반까지만 — 이웃 버튼의 영역을 먹지 않는다. */
+.pvp-tool::before { content: ""; position: absolute; inset: -8px -1px; border-radius: inherit; }
+.pvp-tool:hover, .pvp-tool[aria-expanded="true"] { border-color: rgba(240,180,28, .6); color: var(--gold-light); }
+/* 세로 폰에서만 쓰는 짧은 이름(진행 단계의 step-short 와 같은 방식). */
+.pvp-tool-short { display: none; }
+.pvp-tool[aria-pressed="true"] { border-color: rgba(240,180,28, .6); color: var(--gold-light); background: rgba(240,180,28, .12); }
+/* 채팅은 "자리 비우기"(핸드 포기) 바로 옆에 붙어 있었다 — 둘 다 작은 버튼이라 손가락 하나로는 구분이
+   잘 안 됐고, 잘못 짚으면 진행 중인 핸드를 접어버렸다. 간격을 넓히고 크기도 키워 확실히 다른 버튼이
+   되게 한다. */
+.pvp-tools .room-chat-toggle { position: static; width: 36px; height: 36px; margin-left: 14px; box-shadow: none; }
+/* 표정(이모트) — 버튼은 .pvp-tool 그대로, 펼쳤을 때 뜨는 메뉴만 여기서. */
+.pvp-emote { position: relative; }
+.pvp-emote-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 20;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px;
+  width: max(220px, 100%); padding: 8px; border: 1px solid rgba(232,217,184, .18); border-radius: 12px;
+  background: rgba(6,4,2, .92); box-shadow: 0 12px 28px rgba(0,0,0, .5);
+}
+.pvp-emote-menu button {
+  min-height: 40px; padding: 7px 6px; border: 1px solid rgba(232,217,184, .16); border-radius: 8px;
+  background: rgba(255,255,255, .04); color: var(--text); font: 600 12px var(--ui-font);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-align: center;
+}
+.pvp-emote-menu button:hover { border-color: rgba(240,180,28, .55); color: var(--gold-light); }
+.pvp-emote-mute {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-height: 36px; margin-top: 4px;
+  padding-top: 8px; border-top: 1px solid rgba(232,217,184, .14);
+  color: var(--muted-dim); font: 500 12px var(--ui-font); cursor: pointer;
+}
+.game-shell .holdem-room-shell .room-chat-panel { top: 104px; right: 26px; bottom: auto; height: min(440px, calc(100dvh - 130px)); }
+
+/* ── 아래 띠: 내 줄 + 독 ───────────────────────────────────────────────── */
+.pvp-dock-wrap { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 6; display: grid; gap: 8px; }
+.pvp-me { display: flex; justify-content: center; align-items: center; gap: 12px; }
+/* relative 여야 내 말풍선(absolute)이 내 자리를 기준으로 붙는다 — static 이면 독 컨테이너 기준이 된다. */
+.game-shell .pvp-me .pvp-seat.is-mine { position: relative; left: auto; top: auto; display: flex; flex-direction: row; align-items: center; gap: 12px; width: auto; transform: none; }
+.game-shell .pvp-me .pvp-seat.is-mine .pvp-cardwrap { order: 2; }
+.game-shell .pvp-me .pvp-seat.is-mine .holdem-seat-plate { order: 1; width: auto; min-width: 100px; max-width: 160px; margin: 0; padding: 7px 16px 7px; }
+/* 내 말풍선은 이름표 왼쪽으로 — 위로 띄우면 옆 좌석과 겹친다. */
+.game-shell .pvp-me .pvp-seat.is-mine .table-bubble { left: auto; right: calc(100% + 8px); bottom: auto; top: 50%; transform: translateY(-50%); }
+.game-shell .pvp-me .pvp-seat.is-mine .table-bubble::after { display: none; }
+
+.pvp-hand-tag {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 320px;
+  padding: 8px 13px 9px;
+  border: 1px solid rgba(232,217,184, .18);
+  border-radius: 14px;
+  background: rgba(8,6,4, .74);
+  color: var(--text);
+  box-shadow: 0 6px 18px rgba(0,0,0, .35);
+}
+.pvp-hand-tag.tier-4, .pvp-hand-tag.tier-5 { border-color: rgba(240,180,28, .55); }
+.pvp-hand-tag-text { display: grid; gap: 3px; min-width: 0; }
+.pvp-hand-tag strong { font-family: var(--ui-font); font-size: 22px; line-height: 1.1; color: #ffe9b0; }
+.pvp-hand-tag.is-hint strong { font-size: 15px; color: var(--text); }
+.pvp-hand-tag-text > span, .pvp-hand-tag small { color: var(--muted); font: 500 12px var(--ui-font); }
+.pvp-hand-tag small.is-special { color: var(--gold-light); }
+.pvp-hand-tag .hand-panel-outlook { margin: 2px 0 0; }
+.pvp-hand-tag .hand-panel-draws { margin-top: 2px; }
+
+.pvp-dock {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(232,217,184, .16);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(14,10,6, .88), rgba(7,5,3, .94));
+  box-shadow: 0 10px 30px rgba(0,0,0, .45);
+}
+.pvp-dock.is-turn { border-color: rgba(240,180,28, .6); box-shadow: 0 0 0 1px rgba(240,180,28, .22), 0 10px 30px rgba(0,0,0, .5); }
+.pvp-dock.is-closing { border-color: rgba(255,107,116, .85); }
+.pvp-dock.is-timebank { border-color: rgba(79, 209, 197, .6); }
+.pvp-dock.is-fresh { animation: pvp-strip-pop .6s cubic-bezier(.2, .9, .25, 1); }
+/* 머리줄: 읽어 주는 문장(.pvp-dock-live, 라이브 영역)과 초(시계)는 형제다 — 초가 라이브 영역 안에
+   있으면 스크린리더가 매초 숫자를 읽는다. */
+.pvp-dock-head { display: flex; align-items: baseline; gap: 10px; padding: 0 4px 7px; }
+.pvp-dock-live { display: flex; flex: 1 1 auto; align-items: baseline; gap: 10px; min-width: 0; }
+.pvp-dock-live strong { font-family: var(--ui-font); font-size: 16px; letter-spacing: .06em; color: #ffe9b0; white-space: nowrap; }
+.pvp-dock-live > span { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--gold-pale); font: 600 12px var(--ui-font); }
+.pvp-dock-live > em, .pvp-dock-meta { font-style: normal; white-space: nowrap; color: var(--muted); font: 600 12px var(--ui-font); }
+.pvp-dock-live b, .pvp-dock-meta b { color: var(--text); }
+.pvp-dock-live b.gold { color: var(--gold-light); }
+.pvp-dock-clock { min-width: 28px; text-align: right; font: 800 20px var(--ui-font); font-variant-numeric: tabular-nums; color: var(--gold-light); }
+.pvp-dock.is-closing .pvp-dock-clock { color: #ff8a8f; }
+.pvp-dock.is-timebank .pvp-dock-clock { color: #7ee8dd; }
+/* 남은 시간 막대 — 폭(width)을 줄이면 매초 레이아웃이 다시 돈다. 꽉 찬 막대를 scaleX 로 줄인다. */
+.pvp-dock-bar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gold-light);
+  box-shadow: 0 0 10px rgba(240,180,28, .6);
+  transform-origin: left center;
+  transition: transform .9s linear;
+}
+.pvp-dock.is-closing .pvp-dock-bar { background: #ff6b74; }
+.pvp-dock.is-timebank .pvp-dock-bar { background: #4fd1c5; }
+/* 액션 줄: 있는 만큼만 칸을 만들어 한 줄을 다 쓴다. */
+.pvp-act-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
+.pvp-act-slot { position: relative; }
+.pvp-act-slot .pvp-act { min-height: 50px; border-radius: 12px; }
+.pvp-act-slot.is-suggested .pvp-act:not(:disabled) { box-shadow: 0 0 0 2px rgba(240,180,28, .8), 0 0 18px rgba(240,180,28, .35); }
+.pvp-act-slot.is-suggested::after {
+  content: "추천";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  z-index: 1;
+  transform: translateX(-50%);
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--gold-light);
+  color: var(--on-gold);
+  font: 800 12.5px/16px var(--ui-font);
+  pointer-events: none;
+}
+.pvp-dock-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 0 6px; }
+.pvp-dock-status p { min-width: 0; margin: 0; color: var(--text); font: 600 13px var(--ui-font); }
+.pvp-dock-status p small { display: block; color: var(--muted-dim); font-size: 12px; font-weight: 500; }
+/* MY RESULT 배너는 독 안에서 한 줄짜리로, 금액은 제목 바로 옆에. */
+.game-shell .pvp-dock-status .round-result-notice { position: static; flex: 0 1 auto; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 9px; min-width: 0; max-width: 52%; padding: 2px 4px; transform: none; border: 0; background: none; box-shadow: none; backdrop-filter: none; animation: none; }
+.game-shell .pvp-dock-status .round-result-icon { width: 30px; height: 30px; }
+.game-shell .pvp-dock-status .round-result-copy { min-width: 0; }
+.game-shell .pvp-dock-status .round-result-copy small { font-size: 12px; }
+.game-shell .pvp-dock-status .round-result-copy strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; font-size: 13px; line-height: 1.25; }
+.game-shell .pvp-dock-status .round-result-net { font-size: 20px; white-space: nowrap; }
+.game-shell .pvp-dock-status .round-result-net small { font-size: 12px; }
+.pvp-dock-results { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.pvp-dock-results li {
+  display: flex; align-items: baseline; gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 11px;
+  border: 1px solid rgba(232,217,184, .14);
+  border-radius: 999px;
+  background: rgba(232,217,184, .05);
+  color: var(--muted);
+  font: 500 12px var(--ui-font);
+}
+.pvp-dock-results li span { min-width: 0; max-width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pvp-dock-results li b { font-family: var(--ui-font); font-weight: 700; color: var(--text); white-space: nowrap; }
+.pvp-dock-results li em { font-style: normal; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pvp-dock-results li em i { font-style: normal; color: var(--muted-dim); font-size: 12px; }
+.pvp-dock-results li.is-mine { border-color: rgba(240,180,28, .45); color: var(--text); }
+.pvp-dock-results li.is-win b { color: var(--gold-light); }
+.pvp-dock-results li.is-win em { color: #7ee2a8; }
+.pvp-dock-results li.is-rake { opacity: .65; }
+.pvp-dock-ready { display: flex; align-items: center; gap: 14px; padding: 0 6px; }
+.pvp-dock-ready > span { color: var(--muted); font: 600 12px var(--ui-font); white-space: nowrap; }
+.game-shell .pvp-dock-ready .outline-button { position: relative; flex: 0 0 auto; width: auto; min-width: 180px; min-height: 40px; margin: 0; padding: 0 24px; }
+.game-shell .pvp-dock-ready .outline-button::before { content: ""; position: absolute; inset: -5px -2px; }
+.pvp-dock-ready small { flex: 1 1 auto; color: var(--muted-dim); font: 500 12px var(--ui-font); }
+.pvp-dock-ready small b { color: var(--muted); }
+
+/* ── AI 봇 ───────────────────────────────────────────────────────────────────
+   빈 자리를 사람이 눌러 채운다. 버튼은 빈 좌석과 같은 칸을 쓰고(기하 불변), 봇 표시는 이름표의
+   "봇" 원 하나로 충분하다. */
+.game-shell .holdem-seat-empty.is-bot-slot {
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  border-style: dashed;
+  border-color: rgba(120, 190, 255, .45);
+  color: rgba(190, 220, 255, .9);
+  cursor: pointer;
+}
+.game-shell .holdem-seat-empty.is-bot-slot:hover:not(:disabled) { border-color: rgba(140, 205, 255, .8); background: rgba(60, 120, 200, .16); }
+.game-shell .holdem-seat-empty.is-bot-slot:disabled { opacity: .5; cursor: progress; }
+.bot-slot-icon { font: 800 12px/1 var(--ui-font); letter-spacing: .06em; }
+.bot-slot-label { font: 600 12px/1 var(--ui-font); opacity: .85; white-space: nowrap; }
+/* 봇 실력 — 도구 줄의 다른 알약과 같은 모양. 누를 때마다 쉬움 → 보통 → 어려움 으로 돈다. */
+.pvp-tool.pvp-bot-skill { display: inline-flex; align-items: center; gap: 6px; }
+.pvp-bot-skill .bot-skill-caption { opacity: .7; font-weight: 600; }
+.pvp-bot-skill strong { font-weight: 800; }
+.pvp-bot-skill .bot-skill-short { display: none; }
+
+/* ── 판 안의 확인 창(ConfirmDialog) ──────────────────────────────────────── */
+.pvp-confirm { max-width: min(360px, calc(100vw - 32px)); padding: 0; border: 0; background: none; color: var(--text); }
+.pvp-confirm::backdrop { background: rgba(4, 3, 2, .62); backdrop-filter: blur(2px); }
+.pvp-confirm-card { display: grid; gap: 10px; padding: 20px 18px 16px; border: 1px solid rgba(240,180,28, .45); border-radius: 16px; background: linear-gradient(180deg, #1a120a, #0c0805); box-shadow: 0 24px 60px rgba(0,0,0, .6); }
+.pvp-confirm-card strong { font: 700 17px var(--ui-font); color: #ffe9b0; }
+.pvp-confirm-card p { margin: 0; color: var(--muted); font: 500 13.5px/1.55 var(--ui-font); }
+.pvp-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.pvp-confirm-actions button { min-height: 44px; min-width: 96px; padding: 0 16px; border-radius: 999px; font: 700 13.5px var(--ui-font); cursor: pointer; }
+.pvp-confirm-cancel { border: 1px solid rgba(232,217,184, .3); background: rgba(255,255,255, .04); color: var(--text); }
+.pvp-confirm-ok { border: 1px solid var(--banker-light); background: linear-gradient(to bottom, #8a2028, #4d1015); color: #ffe9ea; }
+.pvp-confirm.tone-neutral .pvp-confirm-ok { border-color: var(--gold-light); background: linear-gradient(to bottom, var(--gold), var(--gold-deep)); color: var(--on-gold); }
+
+/* ── 옮겨 가는 것들: 딜 비행 · 칩 · 팟 · 카드 이동(features/pvp/flights) ───────────────
+   화투 딜 비행은 섯다·고스톱 공용이다. lib/shoeFlight 가 덱의 실제 위치에서 --card-deal-x/y/ms 를
+   써 준다. 측정이 없으면(감속 모션, 앵커 없음) 제자리 페이드로 접힌다. 옮겨 온 카드(is-moved)와
+   원래 자리에 나타나는 카드(is-still)는 날지 않는다 — 앞의 것은 FLIP 이 움직인다. */
+.pvp-fly {
+  display: inline-block;
+  animation: pvp-deal var(--card-deal-ms, .4s) cubic-bezier(.2, .85, .32, 1) var(--card-enter-delay, 0ms) backwards;
+}
+.pvp-fly.is-moved, .pvp-fly.is-still { animation: none; }
+@keyframes pvp-deal {
+  from { transform: translate3d(var(--card-deal-x, 0px), var(--card-deal-y, 0px), 0) rotate(8deg) scale(.82); opacity: 0; }
+  18% { opacity: 1; }
+  to { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); opacity: 1; }
+}
+/* 칩·지폐·카드 복제 토큰. 판 안에 잠깐 붙었다가 애니메이션이 끝나면 떨어진다. left/top 은 시작점에
+   한 번만 쓰고, 움직임은 전부 transform 이다. */
+.pvp-flight-token { position: absolute; z-index: 8; display: block; pointer-events: none; will-change: transform, opacity; }
+.pvp-chip-token {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe7a6 0 34%, #c8961e 35% 52%, #ffe7a6 53% 64%, #9c6f10 65%);
+  box-shadow: 0 2px 5px rgba(0,0,0, .55), inset 0 0 0 1px rgba(255,255,255, .25);
+}
+.sutda-bill-token {
+  width: 36px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.2), transparent 40%), linear-gradient(94deg, #c8bf96, #ab9f74 46%, #bdb187);
+  box-shadow: 0 1px 0 rgba(0,0,0, .35), 0 3px 7px rgba(0,0,0, .4);
+}
+.pvp-card-ghost .gostop-card, .pvp-card-ghost .hwatu-card { display: block; width: 100%; height: 100%; margin: 0; }
+
+/* ═══ 큰 화면: 요소를 한 단 키운다 ═══════════════════════════════════════ */
+@media (min-width: 1200px) and (min-height: 680px) {
+  .game-shell .pvp-seat { width: 128px; }
+  .game-shell .pvp-seat .holdem-seat-plate { padding: 7px 16px 7px; }
+  .game-shell .pvp-seat .holdem-seat-name { font-size: 13.5px; }
+  .game-shell .pvp-seat .holdem-seat-stack { font-size: 12px; }
+  .game-shell .pvp-me .pvp-seat.is-mine .holdem-seat-plate { min-width: 116px; max-width: 180px; padding: 9px 18px; }
+  .game-shell .pvp-me .pvp-seat.is-mine .holdem-seat-name { font-size: 14.5px; }
+  .game-shell .pvp-me .pvp-seat.is-mine .holdem-seat-stack { font-size: 13px; }
+  .pvp-badge { font-size: 12px; padding: 2px 11px; }
+  .pvp-badge.is-hand { font-size: 13px; }
+  .game-shell .holdem-room-shell .holdem-timer, .game-shell .holdem-room-shell .holdem-timer svg { width: 76px; height: 76px; }
+  .game-shell .holdem-room-shell .holdem-timer .ot-timer-num { font-size: 24px; }
+  .pvp-hand-tag { max-width: 360px; padding: 10px 16px 11px; gap: 12px; }
+  .pvp-hand-tag strong { font-size: 26px; }
+  .pvp-hand-tag.is-hint strong { font-size: 17px; }
+  .pvp-hand-tag-text > span, .pvp-hand-tag small { font-size: 13px; }
+  .pvp-dock { padding: 10px 12px; gap: 8px; }
+  .pvp-dock-live strong { font-size: 18px; }
+  .pvp-dock-live > span, .pvp-dock-live > em { font-size: 13px; }
+  .pvp-act-slot .pvp-act { min-height: 56px; }
+  .pvp-act-slot .pvp-act strong { font-size: 16px; }
+  .pvp-act-slot .pvp-act small { font-size: 12px; }
+  .pvp-me { gap: 16px; }
+  .game-shell .pvp-me .pvp-seat.is-mine { gap: 14px; }
+}
+
+/* ═══ 가로 폰(세로 폰에도 먼저 걸린다) ═══════════════════════════════════ */
+@media (max-width: 900px), (max-height: 560px) {
+  .step-bar .step-full { display: none; }
+  .step-bar .step-short { display: block; }
+  .step-bar li { font-size: 12.5px; gap: 2px; }
+  .step-bar li::before { width: 6px; height: 6px; }
+  .step-bar li::after { top: 3px; }
+  .hand-meter { gap: 5px; }
+  .hand-meter-bars i { width: 7px; height: 6px; }
+  .hand-meter-label { font-size: 12px; }
+  .hand-meter-detail, .hand-panel-outlook > small { display: none; }
+  .hand-panel-outlook span { padding: 1px 5px; font-size: 12.5px; }
+  .hand-panel-draws li { font-size: 12.5px; }
+  .pvp-act { min-height: 36px; padding: 3px 4px; }
+  .pvp-act strong { font-size: 12.5px; }
+  .pvp-act small { font-size: 12.5px; }
+  .felt-prompt { bottom: 12px; padding: 4px 10px; font-size: 12px; }
+  .felt-prompt small { font-size: 12px; }
+  /* 빈 자리는 원이어야 한다 — 폰 폭 좌석 규칙이 폭만 늘려 타원으로 만들던 것을 되돌린다. */
+  .game-shell .holdem-seat-empty { width: 54px; height: 54px; padding: 0; }
+  .game-shell .pvp-seat { width: 92px; }
+  .game-shell .pvp-seat .holdem-seat-plate { margin-top: -7px; padding: 4px 10px 4px; border-radius: 10px; }
+  .game-shell .pvp-seat .holdem-seat-name { font-size: 12px; }
+  .game-shell .pvp-seat .holdem-seat-stack { font-size: 12px; }
+  .pvp-markers { top: -7px; left: -7px; }
+  .pvp-marker { min-width: 18px; height: 18px; padding: 0 3px; font-size: 12px; }
+  .game-shell .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet { right: -9px; bottom: -8px; width: 22px; height: 26px; }
+  .game-shell .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet .chip-stack-layer,
+  .game-shell .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet .chip-stack-top { width: 22px; height: 22px; font-size: 12px; }
+  .pvp-badge { max-width: 98px; font-size: 12px; padding: 0 7px; bottom: -3px; }
+  .pvp-badge.is-hand { font-size: 12px; }
+  /* 말풍선: 위 줄 상대는 이름표 아래로(위로 띄우면 위 띠의 진행 단계·도구와 닿는다), 가운데 상대는
+     오른쪽으로(아래엔 판돈·보드가 있다). 가운데 띠의 타이머는 이 말풍선들을 피해 자리를 잡는다. */
+  .game-shell .pvp-seat:not(.is-mine) .table-bubble { bottom: auto; top: calc(100% + 4px); max-width: 150px; padding: 3px 9px; font-size: 12px; }
+  .game-shell .pvp-seat:not(.is-mine) .table-bubble::after { display: none; }
+  .game-shell .pvp-seat[data-row-center="true"]:not(.is-mine) .table-bubble { top: 50%; left: calc(100% + 6px); right: auto; transform: translateY(-50%); }
+  .game-shell .holdem-room-shell .holdem-timer, .game-shell .holdem-room-shell .holdem-timer svg { width: 52px; height: 52px; }
+  .pvp-turn-shout strong { font-size: 24px; }
+  .pvp-topline { top: 6px; left: 8px; right: 8px; }
+  .pvp-topline .step-bar { width: min(260px, 30%); padding: 4px 9px 3px; }
+  .pvp-tool { min-width: 44px; min-height: 26px; padding: 0 9px; font-size: 12px; }
+  .pvp-tool::before { inset: -10px -1px; }
+  /* 좁은 화면에서는 "봇 실력" 캡션을 떼고 값 한 글자만 — 읽히는 이름은 aria-label 에 그대로 있다.
+     툴바를 두 줄로 접으면 홀덤에서 좌석을 덮는다. */
+  .pvp-bot-skill .bot-skill-caption, .pvp-bot-skill .bot-skill-full { display: none; }
+  .pvp-bot-skill .bot-skill-short { display: inline; }
+  /* 한 글자짜리 알약도 누르는 폭은 44px 를 넘긴다 — 보이는 폭 44px + 양옆 1px. */
+  .pvp-tool.pvp-bot-skill { min-width: 44px; justify-content: center; padding: 0 5px; }
+  .pvp-tools { gap: 3px; }
+  /* 채팅은 다른 버튼이 26px 로 줄어도 32px 아래로 내려가지 않는다 — 화면이 좁아질수록 손가락은
+     그대로라 오터치 위험이 더 커진다. 누르는 영역은 44px 원까지 넓힌다. */
+  /* relative 는 넓힌 영역(::before)의 앵커다. 기본 .room-chat-toggle 은 fixed 로 화면 구석에 붙이려고
+     right/bottom 을 들고 있어서, 그대로 두면 relative 가 그 값만큼 버튼을 밀어 올린다 — 비운다. */
+  .pvp-tools .room-chat-toggle { position: relative; inset: auto; width: 32px; height: 32px; }
+  .pvp-tools .room-chat-toggle::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
+  .pvp-dock-wrap { left: 6px; right: 6px; bottom: 6px; gap: 5px; }
+  .pvp-me { gap: 8px; }
+  .game-shell .pvp-me .pvp-seat.is-mine { gap: 8px; }
+  .game-shell .pvp-me .pvp-seat.is-mine .holdem-seat-plate { min-width: 84px; max-width: 130px; padding: 4px 12px 4px; }
+  .pvp-hand-tag { max-width: 240px; gap: 6px; padding: 4px 9px; border-radius: 10px; }
+  .pvp-hand-tag strong { font-size: 16px; }
+  .pvp-hand-tag.is-hint strong { font-size: 13px; }
+  .pvp-hand-tag small, .pvp-hand-tag .hand-panel-outlook, .pvp-hand-tag .hand-panel-draws { display: none; }
+  /* 가로 폰의 족보 태그는 한 줄: 이름 · 강도. 세 줄이면 내 줄이 보드까지 올라간다. */
+  .pvp-hand-tag { align-items: center; }
+  .pvp-hand-tag-text { display: flex; align-items: center; gap: 8px; }
+  .pvp-hand-tag-text > span { display: none; }
+  .pvp-hand-tag .hand-meter { gap: 4px; }
+  .pvp-dock { padding: 5px 6px; gap: 4px; border-radius: 12px; }
+  .pvp-dock-head { display: none; }
+  .pvp-act-row { gap: 4px; }
+  /* 보이는 높이 38px + 위아래로 넓힌 영역 4px 씩 = 누르는 높이 46px. */
+  .pvp-act-slot .pvp-act { min-height: 38px; padding: 3px 4px; border-radius: 9px; }
+  .pvp-act-slot .pvp-act small { display: none; }
+  .pvp-act-slot.is-suggested::after { top: -7px; font-size: 12px; line-height: 14px; }
+  .pvp-dock-status { min-height: 28px; gap: 8px; }
+  .pvp-dock-status p { font-size: 12px; }
+  .pvp-dock-status p small { display: inline; margin-left: 6px; font-size: 12px; }
+  .game-shell .pvp-dock-status .round-result-notice { grid-template-columns: 24px minmax(0, 1fr) auto; padding: 0 2px; }
+  .game-shell .pvp-dock-status .round-result-icon { width: 24px; height: 24px; }
+  .game-shell .pvp-dock-status .round-result-copy small { display: none; }
+  .game-shell .pvp-dock-status .round-result-net { font-size: 16px; }
+  .pvp-dock-results li { padding: 2px 8px; font-size: 12px; }
+  .game-shell .pvp-dock-ready .outline-button { min-height: 36px; min-width: 140px; padding: 0 16px; }
+  .pvp-dock-ready small { font-size: 12px; }
+}
+
+/* ═══ 세로 폰: 상대는 위쪽 타원, 내 줄은 독 위 한 줄, 독은 두 줄 ═══════════════ */
+@media (orientation: portrait) and (max-width: 900px) {
+  .game-shell .holdem-room-shell .ot-stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 4px 6px 6px;
+  }
+  .game-shell .holdem-room-shell .holdem-felt { padding: 0; padding-top: 18px; }
+  .game-shell .holdem-room-shell .holdem-table { width: 100%; height: 100%; max-width: none; }
+  /* 세로로 선 판: 레일은 옆을 감싸고 위아래가 반원이다. */
+  .game-shell .holdem-room-shell .holdem-table-rail { top: 2%; left: 3%; width: 94%; height: 96%; }
+  /* 원형 타이머는 접는다 — 상단 칩과 독 윗변 막대가 초를 보여 준다. */
+  .game-shell .holdem-room-shell .holdem-timer { display: none; }
+  .game-shell .holdem-room-shell .holdem-board { top: 47%; gap: 6px; width: max-content; max-width: 78%; }
+  /* 덱은 딜 비행의 출발점(lib/shoeFlight 가 잰다)으로 DOM 에 남기되 그리지는 않는다 — 세로로 선 판에는
+     장식용 덱이 누군가의 패 위에 올라가지 않는 자리가 없다. */
+  .holdem-table .deck-shoe, .sutda-deck { top: 26%; right: auto; left: 50%; transform: translateX(-50%); width: 22px; visibility: hidden; }
+  .sutda-deck { height: 34px; }
+  .holdem-seat-empty { font-size: 12.5px; }
+  .game-shell .holdem-seat-empty { width: 52px; height: 52px; padding: 0; }
+  .step-bar li { font-size: 12px; }
+  .hand-meter-detail, .hand-panel-outlook > small { display: block; }
+  .hand-panel-outlook > small { flex: 0 0 100%; }
+  .pvp-act { min-height: 42px; padding: 3px 6px; }
+  .pvp-act strong { font-size: 13px; }
+  .pvp-act small { font-size: 12px; }
+  .felt-prompt { padding: 6px 12px; font-size: 12.5px; }
+  .felt-prompt small { font-size: 12px; }
+
+  .game-shell .pvp-seat { width: 100px; }
+  /* 옆자리 말풍선은 위로, 맨 위 자리는 오른쪽으로(위엔 위 띠가 있다). 가로 폰 블록이 걸어 둔 top 을 되돌린다. */
+  .game-shell .pvp-seat:not(.is-mine) .table-bubble { top: auto; bottom: calc(100% + 4px); left: 50%; right: auto; transform: translateX(-50%); max-width: 150px; padding: 3px 9px; font-size: 12px; }
+  .game-shell .pvp-seat[data-seat-pos="top"]:not(.is-mine) .table-bubble { top: 50%; bottom: auto; left: calc(100% + 6px); transform: translateY(-50%); }
+  /* 위쪽 옆자리의 말풍선은 아래로 — 위로 띄우면 맨 위 자리의 오른쪽 말풍선과 닿는다. */
+  .game-shell .pvp-seat[data-seat-pos="upper"]:not(.is-mine) .table-bubble { top: calc(100% + 4px); bottom: auto; left: 50%; transform: translateX(-50%); }
+  /* 내 말풍선: 이름표 왼쪽엔 자리가 없다(내 줄이 화면 폭을 다 쓴다). 내 줄 위로. */
+  .game-shell .pvp-me .pvp-seat.is-mine .table-bubble { left: 50%; right: auto; top: auto; bottom: calc(100% + 6px); transform: translateX(-50%); }
+  .game-shell .pvp-me .pvp-seat.is-mine .table-bubble::after { display: block; }
+  .pvp-turn-shout { left: 50%; top: 48%; }
+  .pvp-topline .step-bar { width: 46%; padding: 6px 10px 5px; }
+  .pvp-topline .step-bar .step-full { display: none; }
+  .pvp-topline .step-bar .step-short { display: block; }
+  /* 세로 폰의 도구 줄은 한 줄에 안 들어간다(족보표 · 지난 핸드/도우미 · 봇 · 자리 비우기 · 표정 · 채팅 ≈
+     330px 인데 남는 폭은 200px 안팎) — 오른쪽 밖으로 넘쳐 채팅과 자리 비우기가 화면 밖에 있었다(pvp-layout
+     러너 실측 +54px). 두 줄로 접고, 타원을 그만큼 내렸다(위 "좌석 기하").
+     두 줄이면 위아래로 넓힌 누르는 영역이 서로 겹친다 — 뒤(둘째 줄)가 이긴다. 게다가 판 위 끝 밖은
+     잘려서 첫 줄은 위로 6px 밖에 못 넓힌다(러너가 elementFromPoint 로 확인). 그래서 넓힘을 위 6px ·
+     아래 8px 로 두고 줄 간격을 14px(= 첫 줄 아래 8 + 둘째 줄 위 6)로 맞춘다: 버튼은 6 + 34 + 8 = 48px,
+     채팅은 6 + 36 + 4 = 46px. 채팅의 위 넓힘도 6px 에서 멈춰야 첫 줄 끝 버튼("표정")을 덮지 않는다. */
+  /* .game-shell 스코프는 고스톱의 `.gostop-shell .pvp-tools { gap: 2px }`(가로 폰 규칙, 세로 폰에도 걸림)를
+     이기기 위해서다 — 그 규칙이 줄 간격까지 2px 로 눌러 두 줄의 누르는 영역이 겹쳤다. */
+  .game-shell .pvp-topline .pvp-tools { flex-wrap: wrap; justify-content: flex-end; row-gap: 14px; min-width: 0; }
+  .pvp-tool { min-height: 34px; }
+  .pvp-tool::before { inset: -6px -1px -8px; }
+  .pvp-tool-full { display: none; }
+  .pvp-tool-short { display: inline; }
+  .pvp-tools .room-chat-toggle { width: 36px; height: 36px; }
+  .pvp-tools .room-chat-toggle::before { inset: -6px -5px -4px; }
+  .pvp-dock-wrap { left: 6px; right: 6px; bottom: calc(6px + env(safe-area-inset-bottom)); gap: 8px; }
+  .pvp-me { gap: 8px; }
+  .game-shell .pvp-me .pvp-seat.is-mine { gap: 8px; }
+  .game-shell .pvp-me .pvp-seat.is-mine .holdem-seat-plate { min-width: 84px; max-width: 120px; padding: 5px 12px 5px; }
+  .pvp-hand-tag { flex: 1 1 auto; min-width: 0; max-width: none; gap: 8px; padding: 6px 10px; border-radius: 12px; align-items: flex-start; }
+  /* 가로 폰 블록이 한 줄로 눕힌 태그를 세로 폰에선 다시 세운다. */
+  .pvp-hand-tag-text { display: grid; gap: 3px; }
+  .pvp-hand-tag-text > span { display: block; }
+  .pvp-hand-tag strong { font-size: 18px; }
+  .pvp-hand-tag small { display: block; }
+  .pvp-hand-tag .hand-panel-outlook { display: flex; }
+  .pvp-hand-tag .hand-panel-draws { display: grid; }
+  .pvp-dock { padding: 8px 8px; gap: 6px; }
+  .pvp-dock-head { display: flex; padding-bottom: 6px; }
+  .pvp-dock-live { flex-wrap: wrap; gap: 4px 8px; }
+  .pvp-dock-live > span { flex: 1 0 100%; order: 3; white-space: normal; font-size: 12px; }
+  .pvp-dock-live > em { margin-left: auto; }
+  .pvp-act-row { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .pvp-act-slot .pvp-act { min-height: 44px; }
+  .pvp-act-slot .pvp-act small { display: block; }
+  .pvp-dock-status { flex-wrap: wrap; }
+  .pvp-dock-results { justify-content: flex-start; }
+  .game-shell .pvp-dock-ready .outline-button { min-height: 40px; }
+}
+/* 아주 낮은 세로 폰(예: 360×640): 판에 자리를 남기려고 한 줄을 더 접는다. */
+@media (orientation: portrait) and (max-width: 900px) and (max-height: 700px) {
+  .hand-meter-detail { display: none; }
+  .pvp-act { min-height: 42px; }
+}
+
+/* ═══ 움직임 줄이기 ═════════════════════════════════════════════════════════
+   번쩍임·외침·말풍선·힌트 깜빡임·숨쉬기·딜 비행을 전부 멈춘다. 상태는 색과 글자로 그대로 남는다. */
+@media (prefers-reduced-motion: reduce) {
+  .game-shell .holdem-room-shell .holdem-table.is-turn-flash::after,
+  .pvp-turn-shout,
+  .pvp-dock.is-fresh,
+  .table-bubble,
+  .seat-delta,
+  .pvp-fly { animation: none; }
+  .table-squeeze-hint { animation: none; opacity: .8; }
+  .game-shell .pvp-seat.is-turn .holdem-seat-plate::after { animation: none; opacity: .7; }
+  .game-shell .holdem-room-shell .holdem-table.is-turn-flash::after { opacity: 0; }
+  .pvp-turn-arc, .pvp-dock-bar { transition: none; }
+}

@@ -1,0 +1,8 @@
+/* =============================================================================
+   승리 연출(components/WinEffect.tsx · lib/winFx.ts). 그림은 전부 캔버스가 그린다 — 여기엔 놓을 자리뿐.
+   화면 전체(position: fixed)를 덮지만 누르는 데는 끼지 않고, 결과 카드 자리는 캔버스가 스스로 비운다.
+   상점 미리보기(.is-preview)는 부모 칸 안에 꽉 채운다.
+   ============================================================================= */
+
+.win-fx { position: fixed; inset: 0; z-index: 400; width: 100%; height: 100%; pointer-events: none; }
+.win-fx.is-preview { position: absolute; z-index: 0; border-radius: inherit; }

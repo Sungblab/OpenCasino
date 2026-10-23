@@ -1,0 +1,69 @@
+/* =============================================================================
+   7포커 — 홀덤 v6 틀(.holdem-v6 / .hv6-*)을 그대로 쓰고, 7포커만의 것만 여기에: 한 줄에 7칸까지 가는 베팅 독,
+   초이스 고르는 창(트럼프 4장), 팟 앵커. 방 페이지가 import 해서 공용 표 시트들보다 뒤에 온다.
+   ============================================================================= */
+
+.seven-poker .spk-table { background: #051b1e; }
+.spk-overlay > :is(.spk-pot-anchor) { pointer-events: none; }
+.spk-pot-anchor { position: absolute; width: 44px; height: 20px; transform: translate(-50%, -50%); }
+
+/* 내 족보 칸이 7장 칸 오른쪽에 자리가 없을 때는 내 카드 위로. */
+.holdem-v6 .hv6-tag[data-side="above"] { transform: translate(-50%, -100%); }
+
+/* 초이스 중 아직 안 고른 자리 — 이름표 테두리가 숨 쉰다. */
+.seven-poker .spk-seat.is-choosing .holdem-seat-plate { animation: spk-choosing 1.4s ease-in-out infinite; }
+@keyframes spk-choosing { 50% { border-color: rgba(240,180,28, .7); box-shadow: 0 0 0 3px rgba(240,180,28, .14); } }
+
+/* 베팅 독: 다이·체크/콜·삥·따당·쿼터·하프·올인 + 남은 초. 버튼 크기는 판이 커져도 같다. */
+.seven-poker .spk-act-row { display: flex; align-items: center; gap: 6px; }
+.seven-poker .spk-act-row .pvp-act-slot { flex: 1 1 0; min-width: 0; }
+.seven-poker .spk-act-row .pvp-act strong { display: inline-flex; align-items: baseline; justify-content: center; gap: 4px; max-width: 100%; overflow: hidden; }
+.seven-poker .spk-amt { font-size: .86em; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .9; }
+.seven-poker .pvp-act:disabled .spk-amt { display: none; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-act-row { gap: 4px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-act-row .pvp-act strong { flex-direction: column; align-items: center; gap: 0; line-height: 1.15; }
+/* 세로 폰: 4칸씩 두 줄(초는 둘째 줄 끝). 줄마다 44px 를 지키느라 독이 홀덤보다 한 줄 높다 — sevenPokerLayout 의 DOCK_INSET 과 짝. */
+.seven-poker .spk-stage[data-mode="tall"] ~ .hv6-dock-slot { height: 98px; }
+.seven-poker .spk-stage[data-mode="tall"] ~ .hv6-dock-slot .spk-act-row { flex-wrap: wrap; align-content: center; }
+.seven-poker .spk-stage[data-mode="tall"] ~ .hv6-dock-slot .spk-act-row .pvp-act-slot { flex: 1 1 calc(25% - 4px); }
+.seven-poker .spk-stage[data-mode="tall"] ~ .hv6-dock-slot .spk-clock { flex: 0 0 auto; }
+.seven-poker .spk-stage[data-mode="tall"] ~ .hv6-dock-slot.is-sheet { height: auto; }
+
+/* =============================================================================
+   초이스 고르는 창 — 섯다 3장 초이스의 창(.sv6-sheet)과 같은 겉모양, 안은 트럼프 4장.
+   ============================================================================= */
+.seven-poker .hv6-dock-slot.is-sheet { width: max-content; max-width: calc(100% - 20px); }
+/* 폰 독은 left/right 6px 로 펴지는데 창은 가운데 정렬(translateX -50%)이라 그대로 두면 왼쪽으로 반쯤 밀려 나갔다. */
+.seven-poker .spk-stage:not([data-mode="wide"]) ~ .hv6-dock-slot.is-sheet { left: 50%; right: auto; bottom: 6px; height: auto; max-width: calc(100% - 12px); }
+.spk-sheet { min-width: 320px; }
+.spk-pick { position: relative; display: grid; justify-items: center; gap: 5px; padding: 7px 7px 6px; border: 1px solid rgba(232,217,184, .2); border-radius: 11px; background: rgba(255,255,255, .03); color: var(--text); cursor: pointer; transition: transform .12s ease, border-color .12s ease, opacity .12s ease, background .12s ease; }
+.spk-pick:hover { transform: translateY(-3px); border-color: rgba(240,180,28, .65); }
+.spk-pick:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+.spk-pick b { font: 700 13px var(--ui-font); white-space: nowrap; }
+.spk-pick-card { display: block; width: 70px; height: 98px; border-radius: 6px; box-shadow: 0 6px 14px rgba(0,0,0, .5); }
+.spk-pick-card .card-face-image { --_cw: 70px; width: 100%; height: 100%; }
+.spk-pick.is-discard { border-color: rgba(255,112,120, .75); background: rgba(150,30,40, .22); }
+.spk-pick.is-discard .spk-pick-card { opacity: .45; filter: grayscale(.6); transform: translateY(6px); }
+.spk-pick.is-discard b { color: #ff9aa0; }
+.spk-pick.is-open { border-color: var(--gold-light); background: rgba(240,180,28, .14); }
+.spk-pick.is-open .spk-pick-card { transform: translateY(-6px); box-shadow: 0 0 0 2px var(--gold-light), 0 10px 18px rgba(0,0,0, .55); }
+.spk-pick.is-open b { color: #ffe9b0; }
+.spk-sheet.is-done .spk-pick.is-keep { opacity: .7; }
+.spk-sheet-foot { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.spk-sheet-foot .sv6-sheet-note { flex: 0 1 auto; }
+.spk-auto { flex: 0 0 auto; min-height: 34px; padding: 0 14px; border: 1px solid rgba(240,180,28, .6); border-radius: 9px; background: rgba(240,180,28, .1); color: var(--gold-light); font: 700 12px var(--ui-font); cursor: pointer; }
+.spk-auto:hover, .spk-auto:focus-visible { outline: none; background: rgba(240,180,28, .2); }
+@media (pointer: coarse) { .spk-auto { min-height: 44px; } }
+
+/* 폰: 한 치수 작게 — 가로 폰은 판이 300px 남짓이라 창이 위쪽 상대 줄까지 올라가지 않게. */
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-sheet { min-width: 0; gap: 5px; padding: 6px 10px 8px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-sheet .sv6-sheet-row { gap: 8px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-pick { padding: 5px 5px 4px; gap: 3px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-pick b { font-size: 12px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-pick-card { width: 54px; height: 76px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-pick-card .card-face-image { --_cw: 54px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-sheet header :is(strong, small), .hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-sheet .sv6-sheet-note { font-size: 12px; }
+.hv6-stage[data-mode="short"] ~ .hv6-dock-slot .spk-sheet-foot { gap: 8px; }
+
+/* 이름표 모서리의 베팅 칩: 판당 최대가 1,000·5,000 인 방은 네 자리 금액이 26px 칩을 넘쳤다 — 금액만큼 늘어나는 알약으로. */
+.seven-poker .spk-seat .chip-stack.pvp-bet .chip-stack-top { width: auto; min-width: 22px; padding: 0 5px; border-radius: 11px; white-space: nowrap; }

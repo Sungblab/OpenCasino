@@ -1,0 +1,45 @@
+{
+  "name": "@opencasino/game-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./big-road": "./src/big-road.ts",
+    "./derived-roads": "./src/derived-roads.ts",
+    "./baccarat": "./src/baccarat.ts",
+    "./blackjack": "./src/blackjack.ts"
+    ,"./lightning": "./src/lightning.ts"
+    ,"./holdem": "./src/holdem.ts"
+    ,"./dragon-tiger": "./src/dragon-tiger.ts"
+    ,"./sutda": "./src/sutda.ts"
+    ,"./seven-poker": "./src/seven-poker.ts"
+    ,"./badugi": "./src/badugi.ts"
+    ,"./sutda-assist": "./src/sutda-assist.ts"
+    ,"./gostop": "./src/gostop/index.ts"
+    ,"./gostop-assist": "./src/gostop/assist.ts"
+    ,"./bots": "./src/bots/index.ts"
+    ,"./reveal": "./src/reveal.ts"
+    ,"./roulette": "./src/roulette.ts"
+    ,"./sicbo": "./src/sicbo.ts"
+    ,"./money-wheel": "./src/money-wheel.ts"
+    ,"./slots": "./src/slots.ts"
+    ,"./slot-machines": "./src/slot-machines.ts"
+    ,"./slot-lucky-cherry": "./src/slot-lucky-cherry.ts"
+    ,"./slot-golden-dragon": "./src/slot-golden-dragon.ts"
+    ,"./crash": "./src/crash.ts"
+    ,"./video-poker": "./src/video-poker.ts"
+    ,"./pachinko": "./src/pachinko.ts"
+    ,"./table-games": "./src/table-games/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opencasino/contracts": "*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  }
+}

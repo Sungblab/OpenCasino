@@ -1,0 +1,11 @@
+/* 캔버스 게임 화면(StageCanvas)의 틀: 캔버스는 자리(바카라·용호 .bac-stage, 블랙잭 .bjt-stage)를 꽉 채우고,
+   WebGL 을 못 쓰면 그 자리에 글자 안내를 띄운다. 자리의 크기·모양은 각 게임 시트가 정한다. */
+.stage-canvas { position: absolute; inset: 0; }
+.stage-canvas canvas { display: block; }
+.stage-fallback {
+  position: absolute; inset: 0; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 8px 18px;
+  padding: 16px; color: var(--text); font-family: var(--ui-font); font-size: 15px; text-align: center;
+}
+.stage-fallback b { font-size: 22px; color: var(--gold-light); }
+.stage-fallback strong { flex-basis: 100%; font-size: 18px; }
+.stage-fallback small { flex-basis: 100%; color: var(--muted); font-size: 12px; }

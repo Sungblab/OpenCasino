@@ -1,0 +1,73 @@
+/* 하우스 카드 게임 3D 테이블(features/stage3d/cardTable3d) 위의 DOM 글자. 캔버스 자리(.stage-canvas) 안에 겹친다.
+   .ct-anchor 는 컨트롤러가 3D 점을 화면으로 투영해 매 프레임 transform 으로 옮긴다 — 튀어나오는 연출은
+   transform 과 싸우지 않게 개별 속성 scale 로 한다. */
+.ct-overlay { position: absolute; inset: 0; z-index: 1; pointer-events: none; color: #f4ecdc; font-family: var(--ui-font); }
+.ct-anchor { position: absolute; left: 0; top: 0; will-change: transform; }
+.ct-anchor[hidden] { display: none; }
+
+/* 위쪽 가운데 상태 알약 — 카운트다운이 있으면 앞에 링 */
+.ct-status {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 20px;
+  border-radius: 999px; background: rgba(0, 0, 0, .62); border: 1px solid rgba(240, 180, 28, .45);
+  font-size: 15px; font-weight: 700; white-space: pre;
+}
+.ct-status-ring { display: none; width: 24px; height: 24px; margin-left: -8px; rotate: -90deg; }
+.ct-status.has-ring .ct-status-ring { display: block; }
+.ct-status-ring circle { fill: none; stroke-width: 3.5; stroke: rgba(255, 255, 255, .18); }
+.ct-status-ring .bar { stroke: #ffd24a; stroke-linecap: round; }
+.ct-status.closing .ct-status-ring .bar { stroke: #ff7078; }
+.ct-status-mine:empty { display: none; }
+.ct-overlay.compact .ct-status { top: 5px; height: 26px; padding: 0 12px; gap: 8px; font-size: 12px; }
+.ct-overlay.compact .ct-status-ring { width: 18px; height: 18px; margin-left: -4px; }
+
+/* 손 이름표 + 점수 방울(바카라 PLAYER·BANKER, 용호 DRAGON·TIGER, 블랙잭 DEALER) */
+.ct-hand-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; line-height: 1; letter-spacing: .2em; color: var(--l, #f0c35a); text-shadow: 0 1px 3px rgba(0, 0, 0, .6); white-space: nowrap; }
+.ct-hand-label .num {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--c, #0a0806); border: 2px solid rgba(255, 255, 255, .85); color: #fff; font-size: 15px; letter-spacing: 0;
+  opacity: 0; scale: .6; transition: opacity .2s, scale .2s;
+}
+.ct-hand-label.has .num { opacity: 1; scale: 1; }
+.ct-hand-label.bump .num { animation: ct-bump .26s cubic-bezier(.2, .9, .3, 1.3); }
+@keyframes ct-bump { from { scale: 1.35; } }
+.ct-overlay.compact .ct-hand-label { gap: 6px; font-size: 11px; }
+.ct-overlay.compact .ct-hand-label .num { width: 22px; height: 22px; font-size: 12px; }
+
+/* 블랙잭 손 점수·표시 */
+.ct-bubble { min-width: 30px; padding: 3px 8px; border-radius: 11px; background: rgba(10, 8, 6, .82); border: 1.5px solid rgba(255, 210, 74, .7); color: #fff; font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; white-space: nowrap; }
+.ct-badge { padding: 3px 10px; border-radius: 11px; border: 1.5px solid rgba(255, 255, 255, .8); color: #fff; font-size: 11px; font-weight: 700; line-height: 1.3; white-space: nowrap; background: var(--c); }
+.ct-badge.pop { animation: ct-bump .26s cubic-bezier(.2, .9, .3, 1.3); }
+.ct-badge[data-tone="blackjack"] { color: #1c1300; }
+.ct-badge[data-tone="lose"] { border-color: rgba(255, 255, 255, .25); }
+.ct-marker { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 9px solid #ffd24a; animation: ct-marker 0.52s ease-in-out infinite alternate; }
+.ct-marker.other { opacity: .5; filter: grayscale(1); }
+@keyframes ct-marker { to { translate: 0 -3px; } }
+.ct-chip { padding: 3px 10px; border-radius: 12px; background: #ffd24a; border: 1.5px solid #1c1300; color: #1c1300; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ct-chip.pop { animation: ct-bump .42s cubic-bezier(.2, .9, .3, 1.3); }
+
+/* 결과 배너 */
+.ct-banner { min-width: 200px; padding: 10px 26px 11px; border-radius: 10px; text-align: center; background: rgba(10, 8, 6, .86); border: 2px solid var(--c); }
+.ct-banner.show { animation: ct-pop .38s cubic-bezier(.2, .9, .3, 1.25); }
+.ct-banner.hide { opacity: 0; transition: opacity .26s; }
+@keyframes ct-pop { from { opacity: 0; scale: .7; } }
+.ct-banner-title { font-size: 19px; font-weight: 700; line-height: 1.3; color: #fff; white-space: pre; }
+.ct-banner-sub { margin-top: 2px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #ffd24a; }
+.ct-banner-sub[hidden] { display: none; }
+.ct-banner-mine { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin-top: 8px; padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, .16); }
+.ct-banner-mine[hidden] { display: none; }
+.ct-banner-mine span { font-size: 13px; font-weight: 600; color: #e8dcc4; }
+.ct-banner-mine b { font-size: 19px; }
+.ct-banner.mine-only .ct-banner-title, .ct-banner.mine-only .ct-banner-sub { display: none; }
+.ct-banner.mine-only .ct-banner-mine { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* 라이트닝 바카라의 배수 카드 띠 */
+.ct-lightning { display: flex; gap: 12px; transition: opacity .2s; }
+.ct-lightning.hide { opacity: 0; }
+.ct-lightning figure { display: grid; justify-items: center; gap: 3px; margin: 0; animation: ct-pop .26s cubic-bezier(.2, .9, .3, 1.3) both; animation-delay: calc(var(--i) * 120ms); }
+.ct-lightning img { width: 30px; height: 42px; border-radius: 3px; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+.ct-lightning figcaption { font-size: 11px; font-weight: 700; line-height: 1; color: #ffd24a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ct-banner.show, .ct-hand-label.bump .num, .ct-lightning figure, .ct-badge.pop, .ct-chip.pop, .ct-marker { animation: none; }
+}

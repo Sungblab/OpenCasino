@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#1f7a57"/>
+      <stop offset=".55" stop-color="#0f4a35"/>
+      <stop offset="1" stop-color="#04180f"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6dc8a"/>
+      <stop offset=".5" stop-color="#c9982f"/>
+      <stop offset="1" stop-color="#8a5f14"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a3172b"/>
+      <stop offset="1" stop-color="#5c0814"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#000" flood-opacity=".55"/>
+    </filter>
+    <pattern id="lattice" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M0 0H26M0 0V26" stroke="#e8b44a" stroke-width="1" opacity=".28"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="675" fill="url(#felt)"/>
+  <ellipse cx="600" cy="360" rx="520" ry="250" fill="none" stroke="url(#gold)" stroke-width="5" opacity=".55"/>
+  <ellipse cx="600" cy="360" rx="548" ry="270" fill="none" stroke="url(#gold)" stroke-width="2" opacity=".35"/>
+
+  <!-- 기준 카드: 8 하트, 앞면 -->
+  <g transform="translate(300 330) rotate(-7)" filter="url(#shadow)">
+    <rect x="-125" y="-180" width="250" height="360" rx="20" fill="#fbf8f1"/>
+    <text x="-98" y="-128" font-family="Georgia, serif" font-weight="700" font-size="64" fill="#c8202f">8</text>
+    <path d="M-86 -100c-10-14-30-6-26 10 3 10 18 20 26 28 8-8 23-18 26-28 4-16-16-24-26-10z" fill="#c8202f"/>
+    <g fill="#c8202f">
+      <path id="h" d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(0 0) scale(.82)" opacity="0"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(-52 -112) scale(.8)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(52 -112) scale(.8)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(-52 0) scale(.8)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(52 0) scale(.8)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(-52 112) scale(.8) rotate(180)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(52 112) scale(.8) rotate(180)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(0 -56) scale(.8)"/>
+      <path d="M0 20C-44 -6 -26 -44 0 -20C26 -44 44 -6 0 20Z" transform="translate(0 56) scale(.8)"/>
+    </g>
+  </g>
+
+  <!-- 다음 카드: 엎어 둔 카드, 오른쪽 -->
+  <g transform="translate(900 330) rotate(8)" filter="url(#shadow)">
+    <rect x="-125" y="-180" width="250" height="360" rx="20" fill="#fbf8f1"/>
+    <rect x="-108" y="-163" width="216" height="326" rx="12" fill="url(#back)"/>
+    <rect x="-108" y="-163" width="216" height="326" rx="12" fill="url(#lattice)"/>
+    <rect x="-108" y="-163" width="216" height="326" rx="12" fill="none" stroke="url(#gold)" stroke-width="3"/>
+    <circle r="62" fill="#5c0814" stroke="url(#gold)" stroke-width="5"/>
+    <circle r="50" fill="none" stroke="url(#gold)" stroke-width="2" stroke-dasharray="3 6"/>
+    <text y="22" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="62" fill="url(#gold)">OC</text>
+  </g>
+
+  <!-- 가운데: 위·아래 화살표와 물음표 -->
+  <g transform="translate(600 330)">
+    <circle r="78" fill="#06140d" stroke="url(#gold)" stroke-width="5"/>
+    <text y="30" text-anchor="middle" font-family="Georgia, serif" font-weight="800" font-size="96" fill="url(#gold)">?</text>
+    <path d="M0 -176l34 46h-68z" fill="#2d7bdc" stroke="#9cc4f4" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M0 176l34-46h-68z" fill="#d32f3d" stroke="#f1a0a8" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+</svg>

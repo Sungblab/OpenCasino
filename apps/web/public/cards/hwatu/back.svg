@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 328">
+  <!-- Traditional hwatu back: deep red with a dense quilted lattice of concave
+       diamonds, a dot in each petal, gold pins at the lattice crossings. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#c2181f"/>
+      <stop offset="0.55" stop-color="#a80f16"/>
+      <stop offset="1" stop-color="#8e070d"/>
+    </linearGradient>
+    <!-- Tile sized so the lattice still reads as a pattern at the ~34px the
+         table draws a back — a finer weave just averages out to flat red. -->
+    <pattern id="lattice" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M15 2.6 C18.9 8.8 21.2 11.1 27.4 15 C21.2 18.9 18.9 21.2 15 27.4 C11.1 21.2 8.8 18.9 2.6 15 C8.8 11.1 11.1 8.8 15 2.6 Z"
+            fill="#b3141b" stroke="#7c050a" stroke-width="1.4"/>
+      <circle cx="15" cy="15" r="2" fill="#d84850"/>
+      <circle cx="0" cy="0" r="1.7" fill="#e6b34c"/>
+      <circle cx="30" cy="0" r="1.7" fill="#e6b34c"/>
+      <circle cx="0" cy="30" r="1.7" fill="#e6b34c"/>
+      <circle cx="30" cy="30" r="1.7" fill="#e6b34c"/>
+    </pattern>
+    <radialGradient id="sheen" cx="0.5" cy="0.32" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+    </radialGradient>
+  </defs>
+  <rect width="212" height="328" fill="url(#bg)"/>
+  <rect width="212" height="328" fill="url(#lattice)"/>
+  <rect width="212" height="328" fill="url(#sheen)"/>
+</svg>

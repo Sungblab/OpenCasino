@@ -1,0 +1,353 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   룰렛 테이블: 위 3D 휠(three.js) · 아래 베팅판(DOM)과 칩 줄.
+   RouletteRoomPage 가 불러오므로 룰렛 방에 들어갈 때만 받는다. 규칙은 .rlt-room 아래로 묶는다.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.rlt-room) { width: 100%; padding: 0; }
+
+.rlt-room {
+  --rlt-red: #a3131b;
+  --rlt-black: #151518;
+  --rlt-green: #0d6a36;
+  --rlt-line: rgba(240, 190, 90, .42);
+  --rlt-bolt: #9fd8ff;
+  display: grid;
+  grid-template-rows: minmax(220px, 1fr) auto;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px 10px;
+  box-sizing: border-box;
+}
+
+/* ── 휠 화면 ──────────────────────────────────────────────────────────────── */
+.rlt-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: radial-gradient(ellipse 36% 50% at 50% 50%, rgba(255, 208, 150, .15) 0%, rgba(255, 208, 150, .05) 55%, transparent 100%), radial-gradient(ellipse 60% 75% at 50% 52%, #0f4a30 0%, #073121 55%, #041c13 100%);
+  box-shadow: 0 0 0 1px rgba(92, 57, 14, .88), 0 0 0 4px rgba(10, 8, 5, .96), 0 22px 44px -24px rgba(0, 0, 0, .9);
+}
+.rlt-room.is-lightning .rlt-stage { background: radial-gradient(ellipse 36% 50% at 50% 50%, rgba(190, 215, 255, .13) 0%, rgba(190, 215, 255, .04) 55%, transparent 100%), radial-gradient(ellipse 60% 75% at 50% 52%, #10284a 0%, #0a1a33 55%, #050c1a 100%); }
+
+.rlt-status {
+  position: absolute; top: 10px; left: 50%; z-index: 3; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; padding: 5px 14px; border-radius: 99px;
+  background: rgba(0, 0, 0, .62); border: 1px solid rgba(240, 180, 28, .35); backdrop-filter: blur(6px);
+  color: var(--gold-light); font: 700 14px var(--ui-font); white-space: nowrap; pointer-events: none;
+}
+.rlt-status b { min-width: 20px; color: #fff; font: 800 15px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+.rlt-status.phase-dealing { border-color: rgba(159, 216, 255, .5); color: var(--rlt-bolt); }
+
+/* 최근 결과: PC 는 오른쪽 세로 줄(최신이 위), 폰은 아래 가로 줄(최신이 왼쪽). */
+.rlt-recent {
+  position: absolute; top: 8px; right: 4px; bottom: 8px; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; overflow: hidden;
+  /* 최신 번호의 금테(2px)와 번개 배수 딱지(오른쪽 −8px)가 잘리지 않게 안쪽 여백. */
+  margin: 0; padding: 4px 10px; list-style: none; pointer-events: none;
+}
+.rlt-recent li {
+  position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .16); color: #fff; font: 700 13px Poppins, var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.rlt-recent li.tone-red { background: var(--rlt-red); }
+.rlt-recent li.tone-black { background: #1d1d22; }
+.rlt-recent li.tone-green { background: var(--rlt-green); }
+.rlt-recent li.is-latest { width: 40px; height: 40px; font-size: 16px; box-shadow: 0 0 0 2px var(--gold-light), 0 0 18px rgba(255, 210, 74, .35); }
+.rlt-recent li small {
+  position: absolute; right: -8px; bottom: -5px; padding: 0 3px; border-radius: 4px;
+  background: #0a1a33; border: 1px solid var(--rlt-bolt); color: var(--rlt-bolt); font: 800 9px Poppins, var(--ui-font);
+}
+
+/* 결과: 공이 안착하면 휠 오른쪽(최근 결과 줄 옆)에 번호 원판과 내 손익. */
+.rlt-result {
+  position: absolute; right: 72px; top: 50%; z-index: 3; transform: translateY(-50%);
+  display: grid; justify-items: center; gap: 6px; min-width: 120px; padding: 14px 16px;
+  border-radius: 16px; background: rgba(0, 0, 0, .58); border: 1px solid rgba(240, 180, 28, .4); backdrop-filter: blur(6px);
+  animation: rlt-result-in .35s cubic-bezier(.3, 1.4, .5, 1);
+}
+.rlt-result-number {
+  display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .85); color: #fff; font: 800 36px Poppins, var(--ui-font);
+  box-shadow: 0 0 0 3px rgba(240, 180, 28, .55), 0 0 30px rgba(255, 210, 74, .35);
+}
+.rlt-result.tone-red .rlt-result-number { background: var(--rlt-red); }
+.rlt-result.tone-black .rlt-result-number { background: #1d1d22; }
+.rlt-result.tone-green .rlt-result-number { background: var(--rlt-green); }
+.rlt-result-word { display: flex; align-items: center; gap: 6px; color: var(--text); font: 700 13px var(--ui-font); letter-spacing: .06em; }
+.rlt-result-word em { display: inline-flex; align-items: center; gap: 2px; color: var(--rlt-bolt); font-style: normal; font-weight: 800; }
+.rlt-result strong { color: var(--gold-light); font: 700 17px var(--ui-font); font-variant-numeric: tabular-nums; }
+.rlt-result strong.pos { color: var(--tie-light); }
+.rlt-result strong.neg { color: var(--banker-light); }
+@keyframes rlt-result-in { from { opacity: 0; transform: translateY(-50%) scale(.8); } }
+
+/* 통계(PC): 휠 왼쪽 위. 비율 막대 셋과 HOT/COLD 번호. */
+.rlt-stats {
+  position: absolute; top: 12px; left: 12px; z-index: 3; display: grid; gap: 6px; width: 200px; padding: 8px 10px 10px;
+  border: 1px solid rgba(240, 180, 28, .3); border-radius: 10px; background: rgba(0, 0, 0, .42); backdrop-filter: blur(6px);
+  font: 600 11px var(--ui-font); color: var(--text); pointer-events: none;
+}
+.rlt-stats header { color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.rlt-split { display: flex; height: 20px; overflow: hidden; border-radius: 5px; background: rgba(255, 255, 255, .06); }
+.rlt-split span { display: flex; align-items: center; min-width: 0; padding: 0 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rlt-split .is-right { justify-content: flex-end; }
+.rlt-split.is-color .is-left { background: var(--rlt-red); }
+.rlt-split.is-color .is-right { background: #26262c; }
+.rlt-split.is-plain .is-left { background: rgba(240, 180, 28, .28); }
+.rlt-split.is-plain .is-right { background: rgba(255, 255, 255, .14); }
+.rlt-split .is-zero { flex-shrink: 0; min-width: 3px; padding: 0; background: var(--rlt-green); }
+.rlt-hotcold { display: flex; align-items: center; gap: 4px; }
+.rlt-hotcold b { width: 38px; font-size: 11px; }
+.rlt-hotcold b.is-hot { color: #ff8a5c; }
+.rlt-hotcold b.is-cold { color: var(--rlt-bolt); }
+.rlt-hotcold i {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .16);
+  color: #fff; font: 700 11px Poppins, var(--ui-font); font-style: normal; font-variant-numeric: tabular-nums;
+}
+.rlt-hotcold i.tone-red { background: var(--rlt-red); }
+.rlt-hotcold i.tone-black { background: #1d1d22; }
+.rlt-hotcold i.tone-green { background: var(--rlt-green); }
+
+/* 최근 당첨 피드: PC 에서만 왼쪽 아래(통계는 왼쪽 위). */
+.rlt-stage .winner-feed { display: none; }
+@media (min-width: 901px) and (min-height: 541px) {
+  .rlt-stage .winner-feed {
+    position: absolute; left: 12px; bottom: 12px; z-index: 4; display: block; width: 190px;
+    border-color: rgba(240, 180, 28, .4); border-radius: 10px; background: rgba(4, 22, 14, .72); backdrop-filter: blur(8px);
+  }
+  .rlt-room.is-lightning .rlt-stage .winner-feed { background: rgba(6, 14, 30, .75); }
+  .rlt-stage .winner-feed ul { max-height: 76px; padding: 4px; overflow-y: auto; scrollbar-width: none; }
+  .rlt-stage .winner-feed li { gap: 6px; padding: 3px 6px; font-size: 12px; }
+}
+
+/* ── 베팅판 ───────────────────────────────────────────────────────────────── */
+.rlt-table { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; }
+.rlt-message {
+  position: absolute; top: -4px; left: 50%; z-index: 6; transform: translate(-50%, -100%);
+  max-width: calc(100% - 16px); margin: 0; padding: 3px 12px; overflow: hidden; border-radius: 99px;
+  background: rgba(0, 0, 0, .82); color: var(--gold-light); font: 600 12.5px var(--ui-font);
+  text-align: center; text-overflow: ellipsis; white-space: nowrap; pointer-events: none;
+}
+.rlt-message:empty { display: none; }
+/* 가로 판은 비율이 정해져 있어 폭이 높이를 정한다. 창이 낮으면 폭을 줄여 휠 자리를 남긴다. */
+.rlt-board-wrap { width: min(100%, 1040px, (100dvh - 390px) * 3.04); }
+
+/* PC 카메라 두 컷(에볼루션 First Person 룰렛). 베팅 중(is-betview)엔 판이 크게 다가오고 휠은 위에 작게 —
+   칸이 커서 누르기 쉽다. 마감되면(is-overview) 판이 작아지며 뒤로 눕고(원근) 휠 자리가 커져, 도는 휠과 내 칩이 놓인
+   판을 한 화면에 본다. 판 폭이 바뀌면 grid 의 휠 줄(1fr)이 그만큼 따라 늘고 줄어 휠이 같이 줌된다. 기울기는
+   transform 이라 칸·칩 자리 계산(판 좌표)은 그대로다. 폰은 따로(세로는 Auto Zoom, 가로는 나란히). */
+@media (min-width: 901px) and (min-height: 541px) {
+  .rlt-board-wrap {
+    transform-origin: 50% 100%;
+    transition: width .75s cubic-bezier(.45, 0, .2, 1), margin-top .75s cubic-bezier(.45, 0, .2, 1), transform .75s cubic-bezier(.45, 0, .2, 1);
+  }
+  .rlt-room.is-betview .rlt-board-wrap { width: min(100%, 1240px, (100dvh - 330px) * 3.04); }
+  .rlt-room.is-betview .rlt-board-wrap, .rlt-room.is-overview .rlt-board-wrap.is-track { margin-top: 0; }
+  /* 눕힌 판은 보이는 높이가 약 0.835배(24°, 원근 1300px 실측) — 그만큼 위로 당겨 휠과 판 사이에 빈 띠가 없게 한다
+     (판 높이 = 폭 / 3.04, margin 의 %는 폭 기준이라 width 식을 그대로 쓴다). */
+  .rlt-room.is-overview .rlt-board-wrap {
+    width: min(100%, 900px, (100dvh - 450px) * 3.04);
+    margin-top: calc(min(100%, 900px, (100dvh - 450px) * 3.04) / 3.04 * -0.165);
+    transform: perspective(1300px) rotateX(24deg);
+  }
+  .rlt-room.is-overview .rlt-board-wrap.is-track { transform: none; }
+  /* 테이블 채팅은 오른쪽 아래가 기본 자리인데, 룰렛은 거기가 3rd 12·2:1 칸이라 베팅 중에 채팅을 열면 그 칸을 못 눌렀다.
+     휠 화면 오른쪽 위(최근 결과 줄 왼쪽 빈 펠트)로 올린다 — 높이는 베팅 컷의 판 윗선(창 높이 − 약 540px)까지만. */
+  .rlt-room .room-chat-panel:not(.is-fullscreen):not(.is-docked) { top: 66px; right: 84px; bottom: auto; height: max(220px, min(380px, 100dvh - 540px)); }
+}
+
+.rlt-board {
+  position: relative; width: 100%;
+  user-select: none; -webkit-user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.rlt-cell {
+  position: absolute; display: grid; place-items: center; margin: 0; padding: 0; box-sizing: border-box;
+  border: 1px solid var(--rlt-line); border-radius: 0; background: transparent;
+  color: #f6efe0; font: 800 17px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: opacity .25s ease, filter .15s ease, box-shadow .2s ease;
+}
+.rlt-cell.tone-red { background: linear-gradient(170deg, #b5161f, #7d0d13); }
+.rlt-cell.tone-black { background: linear-gradient(170deg, #26262c, #0f0f12); }
+.rlt-cell.tone-green { background: linear-gradient(170deg, #11813f, #0a522a); border-radius: 12px 0 0 12px; }
+.rlt-cell.tone-outside { background: rgba(6, 40, 26, .92); color: var(--gold-light); font: 700 14px var(--ui-font); letter-spacing: .02em; }
+.rlt-room.is-lightning .rlt-cell.tone-outside { background: rgba(8, 20, 42, .94); }
+.rlt-board.is-column .rlt-cell.tone-green { border-radius: 12px 12px 0 0; }
+.rlt-cell-label { pointer-events: none; }
+.rlt-diamond { display: block; width: 18px; height: 18px; transform: rotate(45deg); border: 1px solid rgba(255, 255, 255, .5); }
+.rlt-diamond.is-red { background: var(--rlt-red); }
+.rlt-diamond.is-black { background: #0d0d10; }
+.rlt-cell.is-hover { filter: brightness(1.35); box-shadow: inset 0 0 0 2px var(--gold-light); }
+.rlt-board.is-locked .rlt-cell, .rlt-board.is-locked .rlt-hit { cursor: not-allowed; }
+.rlt-board.has-result .rlt-cell:not(.is-win) { opacity: .5; }
+.rlt-cell.is-win { z-index: 1; box-shadow: inset 0 0 0 3px var(--gold-light), 0 0 20px rgba(255, 210, 74, .45); animation: rlt-win-pulse 1s ease-in-out 3; }
+@keyframes rlt-win-pulse { 50% { box-shadow: inset 0 0 0 3px var(--gold-light), 0 0 34px rgba(255, 210, 74, .7); } }
+
+/* 번개 맞은 번호: 파란 테와 배수 딱지. */
+.rlt-cell.is-struck { box-shadow: inset 0 0 0 2px var(--rlt-bolt), 0 0 16px rgba(159, 216, 255, .55); animation: rlt-strike 1.2s ease-in-out infinite alternate; }
+.rlt-cell.is-struck.is-win { box-shadow: inset 0 0 0 3px var(--gold-light), 0 0 26px rgba(159, 216, 255, .8); }
+.rlt-strike {
+  position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); z-index: 1;
+  padding: 0 4px; border-radius: 4px; background: rgba(6, 14, 30, .92); border: 1px solid var(--rlt-bolt);
+  color: #fff7d1; font: 800 10px Poppins, var(--ui-font); line-height: 14px; white-space: nowrap;
+  animation: rlt-strike-in .45s cubic-bezier(.3, 1.6, .5, 1) backwards;
+}
+@keyframes rlt-strike { to { filter: brightness(1.25); } }
+@keyframes rlt-strike-in { from { opacity: 0; transform: translate(-50%, -12px) scale(1.8); } }
+
+/* 스플릿·코너 판정 층(투명). 칩 더미·조준점은 그 위, 판정 층을 가리지 않게 pointer-events 없음. */
+.rlt-hit { position: absolute; z-index: 2; cursor: pointer; }
+.rlt-pile {
+  --chip-step: 3px;
+  position: absolute; z-index: 3; width: 26px; height: 26px; transform: translate(-50%, -50%); pointer-events: none;
+  transition: opacity .25s ease;
+}
+.rlt-pile .chip-pile img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .55)); }
+.rlt-pile.is-lose { opacity: .4; }
+.rlt-pile.is-win .chip-pile img { filter: drop-shadow(0 0 5px rgba(255, 210, 74, .9)); }
+.rlt-aim {
+  position: absolute; z-index: 4; width: 14px; height: 14px; transform: translate(-50%, -50%); pointer-events: none;
+  border: 2px solid var(--gold-light); border-radius: 50%; background: rgba(255, 210, 74, .25); box-shadow: 0 0 10px rgba(255, 210, 74, .6);
+}
+
+/* ── 레이스트랙(이웃·프렌치 베팅): 판 자리를 그대로 덮는다. 판은 숨기기만 해서 크기·칩 자리가 그대로다 ── */
+.rlt-board-wrap { position: relative; isolation: isolate; }
+.rlt-board-wrap.is-track .rlt-board { visibility: hidden; }
+.rlt-track { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; gap: 2px; transition: opacity .25s ease; }
+.rlt-track.is-locked { opacity: .5; }
+.rlt-track-spread { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 30px; color: var(--muted); font: 600 12px var(--ui-font); white-space: nowrap; }
+.rlt-track-spread button {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--gold-line); border-radius: 50%;
+  background: rgba(0, 0, 0, .35); color: var(--gold-light); font: 700 17px var(--ui-font); cursor: pointer;
+}
+.rlt-track-spread button:disabled { opacity: .35; cursor: default; }
+.rlt-track-spread b { min-width: 14px; color: var(--gold-light); font: 800 16px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+.rlt-track-field { position: relative; flex: 1 1 auto; min-height: 0; }
+.rlt-track-field svg {
+  position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
+  user-select: none; -webkit-user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.rlt-track :is(.rlt-track-cell, .rlt-track-zone) { cursor: pointer; outline: none; }
+.rlt-track.is-locked :is(.rlt-track-cell, .rlt-track-zone) { cursor: not-allowed; }
+.rlt-track path { stroke: var(--rlt-line); stroke-width: 1; stroke-linejoin: round; transition: fill .15s ease; }
+.rlt-track text { text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.rlt-track-cell.tone-red path { fill: #9c141c; }
+.rlt-track-cell.tone-black path { fill: #1a1a1f; }
+.rlt-track-cell.tone-green path { fill: #0d7439; }
+.rlt-track-cell text { fill: #f6efe0; font-family: Poppins, var(--ui-font); font-weight: 800; font-variant-numeric: tabular-nums; }
+.rlt-track-cell:is(.is-hover, :focus-visible) path { stroke: var(--gold-light); stroke-width: 2; }
+.rlt-track-cell.is-hover.tone-red path { fill: #d0242d; }
+.rlt-track-cell.is-hover.tone-black path { fill: #3b3b45; }
+.rlt-track-cell.is-hover.tone-green path { fill: #16a153; }
+.rlt-track-zone path { fill: rgba(6, 40, 26, .92); }
+.rlt-room.is-lightning .rlt-track-zone path { fill: rgba(8, 20, 42, .94); }
+.rlt-track-zone text { fill: var(--gold-light); font-family: var(--ui-font); font-weight: 700; letter-spacing: .04em; }
+.rlt-track:not(.is-locked) .rlt-track-zone:is(:hover, :focus-visible) path { fill: rgba(240, 180, 28, .2); stroke: var(--gold-light); }
+
+/* ── 칩 줄: 이번 판 베팅 | 칩 | 되돌리기·2배·반복 | 레이스트랙·즐겨찾기 | 채팅 ──────── */
+.rlt-rail { display: flex; align-items: center; gap: 10px; width: min(100%, 1040px); }
+.rlt-money { display: grid; min-width: 78px; font-family: var(--ui-font); }
+.rlt-money small { color: var(--muted); font-size: 12px; }
+.rlt-money strong { color: var(--gold-light); font: 600 18px var(--ui-font); font-variant-numeric: tabular-nums; }
+.rlt-acts { display: flex; gap: 6px; }
+.rlt-act {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-raised); color: var(--text);
+  font: 700 14px var(--ui-font); cursor: pointer;
+}
+.rlt-act:disabled { opacity: .38; cursor: not-allowed; }
+.rlt-act.is-on { border-color: var(--gold-line); background: rgba(240, 180, 28, .18); color: var(--gold-light); }
+.rlt-tools { display: flex; gap: 6px; }
+.rlt-favs { position: relative; }
+.rlt-favs-menu {
+  position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 20; display: grid; gap: 6px; width: 224px; padding: 8px;
+  border: 1px solid rgba(240, 180, 28, .7); border-radius: 12px; background: linear-gradient(180deg, rgba(35, 25, 11, .98), rgba(12, 10, 7, .98));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .48); font-family: var(--ui-font);
+}
+.rlt-favs-menu p { margin: 2px 4px; color: var(--muted); font-size: 12px; }
+.rlt-favs-menu ul { display: grid; gap: 4px; max-height: 260px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.rlt-favs-menu li { display: flex; gap: 4px; }
+.rlt-favs-menu button { min-height: 38px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel-raised); color: var(--text); font: 600 13px var(--ui-font); cursor: pointer; }
+.rlt-favs-menu button:disabled { opacity: .4; cursor: not-allowed; }
+.rlt-favs-menu .rlt-favs-save { border-color: var(--gold-line); color: var(--gold-light); }
+.rlt-favs-place { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 0 10px; text-align: left; }
+.rlt-favs-place small { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rlt-favs-menu .rlt-favs-del { display: grid; place-items: center; width: 38px; padding: 0; color: var(--muted); }
+.game-shell .rlt-room .rlt-rail .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; width: 44px; height: 44px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+.game-shell .rlt-room .ot-tray { flex: 1 1 auto; justify-content: center; margin: 0; }
+.game-shell .rlt-room .ot-tray.is-art .chip-option { display: grid; }
+.game-shell .rlt-room .ot-tray.is-art .chip-picker-trigger { display: none; }
+.game-shell .rlt-room .chip.chip-art {
+  width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; outline: 0; text-shadow: none; transition: transform .15s ease;
+}
+.game-shell .rlt-room .chip.chip-art img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.game-shell .rlt-room .chip.chip-art.active { box-shadow: 0 0 0 2px var(--gold-light), 0 8px 16px rgba(255, 210, 74, .3); }
+.game-shell .rlt-room .chip.chip-art:disabled { opacity: .32; transform: none; box-shadow: none; }
+
+/* ── 세로 폰: 휠 → 세로 판(남는 높이 전부) → 칩 줄 한 줄 ────────────────────────
+   휠은 화면 높이의 28% 안팎, 판은 폭을 다 쓰고 남는 높이를 받는다(비율을 고정하지 않아 양옆이 비지
+   않는다). 칩은 버튼을 누르면 위로 뜨는 판에서 고른다(바카라 세로 폰과 같다). */
+@media (max-width: 900px) and (orientation: portrait) {
+  .rlt-room { --rlt-stage-h: clamp(150px, 28dvh, 300px); display: flex; flex-direction: column; gap: 6px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .rlt-stage { flex: 0 0 auto; height: var(--rlt-stage-h); border-radius: 12px; transition: height .45s ease, margin-bottom .45s ease; }
+  /* 스핀 동안 휠을 키운다(에볼루션 Auto Zoom). 늘어난 만큼 아래 여백을 빼서 판·칩 줄은 제자리 — 판 위쪽만 덮는다. */
+  .rlt-room.is-zoomed .rlt-stage { z-index: 5; height: 62dvh; margin-bottom: calc(var(--rlt-stage-h) - 62dvh); }
+  .rlt-table { flex: 1 1 auto; min-height: 0; gap: 6px; }
+  .rlt-board-wrap { display: flex; flex: 1 1 auto; width: 100%; min-height: 0; }
+  .rlt-board.is-column { height: 100%; min-height: 360px; }
+  .rlt-cell { font-size: 15px; }
+  .rlt-cell.tone-outside { font-size: 11px; letter-spacing: 0; }
+  /* 세로 판의 더즌·이븐머니 칸은 길쭉해서 글자를 세운다. 아래 2:1 칸은 가로 칸이라 그대로. */
+  .rlt-board.is-column .rlt-cell.tone-outside:not([class*="cell-col"]) .rlt-cell-label { writing-mode: vertical-rl; }
+  .rlt-diamond { width: 13px; height: 13px; }
+  .rlt-pile { width: 22px; height: 22px; --chip-step: 2.5px; }
+  .rlt-status { top: 6px; padding: 3px 10px; font-size: 12px; }
+  .rlt-status b { font-size: 13px; }
+  .rlt-recent { top: auto; left: 8px; right: 8px; bottom: 6px; flex-direction: row; flex-wrap: nowrap; align-content: normal; gap: 4px; overflow: hidden; }
+  .rlt-recent li { flex: none; width: 24px; height: 24px; font-size: 11px; }
+  .rlt-recent li.is-latest { width: 28px; height: 28px; font-size: 13px; }
+  .rlt-result { left: 8px; right: auto; top: 38px; transform: none; min-width: 0; padding: 8px 10px; gap: 3px; border-radius: 12px; animation-name: rlt-result-in-phone; }
+  .rlt-result-number { width: 46px; height: 46px; font-size: 22px; border-width: 2px; }
+  .rlt-result-word { font-size: 11px; }
+  .rlt-result strong { font-size: 13px; }
+  .rlt-rail { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "acts chip chat"; align-items: center; gap: 6px; position: relative; width: 100%; }
+  .rlt-money { display: none; }
+  .rlt-acts { grid-area: acts; justify-self: start; }
+  .rlt-act { width: 40px; height: 40px; border-radius: 9px; }
+  .game-shell .rlt-room .rlt-rail .room-chat-toggle { grid-area: chat; justify-self: end; width: 40px; height: 40px; border-radius: 9px; }
+  /* 레이스트랙·즐겨찾기는 채팅과 같은 칸, 채팅 버튼(40px + 틈) 왼쪽. 왼쪽 칸엔 되돌리기·2배/반복만 들어간다. */
+  .rlt-tools { grid-area: chat; justify-self: end; margin-right: 46px; }
+  .game-shell .rlt-room .ot-tray { grid-area: chip; position: static; margin: 0; }
+  .game-shell .rlt-room .ot-tray.is-art .chip-option { display: none; }
+  .game-shell .rlt-room .ot-tray.is-art .chip-picker-trigger { display: grid; width: 40px; height: 40px; min-width: 40px; padding: 0; background: none; box-shadow: 0 0 0 2px var(--gold); }
+  .game-shell .rlt-room .ot-tray.is-art :is(.chip-picker-trigger, .chip-picker-menu button) img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .game-shell .rlt-room .ot-tray.is-art .chip-picker-menu { bottom: calc(100% + 12px); flex-wrap: wrap; max-width: calc(100vw - 24px); gap: 8px; padding: 8px 10px; }
+  .game-shell .rlt-room .ot-tray.is-art .chip-picker-menu button { width: 48px; height: 48px; background: none; box-shadow: none; }
+  .game-shell .rlt-room .ot-tray.is-art .chip-picker-menu button.selected { transform: none; outline: 0; box-shadow: 0 0 0 3px var(--gold-light); }
+  .game-shell .rlt-room .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
+  .rlt-acts[data-has-bets="true"] .is-repeat, .rlt-acts:not([data-has-bets="true"]) .is-double { display: none; }
+}
+@keyframes rlt-result-in-phone { from { opacity: 0; transform: scale(.8); } }
+
+/* 가로 폰·낮은 창: 휠 왼쪽, 판·칩 줄 오른쪽. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .rlt-room { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); grid-template-rows: minmax(0, 1fr); padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); }
+  .rlt-table { justify-content: center; }
+  .rlt-board-wrap { width: min(100%, (100dvh - 120px) * 3.04); }
+  .rlt-cell { font-size: 13px; }
+  .rlt-cell.tone-outside { font-size: 11px; }
+  .rlt-money { display: none; }
+  .rlt-result { right: 56px; padding: 8px; }
+  .rlt-stats { display: none; }
+  .rlt-result-number { width: 48px; height: 48px; font-size: 22px; }
+  .game-shell .rlt-room .chip.chip-art { width: 36px; height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rlt-cell.is-win, .rlt-cell.is-struck, .rlt-strike, .rlt-result { animation: none; }
+  .rlt-stage, .rlt-board-wrap { transition: none; }
+}

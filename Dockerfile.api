@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+#
+# OpenCasino API 이미지.
+#
+# 빌드는 esbuild 번들이다(scripts/build-api.mjs). @opencasino/contracts·@opencasino/game-core 가 TS 전용
+# 워크스페이스라 tsc 출력만으로는 node 에서 돌지 않고, 운영에서 tsx 로 그때그때 변환하면 기동이 느리고
+# 이미지에 개발 도구·전체 소스가 들어간다. 번들은 우리 코드만 묶고 npm 패키지는 node_modules 에서 읽는다.
+#
+# 산출물(같은 이미지):
+#   node apps/api/dist/main.js      API 서버(기본 CMD)
+#   node apps/api/dist/migrate.js   마이그레이션(배포 때 API 보다 먼저 한 번)
+#   node apps/api/dist/seed.js      방·시스템 지갑 시드(멱등)
+
+ARG NODE_IMAGE=node:22-bookworm-slim
+
+# ── 1. 의존성 목록만 먼저 복사(소스가 바뀌어도 npm ci 캐시를 살린다) ──────────────────────
+FROM ${NODE_IMAGE} AS manifests
+WORKDIR /app
+COPY package.json package-lock.json ./
+# 락파일이 모든 워크스페이스를 가리키므로 package.json 은 전부 있어야 npm ci 가 통과한다.
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/game-core/package.json packages/game-core/package.json
+
+# ── 2. 빌드: API 워크스페이스 의존성만 설치하고 번들 ─────────────────────────────────────
+FROM manifests AS build
+RUN --mount=type=cache,target=/root/.npm npm ci --workspace @opencasino/api --no-audit --no-fund
+COPY tsconfig.base.json ./
+COPY packages packages
+COPY apps/api apps/api
+COPY scripts/build-api.mjs scripts/build-api.mjs
+RUN node scripts/build-api.mjs
+
+# ── 3. 런타임 의존성: API 의 dependencies 만(dev 의존성·웹 의존성 없음) ───────────────────
+FROM manifests AS prod-deps
+RUN --mount=type=cache,target=/root/.npm npm ci --workspace @opencasino/api --omit=dev --ignore-scripts --no-audit --no-fund \
+ && rm -rf node_modules/@opencasino
+
+# ── 4. 런타임 ─────────────────────────────────────────────────────────────────────────
+FROM ${NODE_IMAGE} AS runtime
+ENV NODE_ENV=production \
+    API_PORT=5100
+WORKDIR /app
+# 파일은 root 소유(읽기 전용)로 두고 프로세스만 node 사용자로 돌린다. 앱은 디스크에 쓰지 않는다.
+COPY --from=prod-deps /app/node_modules ./node_modules
+# dist/*.js 가 ESM 으로 읽히려면 가장 가까운 package.json 의 "type": "module" 이 필요하다.
+COPY apps/api/package.json apps/api/package.json
+COPY --from=build /app/apps/api/dist apps/api/dist
+USER node
+EXPOSE 5100
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.API_PORT || 5100) + '/api/v1/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+CMD ["node", "--enable-source-maps", "apps/api/dist/main.js"]

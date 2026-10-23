@@ -1,0 +1,267 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   머니 휠: 위 큰 세로 휠(three.js, moneyWheelStageController) · 가운데 최근 결과 구슬 · 아래 숫자 여섯 칸과 칩 줄.
+   MoneyWheelRoomPage 가 불러오므로 머니 휠 방에 들어갈 때만 받는다. 규칙은 .mw-room 아래로 묶는다.
+   값별 색(--mw-<값>)은 휠 칸(무대가 읽어 텍스처에 칠한다)·베팅 칸·구슬이 같이 쓴다.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.mw-room) { width: 100%; padding: 0; }
+
+.mw-room {
+  --mw-1: #e9bd38; --mw-1-ink: #2b1d02;
+  --mw-2: #2d7bdc; --mw-2-ink: #fff;
+  --mw-5: #9446d2; --mw-5-ink: #fff;
+  --mw-10: #23a25a; --mw-10-ink: #fff;
+  --mw-20: #ec7a1e; --mw-20-ink: #fff;
+  --mw-40: #d32f3d; --mw-40-ink: #fff;
+  --mw-2x: #d5dbe3; --mw-2x-ink: #1d2531;
+  --mw-7x: #1c1810; --mw-7x-ink: #ffd24a;
+  display: grid;
+  grid-template-rows: minmax(200px, 1fr) auto;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px 10px;
+  box-sizing: border-box;
+}
+
+/* 값별 색: 베팅 칸·구슬·결과·통계. */
+.mw-room :is(.mw-spot, .mw-recent li, .mw-result-value, .mw-stats-bar).tone-1 { --tone: var(--mw-1); --ink: var(--mw-1-ink); }
+.mw-room :is(.mw-spot, .mw-recent li, .mw-result-value, .mw-stats-bar).tone-2 { --tone: var(--mw-2); --ink: var(--mw-2-ink); }
+.mw-room :is(.mw-spot, .mw-recent li, .mw-result-value, .mw-stats-bar).tone-5 { --tone: var(--mw-5); --ink: var(--mw-5-ink); }
+.mw-room :is(.mw-spot, .mw-recent li, .mw-result-value, .mw-stats-bar).tone-10 { --tone: var(--mw-10); --ink: var(--mw-10-ink); }
+.mw-room :is(.mw-spot, .mw-recent li, .mw-result-value, .mw-stats-bar).tone-20 { --tone: var(--mw-20); --ink: var(--mw-20-ink); }
+.mw-room :is(.mw-spot, .mw-recent li, .mw-result-value, .mw-stats-bar).tone-40 { --tone: var(--mw-40); --ink: var(--mw-40-ink); }
+
+/* ── 휠 화면 ──────────────────────────────────────────────────────────────── */
+.mw-stage {
+  position: relative; min-height: 0; overflow: hidden; border-radius: 14px;
+  background: radial-gradient(ellipse 70% 90% at 50% 100%, #2a1846 0%, #160d27 55%, #0b0716 100%);
+  box-shadow: 0 0 0 1px rgba(92, 57, 14, .88), 0 0 0 4px rgba(10, 8, 5, .96), 0 22px 44px -24px rgba(0, 0, 0, .9);
+}
+
+.mw-status {
+  position: absolute; top: 10px; left: 12px; z-index: 3;
+  display: flex; align-items: center; gap: 8px; padding: 5px 14px; border-radius: 99px;
+  background: rgba(0, 0, 0, .62); border: 1px solid rgba(240, 180, 28, .35); backdrop-filter: blur(6px);
+  color: var(--gold-light); font: 700 14px var(--ui-font); white-space: nowrap; pointer-events: none;
+}
+.mw-status b { min-width: 20px; color: #fff; font: 800 15px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+
+/* 누적 배수(재회전 동안): 오른쪽 위. */
+.mw-mult-chip {
+  position: absolute; top: 10px; right: 12px; z-index: 3; display: flex; align-items: baseline; gap: 6px;
+  padding: 4px 14px; border-radius: 99px; background: #1c1810; border: 2px solid var(--gold-light);
+  color: var(--gold-light); font: 800 20px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.mw-mult-chip small { color: rgba(255, 230, 160, .8); font: 700 12px var(--ui-font); }
+
+/* 배수 칸에 섰을 때: 휠 가운데 아래 큰 배너. */
+.mw-hub-slot { position: absolute; top: var(--mw-hub-y, 62%); left: 50%; z-index: 4; display: grid; place-items: center; transform: translate(-50%, -50%); pointer-events: none; }
+.mw-mult-banner {
+  display: grid; justify-items: center; gap: 2px; padding: 10px 28px 12px; border-radius: 16px;
+  background: #1c1810; border: 3px solid var(--gold-light); box-shadow: 0 0 0 4px rgba(0, 0, 0, .5), 0 0 40px rgba(255, 210, 74, .45);
+  animation: mw-banner-in .45s cubic-bezier(.3, 1.6, .5, 1);
+}
+.mw-mult-banner strong { color: var(--gold-light); font: italic 900 54px/1 Poppins, var(--ui-font); letter-spacing: -.02em; }
+.mw-mult-banner.is-x2 { background: #d5dbe3; border-color: #fff; }
+.mw-mult-banner.is-x2 strong { color: #1d2531; }
+.mw-mult-banner.is-x2 span { color: #1d2531; }
+.mw-mult-banner span { color: #fff1c7; font: 700 14px var(--ui-font); white-space: nowrap; }
+@keyframes mw-banner-in { from { opacity: 0; transform: scale(.5); } }
+
+/* 결과: 숫자 칸에 서면 휠 가운데 아래에 숫자·배수·내 손익. */
+.mw-result {
+  display: flex; align-items: center; gap: 12px; padding: 10px 18px 10px 10px; border-radius: 18px;
+  background: linear-gradient(180deg, rgba(36, 22, 56, .92), rgba(12, 7, 20, .92)); border: 2px solid var(--gold-light);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .45), 0 0 32px rgba(255, 210, 74, .35);
+  animation: mw-result-in .35s cubic-bezier(.3, 1.4, .5, 1);
+}
+.mw-result-value {
+  display: grid; place-items: center; min-width: 64px; height: 64px; padding: 0 8px; border-radius: 50%; box-sizing: border-box;
+  background: var(--tone); color: var(--ink); border: 3px solid rgba(255, 255, 255, .85);
+  font: 900 28px Poppins, var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.mw-result em { color: var(--gold-light); font: italic 900 26px Poppins, var(--ui-font); }
+.mw-result strong { color: var(--gold-light); font: 700 18px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mw-result strong.pos { color: var(--tie-light); }
+.mw-result strong.neg { color: var(--banker-light); }
+@keyframes mw-result-in { from { opacity: 0; transform: scale(.8); } }
+
+/* 통계(PC): 왼쪽 위, 상태 알약 아래. */
+.mw-stats {
+  position: absolute; top: 50px; left: 12px; z-index: 3; display: grid; gap: 6px; width: 176px; padding: 8px 10px;
+  border: 1px solid rgba(240, 180, 28, .3); border-radius: 10px; background: rgba(0, 0, 0, .45); backdrop-filter: blur(6px);
+  font: 600 12px var(--ui-font); color: var(--text); pointer-events: none;
+}
+.mw-stats header, .mw-stats small { color: var(--muted); font-size: 12px; }
+.mw-stats-bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; height: 70px; }
+.mw-stats-bar { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 2px; min-height: 0; }
+.mw-stats-bar span { color: var(--text); font: 700 12px var(--ui-font); font-variant-numeric: tabular-nums; }
+.mw-stats-bar i { align-self: end; width: 12px; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--tone); }
+.mw-stats-bar b { color: var(--tone); font: 800 12px Poppins, var(--ui-font); }
+
+.mw-stage .winner-feed { display: none; }
+@media (min-width: 901px) and (min-height: 541px) {
+  .mw-stage .winner-feed {
+    position: absolute; left: 12px; bottom: 12px; z-index: 4; display: block; width: 190px;
+    border-color: rgba(240, 180, 28, .4); border-radius: 10px; background: rgba(14, 8, 26, .78); backdrop-filter: blur(8px);
+  }
+  .mw-stage .winner-feed ul { max-height: 76px; padding: 4px; overflow-y: auto; scrollbar-width: none; }
+  .mw-stage .winner-feed li { gap: 6px; padding: 3px 6px; font-size: 12px; }
+}
+
+/* ── 아래: 구슬 · 베팅판 · 칩 줄 ─────────────────────────────────────────────── */
+.mw-table { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; }
+.mw-message {
+  position: absolute; top: -4px; left: 50%; z-index: 6; transform: translate(-50%, -100%);
+  max-width: calc(100% - 16px); margin: 0; padding: 3px 12px; overflow: hidden; border-radius: 99px;
+  background: rgba(0, 0, 0, .82); color: var(--gold-light); font: 600 12.5px var(--ui-font);
+  text-align: center; text-overflow: ellipsis; white-space: nowrap; pointer-events: none;
+}
+.mw-message:empty { display: none; }
+
+/* 최근 결과: 최신이 왼쪽. 넘치는 구슬은 잘린다(줄 높이 고정). */
+.mw-recent {
+  display: flex; gap: 5px; width: min(100%, 1120px); height: 30px; margin: 0; padding: 0; overflow: hidden; list-style: none;
+  /* 넘친 구슬이 칼로 자른 듯 끊기지 않게 오른쪽 끝을 흐린다. */
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+}
+.mw-recent li {
+  position: relative; flex: none; display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 4px; box-sizing: border-box;
+  border-radius: 15px; background: var(--tone); color: var(--ink); font: 800 13px Poppins, var(--ui-font); font-variant-numeric: tabular-nums;
+  opacity: .82;
+}
+.mw-recent li.is-latest { opacity: 1; box-shadow: inset 0 0 0 2px #fff6cf; }
+.mw-recent li:has(small) { display: flex; gap: 4px; padding: 0 3px 0 9px; }
+.mw-recent li small {
+  padding: 0 5px; border-radius: 10px; background: #1c1810; color: var(--gold-light); font: italic 800 12px/20px Poppins, var(--ui-font);
+}
+.mw-recent li.is-empty { padding: 0 12px; background: rgba(255, 255, 255, .06); color: var(--muted); font: 600 12px var(--ui-font); opacity: 1; }
+
+/* 베팅판: 금테 두른 어두운 판에 끼운 조명 타일(베벨·안쪽 빛·인쇄된 안쪽 테). 글자는 UI 산세리프 — 베팅 자리엔 세리프를 쓰지 않는다. */
+.mw-board {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; width: min(100%, 1120px);
+  height: clamp(82px, 16dvh, 126px); padding: 6px; box-sizing: border-box; border-radius: 16px;
+  background: linear-gradient(180deg, #1d1330, #0d0816);
+  box-shadow: inset 0 0 0 1px rgba(240, 180, 28, .4), inset 0 1px 0 rgba(255, 230, 160, .2), 0 14px 28px -18px #000;
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+.mw-spot {
+  /* 윗면 빛·아랫면 그늘(베벨), 테두리 그림자, 안쪽에서 비치는 빛. is-win 이 바깥 빛만 덧붙인다. */
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -3px 0 rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(0, 0, 0, .3), inset 0 0 22px rgba(255, 255, 255, .14);
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  min-width: 0; min-height: 0; margin: 0; padding: 4px; border: 0; border-radius: 10px; overflow: hidden;
+  background:
+    radial-gradient(120% 85% at 50% -10%, rgba(255, 255, 255, .32), rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--tone) 88%, #fff) 0%, var(--tone) 42%, color-mix(in srgb, var(--tone) 70%, #000) 100%);
+  color: var(--ink); font-family: var(--ui-font); cursor: pointer;
+  box-shadow: var(--bevel);
+  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, box-shadow .2s ease, filter .15s ease;
+}
+/* 인쇄된 안쪽 테 */
+.mw-spot::before {
+  content: ""; position: absolute; inset: 5px; border: 1px solid color-mix(in srgb, var(--ink) 38%, transparent); border-radius: 7px; pointer-events: none;
+}
+.mw-spot:hover { filter: brightness(1.08) saturate(1.05); }
+.mw-spot:active { transform: scale(.98); }
+.mw-spot-value {
+  font: 900 clamp(28px, 5.8dvh, 46px)/1 Poppins, var(--ui-font); font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .22), 0 2px 4px rgba(0, 0, 0, .32);
+}
+.mw-spot-odds { margin-top: 3px; font: 700 12px/1 var(--ui-font); opacity: .85; }
+.mw-spot-mult {
+  position: absolute; top: 4px; right: 4px; z-index: 1; padding: 0 6px; border-radius: 6px; background: #1c1810; border: 1px solid var(--gold-light);
+  color: var(--gold-light); font: italic 800 12px/18px Poppins, var(--ui-font); animation: mw-banner-pop .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+@keyframes mw-banner-pop { from { opacity: 0; transform: scale(1.8); } }
+.mw-board.is-locked .mw-spot { cursor: not-allowed; }
+.mw-board.is-locked .mw-spot:hover { filter: none; }
+.mw-board.has-result .mw-spot:not(.is-win) { opacity: .35; }
+.mw-spot.is-win { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 24px rgba(255, 210, 74, .6); animation: mw-win-pulse 1s ease-in-out 3; }
+@keyframes mw-win-pulse { 50% { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 36px rgba(255, 210, 74, .85); } }
+
+.mw-pile { --chip-step: 2.5px; position: absolute; left: 5px; bottom: 5px; width: 26px; height: 26px; pointer-events: none; }
+.mw-pile .chip-pile img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .55)); }
+.mw-spot.is-lose .mw-pile { opacity: .4; }
+
+.mw-rail { display: flex; align-items: center; gap: 10px; width: min(100%, 1120px); }
+.mw-money { display: grid; min-width: 78px; font-family: var(--ui-font); }
+.mw-money small { color: var(--muted); font-size: 12px; }
+.mw-money strong { color: var(--gold-light); font: 600 18px var(--ui-font); font-variant-numeric: tabular-nums; }
+.mw-acts { display: flex; gap: 6px; }
+.mw-act {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-raised); color: var(--text);
+  font: 700 14px var(--ui-font); cursor: pointer;
+}
+.mw-act:disabled { opacity: .38; cursor: not-allowed; }
+.game-shell .mw-room .mw-rail .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; width: 44px; height: 44px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+.game-shell .mw-room .ot-tray { flex: 1 1 auto; justify-content: center; margin: 0; }
+.game-shell .mw-room .ot-tray.is-art .chip-option { display: grid; }
+.game-shell .mw-room .ot-tray.is-art .chip-picker-trigger { display: none; }
+.game-shell .mw-room .chip.chip-art {
+  width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; outline: 0; text-shadow: none; transition: transform .15s ease;
+}
+.game-shell .mw-room .chip.chip-art img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.game-shell .mw-room .chip.chip-art.active { box-shadow: 0 0 0 2px var(--gold-light), 0 8px 16px rgba(255, 210, 74, .3); }
+.game-shell .mw-room .chip.chip-art:disabled { opacity: .32; transform: none; box-shadow: none; }
+
+/* ── 세로 폰: 휠(남는 높이 전부) → 구슬 → 3×2 판 → 칩 줄 한 줄 ──────────────── */
+@media (max-width: 900px) and (orientation: portrait) {
+  .mw-room { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .mw-stage { flex: 1 1 auto; border-radius: 12px; }
+  .mw-table { flex: none; gap: 6px; }
+  .mw-recent { width: 100%; height: 26px; gap: 4px; }
+  .mw-recent li { min-width: 26px; height: 26px; font-size: 12px; }
+  .mw-recent li small { line-height: 18px; }
+  .mw-board { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); width: 100%; height: clamp(124px, 20dvh, 160px); gap: 5px; padding: 5px; border-radius: 14px; }
+  .mw-spot { border-radius: 9px; }
+  .mw-spot-value { font-size: clamp(24px, 3.6dvh, 32px); }
+  .mw-pile { width: 22px; height: 22px; left: 4px; bottom: 4px; }
+  .mw-status { top: 8px; left: 8px; padding: 3px 10px; font-size: 12px; }
+  .mw-status b { font-size: 13px; }
+  .mw-mult-chip { top: 8px; right: 8px; padding: 2px 10px; font-size: 16px; }
+  .mw-mult-banner { padding: 8px 20px 10px; }
+  .mw-mult-banner strong { font-size: 44px; }
+  .mw-mult-banner span { font-size: 12px; }
+  .mw-result { gap: 10px; padding: 8px 14px 8px 8px; }
+  .mw-result-value { min-width: 48px; height: 48px; font-size: 22px; }
+  .mw-result em { font-size: 20px; }
+  .mw-result strong { font-size: 15px; }
+  .mw-rail { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "acts chip chat"; align-items: center; gap: 6px; position: relative; width: 100%; }
+  .mw-money { display: none; }
+  .mw-acts { grid-area: acts; justify-self: start; }
+  .mw-act { width: 44px; height: 44px; border-radius: 9px; }
+  .game-shell .mw-room .mw-rail .room-chat-toggle { grid-area: chat; justify-self: end; width: 44px; height: 44px; border-radius: 9px; }
+  .game-shell .mw-room .ot-tray { grid-area: chip; position: static; margin: 0; }
+  .game-shell .mw-room .ot-tray.is-art .chip-option { display: none; }
+  .game-shell .mw-room .ot-tray.is-art .chip-picker-trigger { display: grid; width: 44px; height: 44px; min-width: 44px; padding: 0; background: none; box-shadow: 0 0 0 2px var(--gold); }
+  .game-shell .mw-room .ot-tray.is-art :is(.chip-picker-trigger, .chip-picker-menu button) img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .game-shell .mw-room .ot-tray.is-art .chip-picker-menu { bottom: calc(100% + 12px); flex-wrap: wrap; max-width: calc(100vw - 24px); gap: 8px; padding: 8px 10px; }
+  .game-shell .mw-room .ot-tray.is-art .chip-picker-menu button { width: 48px; height: 48px; background: none; box-shadow: none; }
+  .game-shell .mw-room .ot-tray.is-art .chip-picker-menu button.selected { transform: none; outline: 0; box-shadow: 0 0 0 3px var(--gold-light); }
+  .game-shell .mw-room .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
+  .mw-acts[data-has-bets="true"] .is-repeat, .mw-acts:not([data-has-bets="true"]) .is-double { display: none; }
+}
+
+/* 가로 폰·낮은 창: 휠 왼쪽, 구슬·판(3×2)·칩 줄 오른쪽. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .mw-room { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); grid-template-rows: minmax(0, 1fr); padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); }
+  .mw-table { gap: 6px; }
+  .mw-recent { width: 100%; height: 26px; }
+  .mw-recent li { min-width: 26px; height: 26px; font-size: 12px; }
+  .mw-board { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); width: 100%; height: auto; flex: 1 1 auto; min-height: 0; }
+  .mw-rail { width: 100%; }
+  .mw-money, .mw-stats { display: none; }
+  .mw-status { top: 6px; left: 6px; padding: 3px 10px; font-size: 12px; }
+  .mw-mult-banner strong { font-size: 40px; }
+  .game-shell .mw-room .chip.chip-art { width: 36px; height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-spot.is-win, .mw-result, .mw-mult-banner, .mw-spot-mult { animation: none; }
+}

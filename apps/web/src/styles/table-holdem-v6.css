@@ -1,0 +1,194 @@
+/* =============================================================================
+   홀덤 v6 — 섯다 v6·맞고 v2 와 같은 틀: 게임 영역 전체를 덮는 캔버스 판(features/holdem) + 같은 좌표로
+   겹친 DOM. 독은 판 안 아래 한 줄(높이 고정) — 레이즈 금액은 독 위로 자라는 창에서.
+   ============================================================================= */
+
+.holdem-v6 .hv6-table {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: #07251a;
+  box-shadow: 0 0 0 1px rgba(92,57,14, .88), 0 0 0 4px rgba(10,8,5, .96), 0 26px 56px -30px rgba(0,0,0, .9);
+}
+.holdem-v6 .hv6-table::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px transparent;
+  transition: box-shadow .25s ease;
+}
+.holdem-v6 .hv6-table.is-my-turn::after { box-shadow: inset 0 0 0 2px rgba(240,180,28, .6), inset 0 0 60px rgba(240,180,28, .12); }
+.holdem-v6 .hv6-table.is-timebank::after { box-shadow: inset 0 0 0 2px rgba(79,209,197, .7), inset 0 0 60px rgba(79,209,197, .12); }
+.holdem-v6 .hv6-stage { position: absolute; inset: 0; }
+
+.holdem-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.holdem-overlay > * { pointer-events: auto; }
+.holdem-overlay > :is(.hv6-badge, .hv6-bubble, .hv6-shout, .hv6-scrim) { pointer-events: none; }
+
+.holdem-v6 .hv6-topline { top: 8px; left: 10px; right: 10px; z-index: 11; align-items: center; }
+.holdem-v6 .hv6-phase { padding: 6px 14px; border: 1px solid rgba(232,217,184, .16); border-radius: 999px; background: rgba(6,4,2, .55); color: var(--gold-light); font: 700 13px var(--ui-font); white-space: nowrap; }
+.holdem-v6 .hv6-phase.is-phase { display: none; }
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+  .holdem-v6 .hv6-phase.is-phase { display: inline-block; }
+}
+.holdem-v6 .hv6-phase.is-mine { border-color: var(--gold-light); background: var(--gold-light); color: #1a1204; animation: hv6-glow 1.6s ease-in-out infinite; }
+@keyframes hv6-glow { 50% { box-shadow: 0 0 0 4px rgba(240,180,28, .18); } }
+.holdem-v6 .hv6-history { position: absolute; top: 52px; right: 12px; z-index: 20; width: min(360px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow: auto; }
+
+/* 이름표: 위 가운데 줄·세로 창은 카드 아래 가운데, 옆줄은 카드 바깥쪽. */
+.holdem-v6 .hv6-seat { position: absolute; width: 124px; padding: 0; gap: 0; }
+.holdem-v6 .hv6-seat[data-side="below"] { transform: translate(-50%, 0); }
+.holdem-v6 .hv6-seat[data-side="left"] { transform: translate(-100%, -50%); }
+.holdem-v6 .hv6-seat[data-side="right"] { transform: translate(0, -50%); }
+.holdem-v6 .hv6-seat .holdem-seat-plate { width: 100%; min-width: 0; margin: 0; padding: 5px 10px 6px; }
+.holdem-v6 .hv6-seat.is-mine { width: 132px; }
+.holdem-v6 .hv6-seat.is-folded .holdem-seat-plate, .holdem-v6 .hv6-seat.is-lost .holdem-seat-plate { filter: grayscale(.5) brightness(.8); }
+.holdem-v6 .hv6-seat.is-winner .holdem-seat-plate { border-color: var(--gold-light); box-shadow: 0 0 14px rgba(240,180,28, .45), 0 6px 16px rgba(0,0,0, .55); }
+.holdem-overlay .holdem-seat-empty { position: absolute; z-index: 2; transform: translate(-50%, -50%); }
+.holdem-overlay.is-wide .holdem-seat-empty { width: 82px; height: 82px; font-size: 13px; }
+
+.hv6-badge { position: absolute; z-index: 4; transform: translate(-50%, -70%); }
+.hv6-badge .pvp-badge { position: static; display: block; transform: none; white-space: nowrap; }
+
+.hv6-bubble { position: absolute; z-index: 8; width: 0; height: 0; }
+.hv6-bubble .table-bubble { bottom: 7px; }
+.hv6-bubble[data-side="right"] .table-bubble { left: 8px; bottom: auto; top: 0; transform: translateY(-50%); }
+.hv6-bubble[data-side="right"] .table-bubble::after { display: none; }
+.hv6-bubble[data-side="left"] .table-bubble { left: auto; right: 8px; bottom: auto; top: 0; transform: translateY(-50%); }
+.hv6-bubble[data-side="left"] .table-bubble::after { display: none; }
+.hv6-bubble[data-side="center"] .table-bubble { left: 0; bottom: auto; top: 0; transform: translate(-50%, -50%); max-width: 100px; }
+.hv6-bubble[data-side="center"] .table-bubble::after { display: none; }
+
+.holdem-v6 .hv6-tag { position: absolute; z-index: 3; width: max-content; max-width: 280px; }
+.holdem-v6 .hv6-tag[data-side="right"] { transform: translate(0, -50%); }
+.holdem-v6 .hv6-tag[data-side="below"] { transform: translate(-50%, 0); max-width: calc(100% - 16px); }
+.holdem-v6 .hv6-tag .pvp-hand-tag-text { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.hv6-shout { position: absolute; z-index: 12; width: 0; height: 0; }
+.hv6-shout .pvp-turn-shout { left: 0; top: 0; white-space: nowrap; }
+.hv6-scrim { position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0, .42); pointer-events: none; animation: hv6-fade .2s ease-out; }
+@keyframes hv6-fade { from { opacity: 0; } }
+
+/* 독: 판 안 아래 얇은 한 줄. 내 차례엔 [폴드][체크·콜][레이즈 ▴][올인] · 남은 초. */
+.holdem-v6 .hv6-dock-slot { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 6; display: grid; height: 54px; }
+.holdem-v6 .hv6-dock-slot > .pvp-dock { min-height: 0; align-content: center; overflow: hidden; padding: 6px 8px; gap: 0; border-radius: 12px; }
+.holdem-v6 .hv6-dock-slot > .pvp-dock.is-turn { overflow: visible; }
+.holdem-v6 .hv6-act-row { display: flex; align-items: center; gap: 6px; }
+.holdem-v6 .hv6-act-row .pvp-act-slot { flex: 1 1 0; min-width: 0; }
+.holdem-v6 .hv6-dock-slot .pvp-act { min-height: 40px; padding: 4px 6px; }
+.holdem-v6 .hv6-dock-slot .pvp-act small { display: none; }
+.holdem-v6 .hv6-dock-slot .pvp-act strong { font-size: 14px; }
+.holdem-v6 .hv6-clock { flex: 0 0 auto; min-width: 44px; color: var(--gold-light); font: 800 20px var(--ui-font); font-variant-numeric: tabular-nums; text-align: right; }
+.holdem-v6 .hv6-clock small { margin-left: 1px; font-size: 12px; font-weight: 600; opacity: .7; }
+.holdem-v6 .pvp-dock.is-closing .hv6-clock { color: #ff8a8f; }
+.holdem-v6 .hv6-clock.is-bank { color: #7ee8dd; }
+.holdem-v6 .hv6-dock-slot .pvp-dock-status { min-height: 0; }
+.holdem-v6 .hv6-dock-slot .pvp-dock-status p { margin: 0; font-size: 13px; }
+.holdem-v6 .hv6-dock-slot > .felt-prompt { position: static; transform: none; align-self: center; justify-self: center; }
+.game-shell .holdem-v6 .room-chat-panel { top: 104px; right: 26px; bottom: auto; height: min(440px, calc(100dvh - 130px)); }
+
+.holdem-v6 .pvp-bot-skill .bot-skill-short, .holdem-v6 .pvp-bot-skill .bot-skill-caption { display: none; }
+.holdem-v6 .pvp-bot-skill .bot-skill-full { display: inline; }
+.holdem-v6 .pvp-bot-skill .bot-skill-full::before { content: "봇 "; font-weight: 600; opacity: .7; }
+.holdem-v6 :is(.pvp-more, .pvp-more-menu) { display: contents; }
+.holdem-v6 .pvp-more-toggle { display: none; }
+
+/* 레이즈 금액 창 */
+.holdem-v6 .hv6-dock-slot.is-sheet { left: 50%; right: auto; width: min(560px, calc(100% - 20px)); height: auto; transform: translateX(-50%); z-index: 12; }
+.hv6-sheet { display: grid; gap: 8px; padding: 10px 14px 12px; border: 1px solid rgba(240,180,28, .8); border-radius: 14px; background: rgba(8,6,4, .95); box-shadow: 0 -10px 30px rgba(0,0,0, .55); }
+.hv6-sheet header { display: flex; align-items: baseline; gap: 10px; }
+.hv6-sheet header strong { color: #ffe9b0; font: 700 15px var(--ui-font); white-space: nowrap; }
+.hv6-sheet header small { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--muted); font: 500 12px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; }
+.hv6-sheet-close { min-width: 32px; min-height: 32px; border: 0; border-radius: 8px; background: rgba(255,255,255, .06); color: var(--text); font: 700 18px var(--ui-font); cursor: pointer; }
+.hv6-presets { display: flex; gap: 6px; }
+.hv6-preset { display: grid; flex: 1 1 0; place-items: center; gap: 1px; min-height: 44px; padding: 4px 6px; border: 1px solid rgba(232,217,184, .22); border-radius: 10px; background: rgba(255,255,255, .04); color: var(--text); cursor: pointer; }
+.hv6-preset span { color: var(--muted); font: 700 12px var(--ui-font); }
+.hv6-preset b { font: 800 13px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hv6-preset:hover, .hv6-preset:focus-visible { outline: none; border-color: var(--gold-light); }
+.hv6-raise-row { display: flex; align-items: center; gap: 8px; }
+.hv6-step { min-width: 44px; min-height: 44px; border: 1px solid rgba(232,217,184, .22); border-radius: 10px; background: rgba(255,255,255, .05); color: var(--text); font: 800 20px var(--ui-font); cursor: pointer; }
+.hv6-step:disabled { opacity: .35; cursor: default; }
+.hv6-range { flex: 1 1 auto; min-width: 0; accent-color: var(--gold-light); }
+.hv6-confirm { min-height: 44px; padding: 0 16px; border: 1px solid rgba(78,231,154, .6); border-radius: 10px; background: rgba(46,160,90, .25); color: #d7ffe7; font: 700 13px var(--ui-font); white-space: nowrap; cursor: pointer; }
+.hv6-confirm b { font-weight: 800; }
+.hv6-table.has-sheet :is(.hv6-seat.is-mine, .hv6-bubble.is-mine) { visibility: hidden; }
+
+/* =============================================================================
+   폰(가로 short · 세로 tall) — PC 와 따로. 글씨 12px, 누르는 곳 44px 아래로 내리지 않는다.
+   ============================================================================= */
+.hv6-stage:not([data-mode="wide"]) .hv6-topline { top: 6px; left: 6px; right: 6px; gap: 6px; }
+.hv6-stage:not([data-mode="wide"]) .hv6-phase { padding: 4px 10px; font-size: 12px; }
+.game-shell .hv6-stage:not([data-mode="wide"]) .pvp-tools { gap: 4px; flex-wrap: nowrap; }
+.game-shell .hv6-stage:not([data-mode="wide"]) .pvp-tool { min-height: 26px; padding: 0 9px; font-size: 12px; }
+.game-shell .hv6-stage:not([data-mode="wide"]) .pvp-tools .room-chat-toggle { width: 30px; height: 30px; margin-left: 8px; }
+.hv6-stage:not([data-mode="wide"]) .pvp-more { display: block; position: relative; }
+.hv6-stage:not([data-mode="wide"]) .pvp-more-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; font-size: 15px; letter-spacing: .05em; }
+.hv6-stage:not([data-mode="wide"]) .pvp-more-menu {
+  display: none;
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  flex-direction: column; align-items: stretch; gap: 5px; min-width: 120px; padding: 6px;
+  border: 1px solid rgba(232,217,184, .18); border-radius: 10px; background: rgba(6,4,2, .94);
+  box-shadow: 0 12px 28px rgba(0,0,0, .5);
+}
+.hv6-stage:not([data-mode="wide"]) .pvp-more.is-open .pvp-more-menu { display: flex; }
+.hv6-stage:not([data-mode="wide"]) .pvp-more-menu .pvp-tool { width: 100%; justify-content: center; }
+
+.hv6-stage:not([data-mode="wide"]) .hv6-seat { width: 88px; }
+.hv6-stage:not([data-mode="wide"]) .hv6-seat.is-mine { width: 94px; }
+.hv6-stage:not([data-mode="wide"]) .hv6-seat .holdem-seat-plate { padding: 2px 5px 3px; gap: 0; border-radius: 10px; }
+.hv6-stage:not([data-mode="wide"]) .hv6-seat :is(.holdem-seat-name, .holdem-seat-stack) { font-size: 12px; line-height: 1.25; }
+.holdem-overlay:not(.is-wide) .holdem-seat-empty { display: flex; align-items: center; justify-content: center; gap: 3px; width: 76px; height: 30px; border-radius: 9px; font-size: 12px; }
+.holdem-overlay:not(.is-wide) .holdem-seat-empty::before { content: ""; position: absolute; inset: -8px 0; }
+.holdem-overlay:not(.is-wide) .hv6-badge { transform: translate(-50%, -88%); }
+.holdem-overlay:not(.is-wide) .pvp-badge { padding: 0 7px; font-size: 12px; line-height: 1.5; max-width: 96px; }
+.holdem-overlay:not(.is-wide) .table-bubble { max-width: 150px; padding: 3px 8px; font-size: 12px; border-radius: 10px; }
+.holdem-v6 .holdem-overlay:not(.is-wide) .hv6-tag { padding: 4px 9px 5px; border-radius: 10px; max-width: 220px; }
+.holdem-overlay:not(.is-wide) .pvp-hand-tag strong { font-size: 13px; }
+.holdem-overlay:not(.is-wide) .hv6-long { display: none; }
+.holdem-overlay.is-short .hv6-shout { display: none; }
+
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot { left: 6px; right: 6px; bottom: 6px; height: 50px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot > .pvp-dock { padding: 2px 5px; border-radius: 10px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-act { min-height: 44px; align-content: center; padding: 2px 4px; border-radius: 8px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-act strong { font-size: 12px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .hv6-clock { min-width: 36px; font-size: 16px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot :is(.pvp-dock-status p, .pvp-dock-results li, .pvp-dock-ready, .pvp-dock-meta) { font-size: 12px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-dock-status p { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-dock-results { flex-wrap: nowrap; overflow: hidden; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-dock-results li { min-width: 0; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-dock-results li b { display: none; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .pvp-dock-ready button { min-height: 44px; padding: 0 12px; font-size: 12px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot > .felt-prompt { padding: 5px 14px; font-size: 12px; }
+.hv6-stage[data-mode="tall"] ~ .hv6-dock-slot { height: 80px; }
+.hv6-stage[data-mode="tall"] ~ .hv6-dock-slot .hv6-act-row { flex-wrap: wrap; }
+.hv6-stage[data-mode="tall"] ~ .hv6-dock-slot .hv6-act-row .pvp-act-slot { flex-basis: 40%; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot.is-sheet { bottom: 6px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .hv6-sheet { gap: 6px; padding: 7px 10px 9px; border-radius: 12px; }
+.hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .hv6-sheet header strong { font-size: 13px; }
+
+/* 폰 레이즈 패드: 독 위 오른쪽(보드와 내 홀카드는 그대로 보인다). 독 높이는 holdemLayout 의 DOCK_INSET 과 짝. */
+.hv6-pad { position: absolute; right: 6px; bottom: 62px; z-index: 13; display: grid; gap: 4px; width: 246px; padding: 6px; border: 1px solid rgba(240,180,28, .8); border-radius: 12px; background: rgba(8,6,4, .95); box-shadow: 0 -8px 24px rgba(0,0,0, .55); }
+.hv6-stage[data-mode="tall"] .hv6-pad { bottom: 98px; }
+.hv6-pad-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.hv6-pad .hv6-preset { min-height: 44px; padding: 2px 4px; border-radius: 9px; }
+.hv6-pad .hv6-preset span, .hv6-pad .hv6-preset b { font-size: 12px; }
+/* 프리플랍은 프리셋이 넷이라 닫기가 두 칸을 채운다(빈칸 없이). */
+.hv6-pad-close:nth-child(3n + 2):last-child { grid-column: span 2; }
+.hv6-pad-close { min-height: 44px; border: 1px solid rgba(232,217,184, .18); border-radius: 9px; background: rgba(255,255,255, .03); color: var(--muted); font: 600 12px var(--ui-font); cursor: pointer; }
+.hv6-pad-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; }
+.hv6-pad .hv6-confirm { min-height: 44px; padding: 0 6px; font-size: 12px; }
+
+/* 칩 충전 — 독의 준비 줄·대기 줄 끝. 칩이 떨어지면(is-urgent) 금색으로 앞에 낸다. */
+.pvp-dock-topup {
+  flex: 0 0 auto; min-height: 40px; padding: 0 16px; border: 1px solid rgba(240,180,28, .55); border-radius: 10px;
+  background: rgba(240,180,28, .08); color: #ffe9b0; font: 700 13px var(--ui-font); white-space: nowrap; cursor: pointer;
+}
+.pvp-dock-topup:hover, .pvp-dock-topup:focus-visible { outline: none; border-color: var(--gold-light); background: rgba(240,180,28, .16); }
+.pvp-dock-topup.is-urgent { border-color: var(--gold-light); background: linear-gradient(180deg, #f4c542, #c9941a); color: #1a1206; box-shadow: 0 0 16px rgba(240,180,28, .35); }
+.pvp-dock-status > .pvp-dock-topup { min-height: 34px; margin-left: auto; padding: 0 12px; font-size: 12px; }
+@media (pointer: coarse) { .pvp-dock-topup { min-height: 44px; } }

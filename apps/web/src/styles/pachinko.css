@@ -1,0 +1,195 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   파친코(1인용): 왼쪽 칸별 배당 → 가운데 배너·못판(캔버스)·조작 줄 → 오른쪽 당첨 소식·최근 구슬.
+   PachinkoRoomPage 가 불러오므로 이 방에 들어갈 때만 받는다. 평평한 2D — 비디오 포커와 같은 남색 판에 금색 글자.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.pk-room) { width: 100%; padding: 0; }
+
+.pk-room {
+  --pk-screen: #0d1a4a;
+  --pk-screen-2: #13246a;
+  --pk-ink: #ffe07a;
+  --pk-line: rgba(120, 150, 255, .35);
+  --pk-current: #b3261e;
+  display: grid;
+  grid-template-columns: clamp(168px, 15vw, 210px) minmax(0, 1fr) minmax(200px, 240px);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse 70% 60% at 50% 42%, rgba(30, 60, 160, .22), transparent 70%);
+}
+
+.pk-machine { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+
+/* ── 칸별 배당(왼쪽) ───────────────────────────────────────────────────────── */
+.pk-left { min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.pk-paytable {
+  width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden;
+  border: 1px solid var(--pk-line); border-radius: 12px; background: var(--pk-screen);
+  color: var(--pk-ink); font: 700 13px var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.pk-paytable caption { padding: 0 0 8px; color: var(--text); font: 700 13px var(--ui-font); text-align: center; caption-side: top; }
+.pk-paytable th, .pk-paytable td { height: 34px; padding: 0 8px; text-align: center; white-space: nowrap; }
+.pk-paytable thead th { height: 30px; background: var(--pk-screen-2); color: #c9d4ff; font-size: 12px; }
+.pk-paytable tbody th { color: #c9d4ff; font-weight: 600; text-align: left; }
+.pk-paytable tbody td:nth-child(2) { font-weight: 800; }
+.pk-paytable tbody td:last-child { color: #9fb4ff; font-weight: 600; text-align: right; }
+.pk-paytable tr.tone-big td:nth-child(2) { color: #ffd75a; }
+.pk-paytable tr.tone-win td:nth-child(2) { color: #5fe0a4; }
+.pk-paytable tr.tone-even td:nth-child(2) { color: #c9d4ff; }
+.pk-paytable tr.tone-lose td:nth-child(2) { color: #f09a92; }
+.pk-paytable tbody tr + tr th, .pk-paytable tbody tr + tr td { border-top: 1px solid rgba(120, 150, 255, .14); }
+.pk-paytable tfoot td { height: 32px; border-top: 1px solid var(--pk-line); background: var(--pk-screen-2); color: #9fb4ff; font-size: 12px; font-weight: 600; }
+
+/* ── 안내·결과 배너 (높이 고정) ──────────────────────────────────────────────── */
+.pk-message { display: grid; flex: 0 0 auto; place-items: center; height: 36px; }
+.pk-banner { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 0 16px; overflow: hidden; color: var(--muted); font: 600 13px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; }
+.pk-banner.is-push { height: 30px; border-radius: 99px; background: rgba(255, 255, 255, .06); color: #c9c1b2; }
+.pk-banner.is-error { color: var(--banker-light); }
+.pk-banner.is-win {
+  height: 34px; padding: 0 20px; border: 2px solid var(--pk-ink); border-radius: 99px; background: var(--pk-current);
+  color: #fff; animation: pk-pop .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+.pk-banner.is-win b { color: var(--pk-ink); font: 800 18px Poppins, var(--ui-font); letter-spacing: .02em; }
+.pk-banner.is-win em { font: 800 18px Poppins, var(--ui-font); font-style: normal; font-variant-numeric: tabular-nums; }
+@keyframes pk-pop { from { transform: scale(.5); opacity: 0; } }
+
+/* ── 못판: 캔버스가 칸 크기를 스스로 맞춘다 ─────────────────────────────────── */
+.pk-board {
+  position: relative; flex: 1 1 0; min-height: 0; overflow: hidden;
+  border: 1px solid var(--pk-line); border-radius: 14px; background: radial-gradient(ellipse 80% 90% at 50% 40%, #142a72 0%, #0b1640 78%);
+}
+.pk-board canvas { position: absolute; inset: 0; display: block; }
+
+/* ── 조작 줄: 위험도 · 베팅 · DROP · AUTO · 잔액 · 채팅 ───────────────────────── */
+.pk-controls { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; }
+.pk-risk { display: inline-flex; padding: 3px; border: 1px solid var(--pk-line); border-radius: 12px; background: var(--pk-screen); }
+.pk-risk button {
+  min-width: 56px; height: 38px; padding: 0 12px; border: 0; border-radius: 9px; background: none;
+  color: #9fb4ff; font: 700 14px var(--ui-font); cursor: pointer;
+}
+.pk-risk button[aria-pressed="true"] { background: var(--pk-ink); color: #1a1240; }
+.pk-bet { display: grid; justify-items: start; gap: 4px; }
+.pk-bet small, .pk-money small { color: var(--muted); font: 600 12px var(--ui-font); }
+.pk-stepper { display: flex; align-items: center; gap: 6px; }
+.pk-stepper button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px;
+  background: var(--panel-raised); color: var(--text); cursor: pointer;
+}
+.pk-stepper button:disabled { opacity: .35; cursor: not-allowed; }
+.pk-stepper strong { min-width: 64px; color: var(--pk-ink); font: 800 22px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+.pk-primary {
+  width: clamp(140px, 14vw, 190px); height: 56px; padding: 0; border: 2px solid #ffe08a; border-radius: 16px;
+  background: linear-gradient(to bottom, #ffd75a, #e0a514); color: #2f1d02; font: 800 24px Poppins, var(--ui-font); letter-spacing: .08em;
+  box-shadow: 0 8px 22px -8px rgba(240, 180, 28, .55); cursor: pointer; transition: transform .1s ease, filter .15s ease;
+}
+.pk-primary:active { transform: scale(.97); }
+.pk-primary:disabled { filter: grayscale(.7) brightness(.65); cursor: not-allowed; }
+.pk-auto {
+  min-width: 84px; height: 56px; padding: 0 14px; border: 2px solid var(--pk-line); border-radius: 16px; background: var(--pk-screen);
+  color: #9fb4ff; font: 800 15px Poppins, var(--ui-font); letter-spacing: .06em; cursor: pointer;
+}
+.pk-auto.is-on { border-color: #ff9a8f; background: linear-gradient(to bottom, #e2483c, #a3201a); color: #fff; }
+.pk-auto:disabled { opacity: .4; cursor: not-allowed; }
+.pk-money { display: flex; gap: 14px; }
+.pk-money span { display: grid; justify-items: center; gap: 2px; min-width: 64px; }
+.pk-money b { color: var(--text); font: 800 18px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; }
+.pk-money .is-win b { color: var(--pk-ink); }
+.pk-tools { display: flex; }
+.game-shell .pk-room .pk-tools .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; width: 44px; height: 44px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+
+/* ── 오른쪽: 당첨 소식 · 최근 구슬 ──────────────────────────────────────────── */
+.pk-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
+.pk-side .winner-feed { flex: 0 0 auto; border-radius: 12px; }
+.pk-side .winner-feed ul { max-height: 132px; overflow-y: auto; scrollbar-width: none; }
+.pk-side header {
+  padding: 10px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--panel-2);
+  color: var(--text); font: 700 13px var(--ui-font); text-align: center;
+}
+.pk-recent {
+  flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; margin: -8px 0 0; padding: 6px 8px; overflow-y: auto; list-style: none;
+  border: 1px solid var(--line); border-radius: 0 0 12px 12px; background: var(--panel); scrollbar-width: thin;
+}
+.pk-recent li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px; border-radius: 6px;
+  color: var(--muted); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.pk-recent li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-recent li b { min-width: 48px; color: var(--muted); text-align: right; }
+.pk-recent li.is-push span { color: #c9c1b2; }
+.pk-recent li.is-win { background: rgba(255, 224, 122, .07); }
+.pk-recent li.is-win span, .pk-recent li.is-win b { color: var(--pk-ink); }
+.pk-recent li.is-empty { display: block; padding: 12px 6px; text-align: center; }
+
+/* ── 좁은 PC: 왼쪽 배당표는 접는다(칸 위에 숫자가 이미 있다) ─────────────────── */
+@media (max-width: 1180px) {
+  .pk-room { grid-template-columns: minmax(0, 1fr) minmax(200px, 240px); }
+  .pk-left { display: none; }
+}
+
+/* ── 짧은 화면(가로 폰·낮은 PC 창): 판은 왼쪽, 조작은 오른쪽 기둥에 세로로 ───────── */
+@media (orientation: landscape) and (max-height: 680px) {
+  .pk-room { grid-template-columns: minmax(0, 1fr); padding-block: 8px; }
+  .pk-side, .pk-left { display: none; }
+  .pk-machine { display: grid; grid-template-columns: minmax(0, 1fr) clamp(230px, 32vw, 330px); grid-template-rows: auto minmax(0, 1fr); gap: 8px 12px; }
+  .pk-message { grid-column: 1 / -1; grid-row: 1; }
+  .pk-board { grid-column: 1; grid-row: 2; }
+  .pk-controls {
+    grid-column: 2; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; align-content: center; justify-items: stretch; gap: 8px;
+    grid-template-areas: "money money" "risk risk" "bet bet" "primary auto" "tools tools";
+  }
+  .pk-money { grid-area: money; justify-content: center; }
+  .pk-risk { grid-area: risk; justify-content: stretch; }
+  .pk-risk button { flex: 1 1 0; }
+  .pk-bet { grid-area: bet; justify-items: center; }
+  .pk-bet small { display: none; }
+  .pk-primary { grid-area: primary; width: auto; height: 48px; font-size: 20px; }
+  .pk-auto { grid-area: auto; min-width: 0; height: 48px; }
+  .pk-tools { grid-area: tools; justify-content: center; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .pk-room { padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); }
+  .pk-message { height: 28px; }
+  .pk-risk button { height: 32px; }
+  .pk-stepper button { width: 38px; height: 38px; }
+  .pk-stepper strong { min-width: 52px; font-size: 18px; }
+  .pk-primary, .pk-auto { height: 42px; }
+  .pk-money b { font-size: 15px; }
+}
+
+/* ── 세로 폰: 배너 → 못판(정사각에 가까운 비율) → 조작 → 남는 곳은 최근 구슬 ──── */
+@media (max-width: 900px) and (orientation: portrait) {
+  .pk-room { display: flex; flex-direction: column; gap: 8px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .pk-left { display: none; }
+  .pk-machine { flex: 0 0 auto; gap: 6px; }
+  .pk-message { height: 32px; }
+  .pk-banner { padding: 0 10px; font-size: 13px; }
+  .pk-banner.is-win b, .pk-banner.is-win em { font-size: 16px; }
+  .pk-board { flex: 0 0 auto; aspect-ratio: 13.9 / 12.82; }
+  .pk-controls {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 8px 10px; justify-items: stretch;
+    grid-template-areas: "money money tools" "risk risk risk" "bet primary auto";
+  }
+  .pk-money { grid-area: money; justify-content: flex-start; gap: 16px; }
+  .pk-money span { justify-items: start; min-width: 0; }
+  .pk-risk { grid-area: risk; }
+  .pk-risk button { flex: 1 1 0; }
+  .pk-bet { grid-area: bet; justify-items: center; }
+  .pk-bet small { display: none; }
+  .pk-stepper { gap: 4px; }
+  .pk-stepper strong { min-width: clamp(44px, 12vw, 60px); font-size: clamp(16px, 4.8vw, 20px); }
+  .pk-primary { grid-area: primary; width: clamp(96px, 30vw, 170px); height: 52px; font-size: 20px; }
+  .pk-auto { grid-area: auto; min-width: 0; height: 52px; padding: 0 12px; }
+  .pk-tools { grid-area: tools; justify-content: flex-end; }
+  .pk-side { flex: 1 1 0; min-height: 96px; }
+  .pk-side .winner-feed { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-banner.is-win { animation: none; }
+}

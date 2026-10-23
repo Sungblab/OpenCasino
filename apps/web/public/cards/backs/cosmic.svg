@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="46%" r="75%">
+      <stop offset="0" stop-color="#2a1a6e"/>
+      <stop offset=".5" stop-color="#0d0c38"/>
+      <stop offset="1" stop-color="#02020f"/>
+    </radialGradient>
+    <radialGradient id="nebA" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#d946ef" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#d946ef" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebB" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".4" stop-color="#c3a8ff"/>
+      <stop offset=".7" stop-color="#f4ecff"/>
+      <stop offset="1" stop-color="#7f62dd"/>
+    </linearGradient>
+    <path id="spark" d="M0-1 .16-.16 1 0 .16.16 0 1-.16.16-1 0-.16-.16z"/>
+    <clipPath id="inner"><rect x="26" y="26" width="448" height="648" rx="18"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="496" height="696" rx="34" fill="#fbf8f1" stroke="#d9d2c2" stroke-width="2"/>
+  <g clip-path="url(#inner)">
+    <rect x="26" y="26" width="448" height="648" fill="url(#felt)"/>
+    <ellipse cx="140" cy="170" rx="190" ry="130" fill="url(#nebA)" transform="rotate(-24 140 170)"/>
+    <ellipse cx="380" cy="540" rx="210" ry="140" fill="url(#nebB)" transform="rotate(-20 380 540)"/>
+    <ellipse cx="400" cy="140" rx="130" ry="90" fill="url(#nebB)" opacity=".6"/>
+    <g fill="#ffffff">
+      <circle cx="70" cy="90" r="1.6" opacity=".9"/><circle cx="118" cy="60" r="1.1" opacity=".7"/><circle cx="196" cy="98" r="1.4" opacity=".8"/><circle cx="268" cy="64" r="1" opacity=".7"/>
+      <circle cx="330" cy="104" r="1.7" opacity=".9"/><circle cx="420" cy="72" r="1.2" opacity=".75"/><circle cx="450" cy="170" r="1.5" opacity=".85"/><circle cx="90" cy="214" r="1.2" opacity=".7"/>
+      <circle cx="168" cy="236" r="1" opacity=".6"/><circle cx="62" cy="330" r="1.5" opacity=".85"/><circle cx="436" cy="300" r="1" opacity=".6"/><circle cx="408" cy="410" r="1.6" opacity=".85"/>
+      <circle cx="78" cy="452" r="1.1" opacity=".7"/><circle cx="130" cy="540" r="1.7" opacity=".9"/><circle cx="214" cy="600" r="1.1" opacity=".7"/><circle cx="296" cy="632" r="1.5" opacity=".85"/>
+      <circle cx="372" cy="610" r="1.1" opacity=".7"/><circle cx="446" cy="560" r="1.4" opacity=".8"/><circle cx="60" cy="620" r="1.2" opacity=".7"/><circle cx="470" cy="450" r="1" opacity=".6"/>
+      <circle cx="150" cy="150" r="1" opacity=".6"/><circle cx="352" cy="190" r="1.2" opacity=".7"/><circle cx="104" cy="400" r="1" opacity=".6"/><circle cx="392" cy="500" r="1.2" opacity=".7"/>
+    </g>
+    <!-- 별자리 -->
+    <g fill="none" stroke="#c3a8ff" stroke-width="1" opacity=".5">
+      <path d="M92 120L150 150 214 118 262 160"/><path d="M340 560L388 520 430 548 462 500"/><path d="M70 510L116 560 176 548"/>
+    </g>
+    <g fill="#ffffff">
+      <use href="#spark" transform="translate(150 150) scale(9)"/><use href="#spark" transform="translate(214 118) scale(7)"/><use href="#spark" transform="translate(388 520) scale(10)"/>
+      <use href="#spark" transform="translate(430 548) scale(7)"/><use href="#spark" transform="translate(116 560) scale(8)"/><use href="#spark" transform="translate(402 150) scale(12)"/><use href="#spark" transform="translate(92 296) scale(8)"/>
+    </g>
+    <!-- 궤도 -->
+    <g fill="none" stroke="url(#gold)" opacity=".5">
+      <ellipse cx="250" cy="350" rx="200" ry="74" stroke-width="1.6" transform="rotate(-28 250 350)"/>
+      <ellipse cx="250" cy="350" rx="170" ry="56" stroke-width="1.2" transform="rotate(34 250 350)"/>
+    </g>
+  </g>
+  <rect x="26" y="26" width="448" height="648" rx="18" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <rect x="40" y="40" width="420" height="620" rx="12" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity=".85"/>
+  <g fill="url(#gold)">
+    <path d="M250 52l9 14-9 14-9-14z"/>
+    <path d="M250 620l9 14-9 14-9-14z"/>
+    <path d="M52 350l14-9 14 9-14 9z"/>
+    <path d="M420 350l14-9 14 9-14 9z"/>
+    <path d="M62 62l18 4-14 14z"/>
+    <path d="M438 62l-18 4 14 14z"/>
+    <path d="M62 638l18-4-14-14z"/>
+    <path d="M438 638l-18-4 14-14z"/>
+  </g>
+  <g transform="translate(250 350)">
+    <circle r="112" fill="#a78bfa" opacity=".22"/>
+    <circle r="104" fill="#07062a" stroke="url(#gold)" stroke-width="6"/>
+    <circle r="92" fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-dasharray="2 5"/>
+    <circle r="84" fill="#120f45" stroke="url(#gold)" stroke-width="2.2"/>
+    <g fill="url(#gold)" opacity=".9">
+      <path d="M0-104l7 11h-14z"/><path d="M0 104l7-11h-14z"/><path d="M-104 0l11 7v-14z"/><path d="M104 0l-11 7v-14z"/>
+    </g>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#gold)" stroke="#05041c" stroke-width="2" stroke-linejoin="round" paint-order="stroke">OC</text>
+    <path d="M-46 44H46" stroke="url(#gold)" stroke-width="1.6"/>
+    <path d="M-46 -48H46" stroke="url(#gold)" stroke-width="1.6"/>
+  </g>
+</svg>

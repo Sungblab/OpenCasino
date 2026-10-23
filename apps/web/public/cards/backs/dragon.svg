@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="46%" r="72%">
+      <stop offset="0" stop-color="#b3182c"/>
+      <stop offset=".55" stop-color="#6b0a18"/>
+      <stop offset="1" stop-color="#1f0207"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0b0"/>
+      <stop offset=".45" stop-color="#d6a53a"/>
+      <stop offset=".7" stop-color="#ffe08a"/>
+      <stop offset="1" stop-color="#a07419"/>
+    </linearGradient>
+    <!-- 용 비늘: 겹쳐 올린 원. 아랫줄이 윗줄 위에 얹혀 초승달 모양 비늘이 남는다. -->
+    <linearGradient id="sc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a0914"/>
+      <stop offset=".55" stop-color="#a3162b"/>
+      <stop offset="1" stop-color="#d8384e"/>
+    </linearGradient>
+    <pattern id="scales" width="40" height="20" patternUnits="userSpaceOnUse">
+      <g fill="url(#sc)" stroke="#f0c457" stroke-opacity=".6" stroke-width="1.4">
+        <circle cx="0" cy="0" r="20"/><circle cx="40" cy="0" r="20"/>
+        <circle cx="20" cy="10" r="20"/>
+        <circle cx="0" cy="20" r="20"/><circle cx="40" cy="20" r="20"/>
+      </g>
+    </pattern>
+    <radialGradient id="shade" cx="50%" cy="46%" r="70%">
+      <stop offset="0" stop-color="#ff7a3d" stop-opacity=".28"/>
+      <stop offset=".6" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".5"/>
+    </radialGradient>
+    <clipPath id="inner"><rect x="26" y="26" width="448" height="648" rx="18"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="496" height="696" rx="34" fill="#fbf8f1" stroke="#d9d2c2" stroke-width="2"/>
+  <g clip-path="url(#inner)">
+    <rect x="26" y="26" width="448" height="648" fill="url(#felt)"/>
+    <rect x="26" y="26" width="448" height="648" fill="url(#scales)"/>
+    <rect x="26" y="26" width="448" height="648" fill="url(#shade)"/>
+  </g>
+  <rect x="26" y="26" width="448" height="648" rx="18" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <rect x="40" y="40" width="420" height="620" rx="12" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity=".9"/>
+  <g fill="url(#gold)">
+    <path d="M250 52l9 14-9 14-9-14z"/>
+    <path d="M250 620l9 14-9 14-9-14z"/>
+    <path d="M52 350l14-9 14 9-14 9z"/>
+    <path d="M420 350l14-9 14 9-14 9z"/>
+    <path d="M62 62l18 4-14 14z"/>
+    <path d="M438 62l-18 4 14 14z"/>
+    <path d="M62 638l18-4-14-14z"/>
+    <path d="M438 638l-18-4 14-14z"/>
+  </g>
+  <g transform="translate(250 350)">
+    <circle r="112" fill="#ffb347" opacity=".2"/>
+    <circle r="104" fill="#1a0306" stroke="url(#gold)" stroke-width="6"/>
+    <circle r="92" fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-dasharray="2 5"/>
+    <circle r="84" fill="#3a0610" stroke="url(#gold)" stroke-width="2.2"/>
+    <g fill="url(#gold)" opacity=".9">
+      <path d="M0-104l7 11h-14z"/><path d="M0 104l7-11h-14z"/><path d="M-104 0l11 7v-14z"/><path d="M104 0l-11 7v-14z"/>
+    </g>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#gold)" stroke="#140205" stroke-width="1.8" paint-order="stroke">OC</text>
+    <path d="M-46 44H46" stroke="url(#gold)" stroke-width="1.6"/>
+    <path d="M-46 -48H46" stroke="url(#gold)" stroke-width="1.6"/>
+  </g>
+</svg>

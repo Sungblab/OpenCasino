@@ -1,0 +1,191 @@
+/* =============================================================================
+   맞고(고스톱) v2 — 섯다 v6 와 같은 틀: 게임 영역 전체를 덮는 캔버스 판(features/gostop) + 같은 좌표로 겹친
+   DOM. 독도 판 안 아래에 올라탄다. 판 위 자리는 전부 캔버스가 알려 준 px 이다(OverlayStage).
+   ============================================================================= */
+
+.gostop-v2 .gv2-table {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: #1d2210;
+  box-shadow: 0 0 0 1px rgba(92,57,14, .88), 0 0 0 4px rgba(10,8,5, .96), 0 26px 56px -30px rgba(0,0,0, .9);
+}
+.gostop-v2 .gv2-table::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px transparent;
+  transition: box-shadow .25s ease;
+}
+.gostop-v2 .gv2-table.is-my-turn::after { box-shadow: inset 0 0 0 2px rgba(240,180,28, .6), inset 0 0 60px rgba(240,180,28, .12); }
+.gostop-v2 .gv2-stage { position: absolute; inset: 0; }
+
+.gostop-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.gostop-overlay > * { pointer-events: auto; }
+.gostop-overlay > :is(.gv2-points, .gv2-cnt, .gv2-backs, .gv2-bubble, .gv2-shout, .gv2-scrim) { pointer-events: none; }
+
+/* 머리줄: ← ⛶ ≡ · 지금 단계 · 목표 점수 · 도구. */
+.gostop-v2 .gv2-topline { top: 8px; left: 10px; right: 10px; z-index: 11; align-items: center; }
+.gostop-v2 .gv2-phase { padding: 6px 14px; border: 1px solid rgba(232,217,184, .16); border-radius: 999px; background: rgba(6,4,2, .55); color: var(--gold-light); font: 700 13px var(--ui-font); white-space: nowrap; }
+.gostop-v2 .gv2-phase.is-mine { border-color: var(--gold-light); background: var(--gold-light); color: #1a1204; animation: gv2-glow 1.6s ease-in-out infinite; }
+.gostop-v2 .gv2-goal { color: var(--muted); font: 600 12px var(--ui-font); white-space: nowrap; }
+.gostop-v2 .gv2-goal b { color: var(--gold-light); }
+@keyframes gv2-glow { 50% { box-shadow: 0 0 0 4px rgba(240,180,28, .18); } }
+
+/* 이름표: 오른쪽(나·왼쪽 상대)은 왼쪽 끝을, 왼쪽(오른쪽 상대)은 오른쪽 끝을 기준점에 붙인다. */
+.gostop-v2 .gv2-seat { position: absolute; width: 140px; padding: 0; gap: 0; }
+.gostop-v2 .gv2-seat[data-side="right"] { transform: translate(0, -50%); }
+.gostop-v2 .gv2-seat[data-side="left"] { transform: translate(-100%, -50%); }
+.gostop-v2 .gv2-seat .holdem-seat-plate { width: 100%; min-width: 0; margin: 0; padding: 5px 10px 6px; }
+.gostop-v2 .gv2-seat.is-lost .holdem-seat-plate { filter: grayscale(.5) brightness(.8); }
+.gostop-v2 .gv2-seat.is-winner .holdem-seat-plate { border-color: var(--gold-light); box-shadow: 0 0 14px rgba(240,180,28, .45), 0 6px 16px rgba(0,0,0, .55); }
+.gostop-v2 .gv2-badge { position: absolute; left: 50%; bottom: calc(100% - 4px); transform: translateX(-50%); }
+.gostop-v2 .gv2-badge .pvp-badge { position: static; display: block; transform: none; white-space: nowrap; }
+.gostop-overlay .holdem-seat-empty { position: absolute; z-index: 2; }
+.gostop-overlay .holdem-seat-empty[data-side="right"] { transform: translate(0, -50%); }
+.gostop-overlay .holdem-seat-empty[data-side="left"] { transform: translate(-100%, -50%); }
+.gostop-overlay.is-wide .holdem-seat-empty { width: 82px; height: 82px; font-size: 13px; }
+
+/* 먹은 패 줄 끝의 점수 알약과 종류별 장수. */
+.gv2-points { position: absolute; z-index: 4; display: flex; align-items: center; gap: 6px; transform: translate(0, -50%); padding: 3px 10px; border: 1px solid rgba(240,180,28, .45); border-radius: 999px; background: rgba(8,6,4, .82); white-space: nowrap; }
+.gv2-points[data-dir="-1"] { transform: translate(-100%, -50%); }
+.gv2-points b { color: var(--gold-light); font: 800 15px var(--ui-font); font-variant-numeric: tabular-nums; }
+.gv2-points span { color: var(--muted); font: 600 12px var(--ui-font); }
+.gv2-cnt { position: absolute; z-index: 4; transform: translate(-50%, -85%); min-width: 18px; padding: 0 5px; border-radius: 999px; background: rgba(8,6,4, .85); color: var(--text); font: 700 12px/1.45 var(--ui-font); font-style: normal; text-align: center; font-variant-numeric: tabular-nums; }
+.gv2-cnt.is-below { transform: translate(-50%, -15%); }
+.gv2-cnt.is-pi { color: #bfe8a8; }
+.gv2-cnt.is-gwang { color: var(--gold-light); }
+.gv2-backs { position: absolute; z-index: 4; transform: translate(-50%, -60%); min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--gold-light); color: #1a1204; font: 800 12px/1.5 var(--ui-font); font-style: normal; text-align: center; }
+
+/* 말풍선(뻑·따닥·쪽·싹쓸이, 표정). */
+.gv2-bubble { position: absolute; z-index: 8; width: 0; height: 0; }
+.gv2-bubble .table-bubble { bottom: 7px; }
+.gv2-bubble[data-side="below"] .table-bubble { bottom: auto; top: 7px; }
+.gv2-bubble[data-side="below"] .table-bubble::after { display: none; }
+
+/* 내 손패 위의 누르는 자리. 파란 삼각은 바닥에 같은 월이 있어 먹을 수 있는 패(신맞고의 파란 화살표). */
+.gv2-hit { position: absolute; z-index: 5; transform: translate(-50%, -50%); padding: 0; border: 0; border-radius: 6px; background: transparent; cursor: default; }
+.gv2-hit.is-playable { cursor: pointer; }
+.gv2-hit.is-playable:hover, .gv2-hit.is-playable:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gold-light), 0 0 16px rgba(240,180,28, .5); }
+.gv2-hit.is-match::after { content: ""; position: absolute; left: 50%; top: -9px; transform: translateX(-50%); border: 6px solid transparent; border-top: 0; border-bottom: 8px solid #57b8ff; filter: drop-shadow(0 0 3px rgba(87,184,255, .8)); }
+.gv2-hit.is-shakeable::before, .gv2-hit.is-bombable::before { position: absolute; left: 50%; bottom: -4px; transform: translate(-50%, 100%); padding: 0 6px; border-radius: 999px; font: 700 12px/1.5 var(--ui-font); white-space: nowrap; }
+.gv2-hit.is-shakeable::before { content: "흔들"; background: rgba(46,160,90, .92); color: #fff; }
+.gv2-hit.is-bombable::before { content: "폭탄"; background: rgba(140,90,220, .95); color: #fff; }
+.gv2-hit .assist-badge { top: -22px; }
+
+.gv2-shout { position: absolute; z-index: 12; width: 0; height: 0; }
+.gv2-shout .pvp-turn-shout { left: 0; top: 0; white-space: nowrap; }
+.gv2-scrim { position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0, .42); pointer-events: none; animation: gv2-fade .2s ease-out; }
+@keyframes gv2-fade { from { opacity: 0; } }
+
+/* 독: 판 안 아래 얇은 한 줄 — [내 차례 · 추천 한 줄] [흔들기·폭탄] [초]. 높이 고정. */
+.gostop-v2 .gv2-dock-slot { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 6; display: grid; height: 54px; }
+.gostop-v2 .gv2-dock-slot > .pvp-dock { display: flex; align-items: center; gap: 10px; min-height: 0; overflow: hidden; padding: 6px 10px; border-radius: 12px; }
+.gostop-v2 .gv2-dock-slot > .pvp-dock.is-turn { overflow: visible; }
+/* 머리줄이 곧 독의 한 줄이다 — 공용 가로 폰 규칙(table-pvp.css)은 머리줄을 숨겨서 내 차례에 독이 텅 비었다. */
+.gostop-v2 .gv2-dock-slot .pvp-dock-head { display: flex; flex: 1 1 auto; min-width: 0; align-items: center; padding: 0 4px; }
+.gostop-v2 .gv2-dock-slot .pvp-dock-status { flex: 1 1 auto; min-height: 0; }
+.gostop-v2 .gv2-dock-slot .pvp-dock-status p { margin: 0; font-size: 13px; }
+.gostop-v2 .gv2-dock-slot .pvp-dock-ready { flex: 1 1 auto; }
+.gostop-v2 .gv2-declare { display: flex; flex: 0 0 auto; gap: 6px; }
+.gostop-v2 .gv2-declare .pvp-act { min-height: 40px; padding: 4px 10px; }
+.gostop-v2 .gv2-declare .pvp-act small { display: none; }
+.gostop-v2 .gv2-dock-slot > .felt-prompt { position: static; transform: none; align-self: center; justify-self: center; }
+.game-shell .gostop-v2 .room-chat-panel { top: 104px; right: 26px; bottom: auto; height: min(440px, calc(100dvh - 130px)); }
+
+/* 봇 실력: "봇 보통"처럼 두 말을 다. "⋯" 메뉴는 넓은 화면에선 껍데기 없이 줄에 그대로. */
+.gostop-v2 .pvp-bot-skill .bot-skill-short, .gostop-v2 .pvp-bot-skill .bot-skill-caption { display: none; }
+.gostop-v2 .pvp-bot-skill .bot-skill-full { display: inline; }
+.gostop-v2 .pvp-bot-skill .bot-skill-full::before { content: "봇 "; font-weight: 600; opacity: .7; }
+.gostop-v2 :is(.pvp-more, .pvp-more-menu) { display: contents; }
+.gostop-v2 .pvp-more-toggle { display: none; }
+
+/* 고르는 창(GostopSheets): 독 자리에서 위로 자란다. */
+.gostop-v2 .gv2-dock-slot.is-sheet { left: 50%; right: auto; width: max-content; max-width: min(620px, calc(100% - 20px)); height: auto; transform: translateX(-50%); z-index: 12; }
+.gv2-sheet { display: grid; gap: 8px; padding: 10px 14px 12px; border: 1px solid rgba(240,180,28, .8); border-radius: 14px; background: rgba(8,6,4, .95); box-shadow: 0 -10px 30px rgba(0,0,0, .55); animation: gv2-glow 1.6s ease-in-out infinite; }
+/* 제목 한 줄 + 설명 줄(도우미 근거까지 붙으면 길다 — 잘리지 않게 두 줄까지 접는다). */
+.gv2-sheet header { display: grid; gap: 2px; }
+.gv2-sheet header strong { color: #ffe9b0; font: 700 15px var(--ui-font); white-space: nowrap; }
+.gv2-sheet header small { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--muted); font: 500 12px/1.4 var(--ui-font); }
+.gv2-verdict { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: rgba(240,180,28, .16); color: var(--gold-light); font: 700 12px var(--ui-font); font-style: normal; }
+.gv2-sheet-row { display: flex; align-items: stretch; justify-content: center; gap: 12px; }
+.gv2-sheet-card { display: grid; justify-items: center; gap: 5px; padding: 7px 8px 6px; border: 1px solid rgba(232,217,184, .2); border-radius: 11px; background: rgba(255,255,255, .03); color: var(--text); cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
+.gv2-sheet-card:hover, .gv2-sheet-card:focus-visible { outline: none; transform: translateY(-3px); border-color: var(--gold-light); }
+.gv2-sheet-card .hwatu-card { width: 64px; height: 105px; margin: 0; }
+.gv2-sheet-card .hwatu-month { font-size: 12px; }
+.gv2-sheet-card b { font: 700 13px var(--ui-font); white-space: nowrap; }
+.gv2-sheet-choice { display: grid; place-items: center; gap: 2px; min-width: 150px; min-height: 64px; padding: 8px 18px; border: 1px solid rgba(232,217,184, .25); border-radius: 12px; background: rgba(255,255,255, .04); color: var(--text); cursor: pointer; }
+.gv2-sheet-choice strong { font: 800 20px var(--ui-font); }
+.gv2-sheet-choice small { color: var(--muted); font: 600 12px var(--ui-font); }
+.gv2-sheet-choice.is-go { border-color: rgba(78,231,154, .55); background: rgba(46,160,90, .18); }
+.gv2-sheet-choice.is-go strong { color: #8ff0bd; }
+.gv2-sheet-choice.is-stop { border-color: rgba(120,170,255, .55); background: rgba(60,110,210, .18); }
+.gv2-sheet-choice.is-stop strong { color: #b6ceff; }
+.gv2-sheet-choice:hover, .gv2-sheet-choice:focus-visible { outline: none; transform: translateY(-2px); box-shadow: 0 0 0 2px var(--gold-light); }
+.gv2-table.has-sheet :is(.gv2-hit, .gv2-seat.is-mine, .gv2-bubble.is-mine) { visibility: hidden; }
+
+/* =============================================================================
+   폰(가로 short · 세로 tall) — PC 와 따로. 글씨 12px, 누르는 곳 44px 아래로 내리지 않는다.
+   ============================================================================= */
+.gv2-stage:not([data-mode="wide"]) .gv2-topline { top: 6px; left: 6px; right: 6px; gap: 6px; }
+.gv2-stage:not([data-mode="wide"]) .gv2-phase { padding: 4px 10px; font-size: 12px; }
+.gv2-stage[data-mode="short"] .gv2-goal { display: none; }
+.game-shell .gv2-stage:not([data-mode="wide"]) .pvp-tools { gap: 4px; flex-wrap: nowrap; }
+.game-shell .gv2-stage:not([data-mode="wide"]) .pvp-tool { min-height: 26px; padding: 0 9px; font-size: 12px; }
+.game-shell .gv2-stage:not([data-mode="wide"]) .pvp-tools .room-chat-toggle { width: 30px; height: 30px; margin-left: 8px; }
+/* 폰: 앉은 사람용 도구(봇·자리 비우기·표정)는 "⋯" 안으로 — 도구 줄이 길어 상대 이름표에 닿았다. */
+.gv2-stage:not([data-mode="wide"]) .pvp-more { display: block; position: relative; }
+.gv2-stage:not([data-mode="wide"]) .pvp-more-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; font-size: 15px; letter-spacing: .05em; }
+.gv2-stage:not([data-mode="wide"]) .pvp-more-menu {
+  display: none;
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  flex-direction: column; align-items: stretch; gap: 5px; min-width: 120px; padding: 6px;
+  border: 1px solid rgba(232,217,184, .18); border-radius: 10px; background: rgba(6,4,2, .94);
+  box-shadow: 0 12px 28px rgba(0,0,0, .5);
+}
+.gv2-stage:not([data-mode="wide"]) .pvp-more.is-open .pvp-more-menu { display: flex; }
+.gv2-stage:not([data-mode="wide"]) .pvp-more-menu .pvp-tool { width: 100%; justify-content: center; }
+
+.gv2-stage:not([data-mode="wide"]) .gv2-seat { width: 92px; }
+.gv2-stage:not([data-mode="wide"]) .gv2-seat .holdem-seat-plate { padding: 2px 5px 3px; gap: 0; border-radius: 10px; }
+.gv2-stage:not([data-mode="wide"]) .gv2-seat :is(.holdem-seat-name, .holdem-seat-stack) { font-size: 12px; line-height: 1.25; }
+.gostop-overlay:not(.is-wide) .holdem-seat-empty { display: flex; align-items: center; justify-content: center; gap: 3px; width: 88px; height: 30px; border-radius: 9px; font-size: 12px; }
+.gostop-overlay:not(.is-wide) .holdem-seat-empty::before { content: ""; position: absolute; inset: -8px 0; }
+.gostop-overlay:not(.is-wide) .pvp-badge { padding: 0 7px; font-size: 12px; line-height: 1.5; }
+.gostop-overlay:not(.is-wide) .table-bubble { max-width: 150px; padding: 3px 8px; font-size: 12px; border-radius: 10px; }
+.gostop-overlay:not(.is-wide) .gv2-points { padding: 1px 8px; gap: 4px; }
+.gostop-overlay:not(.is-wide) .gv2-points b { font-size: 13px; }
+.gostop-overlay:not(.is-wide) .gv2-cnt { min-width: 16px; padding: 0 4px; line-height: 1.3; transform: translate(-50%, -75%); }
+.gostop-overlay:not(.is-wide) .gv2-cnt.is-below { transform: translate(-50%, -25%); }
+.gostop-overlay.is-short .gv2-shout { display: none; }
+.gostop-overlay:not(.is-wide) .gv2-hit.is-match::after { top: -7px; border-width: 0 5px 6px; }
+.gostop-overlay:not(.is-wide) .gv2-hit :is(.assist-badge) { top: -20px; }
+.gostop-overlay:not(.is-wide) .gv2-hit:is(.is-shakeable, .is-bombable)::before { bottom: 2px; transform: translate(-50%, 0); }
+
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot { left: 6px; right: 6px; bottom: 6px; height: 50px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot > .pvp-dock { padding: 2px 8px; gap: 6px; border-radius: 10px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-live strong { font-size: 13px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot :is(.pvp-dock-live > span, .pvp-dock-status p, .pvp-dock-results li, .pvp-dock-ready, .pvp-dock-meta) { font-size: 12px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-clock { font-size: 16px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-status p { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-results { flex-wrap: nowrap; overflow: hidden; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-results li { min-width: 0; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-results li b { display: none; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .pvp-dock-ready button { min-height: 44px; padding: 0 12px; font-size: 12px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-declare .pvp-act { min-height: 44px; padding: 2px 8px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-declare .pvp-act strong { font-size: 12px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot > .felt-prompt { padding: 5px 14px; font-size: 12px; }
+.gv2-stage[data-mode="tall"] ~ .gv2-dock-slot { height: 80px; }
+.gv2-stage[data-mode="tall"] ~ .gv2-dock-slot > .pvp-dock { flex-wrap: wrap; align-content: center; }
+
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot.is-sheet { left: 50%; right: auto; bottom: 6px; height: auto; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-sheet { gap: 6px; padding: 7px 10px 9px; border-radius: 12px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-sheet header strong { font-size: 13px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-sheet-card .hwatu-card { width: 52px; height: 85px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-sheet-choice { min-width: 120px; min-height: 52px; padding: 4px 12px; }
+.gv2-stage:not([data-mode="wide"]) ~ .gv2-dock-slot .gv2-sheet-choice strong { font-size: 17px; }

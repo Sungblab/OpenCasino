@@ -1,0 +1,18 @@
+/* 칩 더미(ChipPile)와 칩 줄에서 더미로 날아가는 칩(tableFx.flyChip). 바카라·용호·블랙잭 공용.
+   더미 자리의 기본은 칸 오른쪽 아래, 이긴 금액 더미는 그 왼쪽 — 게임 시트가 자리별로 옮긴다. */
+.chip-pile-slot { position: absolute; right: 10px; bottom: 7px; width: 40px; height: calc(100% - 12px); pointer-events: none; }
+.chip-pile-slot.payout { right: 56px; }
+.chip-pile { position: absolute; inset: 0; }
+.chip-pile img { position: absolute; left: 0; width: 100%; height: auto; }
+.chip-pile img.is-top { animation: chip-land .24s cubic-bezier(.3, 1.5, .5, 1) backwards; }
+.chip-pile.is-payout img { animation: chip-land .26s cubic-bezier(.3, 1.5, .5, 1) backwards; }
+.chip-pile.is-payout img:nth-child(2) { animation-delay: .05s; }
+.chip-pile.is-payout img:nth-child(3) { animation-delay: .1s; }
+.chip-pile.is-payout img:nth-child(4) { animation-delay: .15s; }
+.chip-pile.is-payout img:nth-child(n + 5) { animation-delay: .2s; }
+@keyframes chip-land { from { transform: translateY(-16px); opacity: 0; } }
+.flying-chip { position: fixed; z-index: 80; pointer-events: none; border-radius: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-pile img { animation: none; }
+}

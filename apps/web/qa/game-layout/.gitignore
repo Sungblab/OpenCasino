@@ -1,0 +1,4 @@
+shots/
+profile/
+# every QA browser profile — cookies and cache, never source
+profile-*/

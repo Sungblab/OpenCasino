@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#1f7a57"/>
+      <stop offset=".55" stop-color="#0f4a35"/>
+      <stop offset="1" stop-color="#04180f"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6dc8a"/>
+      <stop offset=".5" stop-color="#c9982f"/>
+      <stop offset="1" stop-color="#8a5f14"/>
+    </linearGradient>
+    <linearGradient id="blueTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6db1ff"/>
+      <stop offset="1" stop-color="#1d5fc0"/>
+    </linearGradient>
+    <linearGradient id="redTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff7680"/>
+      <stop offset="1" stop-color="#b11f2c"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="28%" cy="14%" r="70%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pip" cx="36%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#dfe5f1"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".55"/>
+    </filter>
+
+    <!-- 눈 자리: 주사위 면 하나는 -50..50 -->
+    <circle id="p" r="8.5" fill="url(#pip)"/>
+    <g id="face1"><use href="#p"/></g>
+    <g id="face2"><use href="#p" x="-24" y="-24"/><use href="#p" x="24" y="24"/></g>
+    <g id="face3"><use href="#p" x="-24" y="-24"/><use href="#p"/><use href="#p" x="24" y="24"/></g>
+    <g id="face4"><use href="#p" x="-24" y="-24"/><use href="#p" x="24" y="-24"/><use href="#p" x="-24" y="24"/><use href="#p" x="24" y="24"/></g>
+    <g id="face5"><use href="#face4"/><use href="#p"/></g>
+    <g id="face6"><use href="#p" x="-24" y="-26"/><use href="#p" x="24" y="-26"/><use href="#p" x="-24"/><use href="#p" x="24"/><use href="#p" x="-24" y="26"/><use href="#p" x="24" y="26"/></g>
+
+    <!-- 주사위 한 개: 두께(아래) + 윗면 + 하이라이트. 한 변 100 -->
+    <g id="dieBlue">
+      <rect x="-50" y="-42" width="100" height="100" rx="22" fill="#0f3a7c"/>
+      <rect x="-50" y="-50" width="100" height="100" rx="22" fill="url(#blueTop)"/>
+      <rect x="-50" y="-50" width="100" height="100" rx="22" fill="url(#shine)"/>
+      <rect x="-48" y="-48" width="96" height="96" rx="20" fill="none" stroke="#bcd9ff" stroke-opacity=".55" stroke-width="2"/>
+    </g>
+    <g id="dieRed">
+      <rect x="-50" y="-42" width="100" height="100" rx="22" fill="#6e0f1a"/>
+      <rect x="-50" y="-50" width="100" height="100" rx="22" fill="url(#redTop)"/>
+      <rect x="-50" y="-50" width="100" height="100" rx="22" fill="url(#shine)"/>
+      <rect x="-48" y="-48" width="96" height="96" rx="20" fill="none" stroke="#ffc2c7" stroke-opacity=".55" stroke-width="2"/>
+    </g>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#felt)"/>
+  <ellipse cx="600" cy="362" rx="520" ry="250" fill="none" stroke="url(#gold)" stroke-width="5" opacity=".55"/>
+  <ellipse cx="600" cy="362" rx="548" ry="270" fill="none" stroke="url(#gold)" stroke-width="2" opacity=".35"/>
+
+  <!-- 가운데: 금빛 마름모 두 개로 쪽을 나눈다 -->
+  <g transform="translate(600 345)" stroke="url(#gold)" stroke-width="5" fill="#06140d">
+    <path d="M0 -150L58 0L0 150L-58 0Z" opacity=".95"/>
+    <path d="M0 -92L30 0L0 92L-30 0Z" fill="none" stroke-width="3" opacity=".8"/>
+    <circle r="16" fill="url(#gold)" stroke="none"/>
+  </g>
+
+  <!-- 플레이어(파랑): 왼쪽 두 개 -->
+  <g filter="url(#shadow)">
+    <g transform="translate(250 355) rotate(-14) scale(2.15)"><use href="#dieBlue"/><use href="#face5"/></g>
+    <g transform="translate(410 440) rotate(17) scale(1.8)"><use href="#dieBlue"/><use href="#face3"/></g>
+  </g>
+
+  <!-- 뱅커(빨강): 오른쪽 두 개 -->
+  <g filter="url(#shadow)">
+    <g transform="translate(790 440) rotate(-16) scale(1.8)"><use href="#dieRed"/><use href="#face6"/></g>
+    <g transform="translate(950 355) rotate(13) scale(2.15)"><use href="#dieRed"/><use href="#face2"/></g>
+  </g>
+</svg>

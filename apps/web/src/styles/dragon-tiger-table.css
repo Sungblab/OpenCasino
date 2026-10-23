@@ -1,0 +1,63 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   용호 테이블. 뼈대(캔버스 + 아래 띠, 위젯 칸, 칩 줄, 폰 배치)는 baccarat-table.css 의
+   .bac-room 을 그대로 쓰고, 여기서는 용호만 다른 것 — 펠트 색, 베팅판 배치, SUITED TIE —
+   만 덧칠한다. DragonTigerRoomPage 가 불러오므로 용호 방에 들어갈 때만 받는다.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* 캔버스가 뜨기 전·WebGL 이 없을 때 보이는 바탕도 검붉은 펠트 색으로. */
+.dt-room .bac-stage { background: #3a0a11; }
+
+/* 베팅판: 드래곤 | 타이 위·SUITED TIE 아래 | 타이거. 실제 용호 테이블처럼 두 큰 영역이
+   양끝에 서고, 가운데 작은 둘이 위아래로 쌓인다. */
+.bac-grid.is-dt { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto auto; }
+.bac-grid.is-dt .bac-zone { grid-column: auto; }
+.bac-grid.is-dt .zone-dragon { grid-column: 1; grid-row: 1 / span 2; }
+.bac-grid.is-dt .zone-tie { grid-column: 2; grid-row: 1; }
+.bac-grid.is-dt .zone-suited_tie { grid-column: 2; grid-row: 2; }
+.bac-grid.is-dt .zone-tiger { grid-column: 3; grid-row: 1 / span 2; }
+.bac-grid.is-dt .bac-zone.big { min-height: 0; }
+/* 드래곤·타이거 칸은 폰에서 폭이 125px 안팎이라, 바카라처럼 내 베팅 금액을 왼쪽 아래에 두면
+   오른쪽 아래의 칩 더미 두 개(원금·이긴 금액)와 겹친다. 두 칸은 세로로 넉넉하니 금액을
+   배당 줄 바로 아래로 올린다. */
+/* 가운데 작은 두 칸은 높이가 낮아 이름·배당·내 베팅이 세 줄로 쌓이면 서로 겹친다. 이름과
+   배당을 한 줄에 두어 아래쪽을 내 베팅 자리로 비워 둔다. */
+.bac-grid.is-dt .bac-zone:not(.big) { flex-direction: row; flex-wrap: wrap; align-items: baseline; align-content: flex-start; column-gap: 8px; }
+
+/* SUITED TIE: 50배라 금색으로 따로 칠한다. */
+.bac-zone.suited { background: linear-gradient(165deg, #5a3f0b, #2f2105); border-color: rgba(255, 210, 74, .34); }
+.bac-zone.suited .bac-zone-name { color: var(--gold-light); }
+
+/* 로드의 SUITED TIE 표시(기록의 bankerPair 자리에 담아 온다)는 뱅커 페어의 빨간 점 대신 금색. */
+.dt-room .bead.bp::after { background: var(--gold-light); }
+.dt-room .banker-pair-dot { background: var(--gold-light); }
+
+/* 가로로 눕힌 폰: 가운데 두 칸이 세로 390px 에 들어가도록 조금 줄인다. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .bac-grid.is-dt .bac-zone:not(.big) { min-height: 40px; }
+}
+
+/* 테이블 베팅 쏠림 위젯의 SUITED TIE 줄. */
+.dt-room .bet-split-side li.s span { color: var(--gold-light); }
+
+/* 터치 기기: 가운데 작은 두 칸도 44px 아래로 줄이지 않는다(위의 가로 폰 40px 보다 뒤에 와야 이긴다). */
+@media (pointer: coarse) {
+  .bac-grid.is-dt .bac-zone:not(.big) { min-height: 44px; }
+}
+
+/* 옆 칸이 긴 데스크톱 배치(.is-columns, baccarat-table.css): 베팅판이 넉넉하고 내 금액은 칩에 찍히니,
+   가운데 두 칸도 바카라처럼 이름·배당·테이블 베팅을 가운데에 세로로 쌓는다. */
+@media (min-width: 901px) and (min-height: 541px) {
+  .bac-room.is-columns .bac-grid.is-dt .bac-zone:not(.big) { flex-direction: column; flex-wrap: nowrap; align-items: center; align-content: normal; justify-content: center; }
+}
+
+/* 세로 폰: 위 줄 TIE | SUITED TIE, 아래 줄 DRAGON | TIGER — 바카라(사이드 한 줄 + 메인 두 칸)와 같은 모양.
+   데스크톱처럼 가운데에 두 칸을 쌓으면 폰에선 그 열이 100px 남짓이라 칩 더미가 글씨를 덮는다. 칸 높이는
+   바카라와 같이 고정(사이드 40px, 메인은 남는 높이)이라 베팅해도 바뀌지 않는다. */
+@media (max-width: 900px) and (orientation: portrait) {
+  .bac-room.is-columns .bac-grid.is-dt { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto minmax(64px, 1fr); }
+  .bac-room.is-columns .bac-grid.is-dt .zone-tie { grid-column: 1; grid-row: 1; }
+  .bac-room.is-columns .bac-grid.is-dt .zone-suited_tie { grid-column: 2; grid-row: 1; }
+  .bac-room.is-columns .bac-grid.is-dt .zone-dragon { grid-column: 1; grid-row: 2; }
+  .bac-room.is-columns .bac-grid.is-dt .zone-tiger { grid-column: 2; grid-row: 2; }
+  .bac-room.is-columns .bac-grid.is-dt .bac-zone:not(.big) { min-height: 0; flex-direction: column; flex-wrap: nowrap; align-items: center; align-content: normal; justify-content: center; }
+}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- interactive-widget=resizes-content: without it Android keeps the layout viewport at full
+         height when the soft keyboard opens, so a position:fixed 100dvh panel (the table chat)
+         runs on underneath the keyboard and the browser scrolls the visual viewport to chase
+         the caret — which pushed the chat header off the top of the screen. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#0a0603" />
+    <title>OpenCasino</title>
+    <meta name="description" content="가입 없이 바로 즐기는 무료 플레이머니 카지노. 바카라, 블랙잭, 룰렛, 식보, 슬롯, 텍사스 홀덤, 섯다, 고스톱까지 실시간 테이블 게임. 현금 거래 없는 가상 코인 게임입니다." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <!-- 검색엔진 소유 확인: 서치어드바이저·서치콘솔에서 받은 코드를 content 에 넣고 주석을 푼다. -->
+    <!-- <meta name="naver-site-verification" content="" /> -->
+    <!-- <meta name="google-site-verification" content="" /> -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenCasino" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:title" content="OpenCasino · 무료 플레이머니 카지노" />
+    <meta property="og:description" content="가입 없이 체험하는 실시간 카지노. 바카라·블랙잭·룰렛·홀덤·섯다·고스톱 — 현금 거래 없는 플레이머니 게임." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenCasino · 무료 플레이머니 카지노" />
+    <meta name="twitter:description" content="가입 없이 체험하는 실시간 카지노. 바카라·블랙잭·룰렛·홀덤·섯다·고스톱." />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "WebSite", "name": "OpenCasino", "inLanguage": "ko-KR" },
+          {
+            "@type": "WebApplication", "name": "OpenCasino",
+            "applicationCategory": "GameApplication", "operatingSystem": "Any", "inLanguage": "ko-KR",
+            "description": "코인 원장 위에서 도는 실시간 카지노·보드게임 플랫폼. 플레이머니만 사용하며 현금 거래가 없습니다.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" }
+          }
+        ]
+      }
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- 매니페스트가 standalone 을 정하지만, 상태 바 색과 "앱처럼 보이기"는 iOS 가 이 메타로만 켠다. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <h1>OpenCasino — 무료 플레이머니 카지노</h1>
+      <p>바카라, 블랙잭, 룰렛, 식보, 슬롯, 비디오 포커, 텍사스 홀덤, 섯다, 7포커, 바둑이, 맞고, 고스톱을 가입 없이 체험할 수 있는 실시간 카지노 게임입니다. 플레이머니(가상 코인)만 사용하며 현금 거래는 없습니다. 이용하려면 JavaScript 를 켜 주세요.</p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

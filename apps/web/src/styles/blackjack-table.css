@@ -1,0 +1,298 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   블랙잭 테이블. 바카라·용호(baccarat-table.css)와 따로 선다 — 그쪽 뼈대를 고쳐도 여기는 안 흔들린다.
+   같이 쓰는 건 부품뿐이다: 캔버스 틀(stage-canvas.css), 칩 더미(chip-pile.css), 칩 줄(ChipTray)·채팅.
+
+   화면: 위는 캔버스 테이블(딜러와 일곱 좌석), 아래는 지금 할 수 있는 것 하나(베팅 / 보험 / 히트·
+   스탠드·더블·스플릿)와 칩 줄. 로드가 없어 옆 위젯 칸을 두지 않고 그 자리를 테이블에 준다.
+
+   클래스 이름은 bjt- 로 시작한다. styles.css 에 옛 펠트의 .bj-* 규칙이 아직 남아 있어서(정리
+   예정) 같은 이름을 쓰면 그 규칙이 새 화면에 섞여 들어온다.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.bjt-room) { width: 100%; padding: 0; }
+
+.bjt-room {
+  --chip-step: 3px;
+  display: grid;
+  grid-template-rows: minmax(240px, 1fr) auto;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px 10px;
+  box-sizing: border-box;
+}
+
+.bjt-stage {
+  position: relative; min-height: 0; overflow: hidden; border-radius: 14px; background: #06301f;
+  box-shadow: 0 0 0 1px rgba(92, 57, 14, .88), 0 0 0 4px rgba(10, 8, 5, .96), 0 22px 44px -24px rgba(0, 0, 0, .9);
+}
+
+/* ── 캔버스 위 좌석 버튼 ─────────────────────────────────────────────────── */
+.bjt-seats { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.bjt-spot {
+  position: absolute; display: grid; place-items: center; padding: 0; transform: translate(-50%, -50%);
+  border: 0; border-radius: 50%; background: transparent; color: rgba(244, 236, 220, .55);
+  font: 700 12px var(--ui-font); cursor: pointer; pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow .2s ease, background .2s ease;
+}
+.bjt-spot:disabled { cursor: default; }
+.bjt-spot.can-claim { background: rgba(240, 180, 28, .1); color: var(--gold-light); box-shadow: inset 0 0 0 1.5px rgba(240, 180, 28, .55); }
+.bjt-spot.can-claim:hover { background: rgba(240, 180, 28, .22); }
+.bjt-spot.occupied { background: rgba(0, 0, 0, .22); box-shadow: inset 0 0 0 1.5px rgba(244, 236, 220, .3); }
+.bjt-spot.mine { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 14px rgba(255, 210, 74, .35); }
+.bjt-spot.selected:not(.mine) { box-shadow: inset 0 0 0 2px #6ba6ff, 0 0 12px rgba(107, 166, 255, .4); }
+.bjt-spot.is-win { box-shadow: inset 0 0 0 2px var(--tie-light), 0 0 18px rgba(78, 231, 154, .45); }
+.bjt-spot:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.bjt-spot-num { pointer-events: none; }
+/* 이름표·금액은 동그라미 밖(아래)에 둔다. 폭은 좌석 간격만큼 — 옆 좌석과 겹치지 않게. */
+.bjt-spot-tag {
+  position: absolute; top: calc(100% + 3px - var(--tag-lift, 0px)); left: 50%; display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+  max-width: var(--tag-w, 80px); padding: 1px 7px; transform: translateX(-50%);
+  overflow: hidden; border-radius: 99px; background: rgba(0, 0, 0, .55); color: var(--text);
+  font: 600 12px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; pointer-events: none;
+}
+.bjt-spot-tag b { overflow: hidden; font-weight: 600; text-overflow: ellipsis; }
+.bjt-spot.mine .bjt-spot-tag { color: var(--gold-light); }
+.bjt-hot { display: inline-flex; align-items: center; color: #ffc02e; font-size: 12px; }
+/* 좌석 베팅 금액은 이름표 안에. 동그라미 위쪽은 그 좌석의 카드가 놓이는 자리라 비워 둔다. */
+.bjt-spot-amount { color: var(--gold-light); font: 600 12px var(--ui-font); font-style: normal; font-variant-numeric: tabular-nums; }
+.bjt-spot-behind {
+  position: absolute; top: 50%; left: calc(100% + 2px); display: inline-flex; align-items: center; gap: 2px;
+  transform: translateY(-50%); color: rgba(244, 236, 220, .75); font: 600 12px var(--ui-font); pointer-events: none;
+}
+.bjt-spot-behind em { color: #6ba6ff; font-style: normal; }
+/* 좌석 칩 더미: 동그라미 안에 쌓는다. 이긴 칩은 오른쪽 옆에. */
+.bjt-spot .chip-pile-slot { position: absolute; inset: 14% 14% 18%; width: auto; height: auto; }
+.bjt-spot .chip-pile-slot.payout { inset: 14% -62% 18% 86%; }
+.bjt-spot .chip-pile { --chip-step: 3px; }
+
+/* ── 아래 조작부: 안내 한 줄 + 바 하나 ─────────────────────────────────────
+   바: 총 베팅 | 칩(내 차례·보험 땐 그 자리를 액션 버튼이 차지한다) | 되돌리기·반복·나가기·채팅.
+   가운데 무리는 한 덩어리로 모이고 양끝이 그 좌우를 잡는다 — 넓은 줄에 드문드문 흩어져 비어 보이지 않게.
+   안내·메시지는 바 위 한 줄에만 쓴다(테이블 위에 떠서 좌석 이름표와 겹치던 알약을 걷었다). */
+/* 1120: 칩 여섯 종 방(10~200)에 본 베팅·사이드 두 칸까지 한 줄에 들어가는 폭. */
+.bjt-controls { position: relative; display: flex; flex-direction: column; gap: 6px; width: min(100%, 1120px); min-width: 0; margin: 0 auto; }
+.bjt-status {
+  min-height: 20px; margin: 0; overflow: hidden; color: var(--muted); font: 500 13px/20px var(--ui-font);
+  text-align: center; text-overflow: ellipsis; white-space: nowrap;
+}
+.bjt-status.is-message { color: var(--gold-light); font-weight: 600; }
+.bjt-status { word-break: keep-all; text-wrap: balance; }
+.bjt-bar {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 14px;
+  min-height: 66px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+}
+.bjt-money { display: grid; justify-self: start; min-width: 0; font-family: var(--ui-font); }
+.bjt-money small { color: var(--muted); font-size: 12px; }
+.bjt-money strong { color: var(--gold-light); font: 600 17px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bjt-center { display: flex; justify-content: center; min-width: 0; }
+.bjt-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.bjt-total { color: var(--muted); font: 600 13px var(--ui-font); white-space: nowrap; }
+.bjt-total strong { margin-left: 4px; color: var(--gold-light); font: 700 22px var(--ui-font); vertical-align: -2px; }
+.bjt-tools, .bjt-acts { display: flex; align-items: center; gap: 6px; }
+.bjt-tools { justify-self: end; }
+
+.bjt-btn {
+  min-width: 96px; min-height: 48px; padding: 0 18px; border: 1px solid var(--line-strong); border-radius: 12px;
+  background: var(--panel-raised); color: var(--text); font: 700 15px var(--ui-font); white-space: nowrap; cursor: pointer;
+  transition: transform .1s ease, filter .15s ease;
+}
+.bjt-btn:active:not(:disabled) { transform: scale(.97); }
+.bjt-btn:hover:not(:disabled) { filter: brightness(1.15); }
+.bjt-btn:disabled { opacity: .38; cursor: not-allowed; }
+.bjt-btn:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+/* 색은 바카라 베팅 칸처럼 짙은 그라데이션에 밝은 글자 — 원색으로 꽉 채운 버튼은 테이블에서 너무 튀었다.
+   히트 초록, 스탠드 빨강, 더블·베팅 금색, 스플릿·따라 베팅 파랑. */
+.bjt-btn:is(.bet, .double) { border-color: rgba(255, 210, 74, .42); background: linear-gradient(165deg, #6b5112, #3b2b07); color: var(--gold-light); }
+.bjt-btn:is(.follow, .split) { border-color: rgba(107, 166, 255, .34); background: linear-gradient(165deg, #173f86, #0d2552); color: var(--player-light); }
+.bjt-btn.hit { border-color: rgba(78, 231, 154, .32); background: linear-gradient(165deg, #12663a, #093a21); color: var(--tie-light); }
+.bjt-btn.stand { border-color: rgba(255, 112, 120, .34); background: linear-gradient(165deg, #83151f, #4c080e); color: var(--banker-light); }
+
+/* 좁은 PC 창(1000px 안팎): 칩 여섯 종 + 본 베팅 + 사이드 두 칸이 도구 버튼 밑으로 파고들었다 — 한 치수 작게. */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .game-shell .bjt-center .chip.chip-art { width: 40px; height: 40px; }
+  .game-shell .bjt-center .ot-tray { gap: 6px; }
+  .bjt-center .bjt-btn { min-width: 84px; padding: 0 12px; }
+  .bjt-row { gap: 6px; }
+  /* 양옆 칸을 같은 폭(1fr)으로 두면 가운데가 넓을 때 도구 칸이 모자라 안쪽으로 겹쳤다 — 좁은 창에선 내용 폭으로. */
+  .bjt-bar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; }
+}
+
+/* 사이드 베팅(PP · 21+3): 본 베팅 옆 작은 두 칸. 결판(첫 딜 직후)이 나면 같은 칸이 결과를 든다. */
+.bjt-sides { display: flex; gap: 6px; }
+.bjt-side {
+  display: grid; place-items: center; gap: 0; min-width: 64px; min-height: 40px; padding: 2px 8px;
+  border: 1px dashed rgba(240, 180, 28, .45); border-radius: 10px; background: rgba(0, 0, 0, .28);
+  color: var(--text); font-family: var(--ui-font); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.bjt-side b { color: var(--gold-light); font: 800 13px var(--ui-font); letter-spacing: .02em; line-height: 1.1; }
+.bjt-side small { max-width: 104px; overflow: hidden; color: var(--muted); font: 600 12px var(--ui-font); line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }
+.bjt-side:hover:not(:disabled) { background: rgba(240, 180, 28, .12); }
+.bjt-side:disabled { cursor: default; }
+.bjt-side:disabled:not(.has-bet, .is-win, .is-lose) { opacity: .45; }
+.bjt-side.has-bet { border-style: solid; background: rgba(240, 180, 28, .12); }
+.bjt-side.has-bet small { color: var(--gold-light); }
+.bjt-side.is-win { border: 1px solid var(--gold-light); background: linear-gradient(165deg, rgba(240, 180, 28, .35), rgba(120, 80, 10, .35)); box-shadow: 0 0 14px rgba(255, 210, 74, .35); }
+.bjt-side.is-win small { color: #fff3c4; }
+.bjt-side.is-lose { border-style: solid; opacity: .55; }
+.bjt-side:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+
+.bjt-act {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-raised); color: var(--text);
+  font: 700 14px var(--ui-font); cursor: pointer;
+}
+.bjt-act:disabled { opacity: .38; cursor: not-allowed; }
+/* 채팅 버튼은 화면 구석에 떠 있지 않고 바 끝에 앉는다. */
+.game-shell .bjt-tools .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; width: 44px; height: 44px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+.game-shell .bjt-tools .room-chat-toggle:hover { border-color: rgba(240, 180, 28, .6); background: rgba(240, 180, 28, .14); }
+.game-shell .bjt-center .ot-tray { margin: 0; gap: 8px; }
+.game-shell .bjt-center .ot-tray.is-art .chip-option { display: grid; }
+.game-shell .bjt-center .ot-tray.is-art .chip-picker-trigger { display: none; }
+.game-shell .bjt-center .chip.chip-art {
+  width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; outline: 0; text-shadow: none; transition: transform .15s ease;
+}
+.game-shell .bjt-center .chip.chip-art img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.game-shell .bjt-center .chip.chip-art.active { box-shadow: 0 0 0 2px var(--gold-light), 0 8px 16px rgba(255, 210, 74, .3); }
+.game-shell .bjt-center .chip.chip-art:disabled { opacity: .32; transform: none; box-shadow: none; }
+.game-shell .bjt-center .chip.chip-art:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+
+/* 최근 당첨: 테이블 왼쪽 아래에 떠 있는 유리 상자. 좌석 호가 가장자리에서 올라가 그 아래 모서리가 빈다.
+   넓은 화면에서만(폰은 테이블이 작아 좌석을 가린다). */
+.bjt-stage .winner-feed { display: none; }
+@media (min-width: 901px) and (min-height: 541px) {
+  .bjt-stage .winner-feed {
+    position: absolute; left: 12px; bottom: 12px; z-index: 4; display: block; width: 190px;
+    border-color: rgba(240, 180, 28, .4); border-radius: 10px; background: rgba(4, 22, 14, .72); backdrop-filter: blur(8px);
+  }
+  .bjt-stage .winner-feed ul { max-height: 76px; padding: 4px; overflow-y: auto; scrollbar-width: none; }
+  .bjt-stage .winner-feed li { gap: 6px; padding: 3px 6px; font-size: 12px; }
+  .bjt-stage .winner-feed-choice { display: none; }
+}
+
+/* ── 폰·세로 태블릿: 테이블이 남는 높이를 다 받고, 조작부는 안내 한 줄 + 바 한 줄 — 스크롤 없이 한 화면 ─────
+   바: 칩 단위 버튼(누르면 위로 판이 뜬다)·베팅 버튼 | 되돌리기·반복·나가기·채팅. 총 베팅은 내 좌석 이름표에
+   금액이 있어 뺀다. 내 차례·보험 땐 액션 버튼이 바를 다 쓴다(도구는 그동안 쓸 일이 없다). */
+@media (max-width: 900px) and (orientation: portrait) {
+  .bjt-room { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); overflow: hidden; }
+  .bjt-stage { flex: 1 1 auto; min-height: 200px; border-radius: 12px; }
+  .bjt-controls { flex: none; width: 100%; gap: 4px; }
+  .bjt-status { min-height: 18px; font-size: 12px; line-height: 18px; }
+  /* 바카라 폰 칩 줄과 같은 자리: 되돌리기·반복·나가기 | 칩(+베팅 버튼) | 채팅. */
+  /* 높이는 가장 큰 버튼(터치 기기의 44px 베팅·액션 버튼)에 맞춰 고정 — 단계마다 그 버튼이 났다 들어가며 바가
+     2~4px 씩 커졌다 줄었고, 그때마다 3D 게임 화면이 다시 맞춰져 카드가 열리는 순간 테이블이 들썩였다. */
+  .bjt-bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "acts center chat"; gap: 6px; min-height: 58px; padding: 6px; border-radius: 12px; }
+  .bjt-money { display: none; }
+  .bjt-tools { display: contents; }
+  .bjt-acts { grid-area: acts; justify-self: start; }
+  .bjt-center { grid-area: center; }
+  .bjt-row { gap: 6px; }
+  .bjt-btn { min-width: 0; min-height: 42px; padding: 0 12px; border-radius: 10px; font-size: 14px; }
+  /* 따라 베팅 버튼까지 뜨면 줄이 모자라 되돌리기만 남긴다. */
+  .bjt-bar.has-follow .bjt-act:not(.is-undo) { display: none; }
+  /* 내 차례·보험: 액션 버튼이 바를 다 쓴다(도구는 그동안 쓸 일이 없다). */
+  .bjt-bar.is-acting { grid-template-areas: "center center center"; }
+  .bjt-bar.is-acting :is(.bjt-acts, .room-chat-toggle) { display: none; }
+  .bjt-bar.is-acting .bjt-row { flex: 1 1 auto; }
+  /* 합계 + 다섯 버튼(서렌더까지)이 360px 폭에 들어가려면 양옆 여백을 줄여야 한다 — 12px 이면 줄이 바 밖으로 나갔다. */
+  .bjt-bar.is-acting .bjt-btn { flex: 1 1 0; padding: 0 5px; }
+  .bjt-total { font-size: 12px; }
+  .bjt-total strong { font-size: 18px; }
+  .bjt-act { width: 38px; height: 38px; border-radius: 9px; }
+  .game-shell .bjt-tools .room-chat-toggle { grid-area: chat; justify-self: end; width: 38px; height: 38px; border-radius: 9px; }
+  .game-shell .bjt-center .ot-tray { position: static; margin: 0; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-option { display: none; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-trigger {
+    display: grid; width: 34px; height: 34px; min-width: 34px; padding: 0; background: none; box-shadow: 0 0 0 2px var(--gold);
+  }
+  .game-shell .bjt-center .ot-tray.is-art :is(.chip-picker-trigger, .chip-picker-menu button) img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu { bottom: calc(100% + 12px); flex-wrap: wrap; max-width: calc(100vw - 24px); gap: 8px; padding: 8px 10px; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu button { width: 48px; height: 48px; background: none; box-shadow: none; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu button.selected { transform: none; outline: 0; box-shadow: 0 0 0 3px var(--gold-light); }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
+  /* 좌석 간격이 50px 안팎이라 "나 10코인"이 한 줄에 안 든다 — 이름과 금액을 두 줄로. */
+  .bjt-spot.occupied .bjt-spot-tag { flex-direction: column; gap: 0; padding: 1px 5px; border-radius: 8px; font-size: 11px; line-height: 1.2; }
+  .bjt-spot-amount { font-size: 11px; }
+  .bjt-spot-behind { display: none; }
+}
+
+/* ── 가로로 눕힌 폰(블랙잭의 폰 화면): 테이블이 폭 대부분, 오른쪽에 좁은 조작 기둥 ─────────────
+   기둥(위에서 아래로): 안내 · [총 베팅 ···· N코인] · [칩 버튼][베팅] · [되돌리기·반복·나가기 ··· 채팅].
+   칩은 바카라 폰처럼 버튼 하나 — 누르면 칩 판이 기둥 위로 떠서 테이블 쪽(왼쪽)으로 펼쳐진다.
+   내 차례엔 합계와 액션 버튼 2×2. 폰 글씨 크기에 맞춰 모든 것을 한 치수 작게. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .bjt-room {
+    grid-template-columns: minmax(0, 1fr) clamp(172px, 22vw, 200px); grid-template-rows: minmax(0, 1fr); gap: 8px;
+    padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); overflow: hidden;
+  }
+  .bjt-stage { border-radius: 12px; }
+  .bjt-spot-tag, .bjt-spot-amount { font-size: 11px; }
+  .bjt-controls { justify-content: center; width: auto; min-height: 0; margin: 0; gap: 6px; }
+  .bjt-status { min-height: 0; padding: 0 2px; font-size: 12px; line-height: 1.4; white-space: normal; }
+  .bjt-bar { display: flex; flex-direction: column; gap: 7px; min-height: 0; padding: 8px; border-radius: 11px; }
+  .bjt-money { display: flex; align-items: baseline; justify-content: space-between; width: 100%; }
+  .bjt-money small { font-size: 11px; }
+  .bjt-money strong { font-size: 14px; }
+  .bjt-center { width: 100%; }
+  .bjt-row { flex-wrap: wrap; gap: 6px; width: 100%; }
+  .bjt-bar .bjt-btn { min-width: 0; min-height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; }
+  .bjt-center .bjt-btn.bet { flex: 1 1 0; }
+  .bjt-center .bjt-btn.follow { flex: 1 1 100%; }
+  .bjt-center .bjt-sides { flex: 1 1 100%; }
+  .bjt-center .bjt-side { flex: 1 1 0; min-width: 0; min-height: 36px; padding: 1px 4px; border-radius: 9px; }
+  .bjt-side b { font-size: 12px; }
+  .bjt-side small { overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
+  .bjt-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .bjt-actions :is(.bjt-total, .bjt-btn.surrender) { grid-column: 1 / -1; }
+  .bjt-actions .bjt-total { text-align: center; font-size: 12px; }
+  .bjt-actions .bjt-total strong { font-size: 17px; }
+  .bjt-tools { justify-content: space-between; width: 100%; }
+  .bjt-acts { gap: 5px; }
+  .bjt-bar .bjt-act, .game-shell .bjt-bar .bjt-tools .room-chat-toggle { width: 32px; min-width: 32px; height: 32px; min-height: 32px; border-radius: 8px; }
+  /* 칩: 버튼 하나(지금 칩) → 누르면 위로 판. 판은 기둥 오른쪽 끝에 맞춰 테이블 쪽으로 펼친다. */
+  .game-shell .bjt-center .ot-tray { position: static; flex: none; margin: 0; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-option { display: none; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-trigger {
+    display: grid; width: 36px; height: 36px; min-width: 36px; padding: 0; border: 0; border-radius: 50%;
+    background: none; box-shadow: 0 0 0 2px var(--gold); cursor: pointer;
+  }
+  .game-shell .bjt-center .ot-tray.is-art :is(.chip-picker-trigger, .chip-picker-menu button) img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu {
+    position: absolute; right: 0; bottom: calc(100% + 8px); left: auto; z-index: 80; display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 8px; width: max-content; max-width: min(300px, 70vw); padding: 8px 10px; transform: none;
+    border: 1px solid rgba(240, 180, 28, .7); border-radius: var(--radius-md);
+    background: linear-gradient(180deg, rgba(35, 25, 11, .98), rgba(12, 10, 7, .98)); box-shadow: 0 10px 24px rgba(0, 0, 0, .48);
+  }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu::after { display: none; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu button { width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%; background: none; box-shadow: none; cursor: pointer; }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu button.selected { box-shadow: 0 0 0 3px var(--gold-light); }
+  .game-shell .bjt-center .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
+}
+
+/* ── 가로 폰(터치): 위 띠 대신 기둥 맨 위 한 줄 [← · 코인 · ⛶ · ≡] (LandscapeControls) ───────────── */
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+  .bjt-controls { padding-top: 44px; }
+  .bjt-corner {
+    position: absolute; top: 0; left: 0; right: 0; justify-content: space-between; gap: 4px;
+    height: 38px; padding: 0 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel);
+  }
+  .bjt-corner .land-balance { flex: 1 1 auto; min-width: 0; }
+}
+
+/* ── 터치 기기: 누르는 곳은 44×44 이상 ─────────────────────────────────────
+   좌석 동그라미는 캔버스에 그린 자리와 크기가 맞아야 해서 키우지 않고, 투명한 ::after 로 누르는
+   영역만 44px 로 넓힌다(좌석 간격은 폰에서도 50px 이 넘어 이웃과 겹치지 않는다). */
+@media (pointer: coarse) {
+  .bjt-btn { min-height: 44px; }
+  .bjt-side { min-height: 44px; }
+  .game-shell .bjt-center .chip.chip-art { flex: none; min-width: 44px; min-height: 44px; }
+  .bjt-spot::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: max(100%, 44px); height: max(100%, 44px); border-radius: 50%; transform: translate(-50%, -50%);
+  }
+}

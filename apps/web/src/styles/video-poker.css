@@ -1,0 +1,246 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   비디오 포커 "잭스 오어 베터": 위 배당표 → 안내/족보 배너 → 카드 5장 → 베팅·DEAL/DRAW·잔액.
+   PC 는 오른쪽에 당첨 소식·최근 손. VideoPokerRoomPage 가 불러오므로 이 방에 들어갈 때만 받는다.
+   평평한 2D: 원근·기울임 없이 기계 화면처럼 남색 판에 노란 글자, 지금 베팅 열은 빨간 띠.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.vp-room) { width: 100%; padding: 0; }
+
+.vp-room {
+  --vp-screen: #0d1a4a;
+  --vp-screen-2: #13246a;
+  --vp-ink: #ffe07a;
+  --vp-line: rgba(120, 150, 255, .35);
+  --vp-current: #b3261e;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 240px);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse 70% 60% at 45% 45%, rgba(30, 60, 160, .22), transparent 70%);
+}
+
+.vp-machine { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+
+/* ── 배당표 ─────────────────────────────────────────────────────────────────── */
+.vp-paytable {
+  flex: 0 0 auto; width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0;
+  border: 1px solid var(--vp-line); border-radius: 12px; overflow: hidden; background: var(--vp-screen);
+  color: var(--vp-ink); font: 700 clamp(12px, 1.55vh, 15px) var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.vp-paytable th, .vp-paytable td { height: clamp(20px, 3.1vh, 30px); padding: 0 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vp-paytable thead th { height: clamp(26px, 3.6vh, 34px); border-bottom: 1px solid var(--vp-line); background: var(--vp-screen-2); color: #c9d4ff; font-size: 12px; }
+.vp-paytable .vp-name { width: 20%; }
+.vp-paytable tbody .vp-name { color: var(--vp-ink); }
+.vp-paytable .vp-mult { width: 8%; color: #9fb4ff; }
+.vp-paytable .vp-step.is-current { background: var(--vp-current); color: #fff; }
+.vp-paytable thead .vp-step button {
+  display: block; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; text-align: center; cursor: pointer;
+}
+.vp-paytable thead .vp-step button:disabled { cursor: default; }
+.vp-paytable thead .vp-step:not(.is-current) button:not(:disabled):hover { background: rgba(255, 255, 255, .08); }
+/* 받은 손에 이미 있는 족보: 조용히 밝게. 결과 족보: 기계처럼 몇 번 깜빡이고 밝게 남는다. */
+.vp-paytable tr.is-live th, .vp-paytable tr.is-live td { background-color: rgba(255, 224, 122, .14); }
+.vp-paytable tr.is-live .vp-step.is-current { background: #d6402f; }
+.vp-paytable tr.is-hit th, .vp-paytable tr.is-hit td { background-color: var(--vp-ink); color: #1a1240; animation: vp-hit .44s linear 4; }
+.vp-paytable tr.is-hit .vp-step.is-current { background: #fff3b0; color: var(--vp-current); }
+@keyframes vp-hit {
+  0%, 49.9% { background-color: var(--vp-screen); color: var(--vp-ink); }
+  50%, 100% { background-color: var(--vp-ink); color: #1a1240; }
+}
+
+/* ── 안내·족보 배너 (높이 고정: 내용이 바뀌어도 카드가 들썩이지 않는다) ─────────── */
+.vp-message { display: grid; flex: 0 0 auto; place-items: center; height: 36px; }
+.vp-banner { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 0 16px; overflow: hidden; color: var(--muted); font: 600 13px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; }
+.vp-banner.is-hint b { color: var(--vp-ink); }
+.vp-banner.is-none { color: var(--muted); }
+.vp-banner.is-push { height: 30px; border-radius: 99px; background: rgba(255, 255, 255, .06); color: #c9c1b2; }
+.vp-banner.is-error { color: var(--banker-light); }
+.vp-banner.is-win {
+  height: 34px; padding: 0 20px; border: 2px solid var(--vp-ink); border-radius: 99px; background: var(--vp-current);
+  color: #fff; animation: vp-pop .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+.vp-banner.is-win b { color: var(--vp-ink); font: 800 18px Poppins, var(--ui-font); letter-spacing: .02em; }
+.vp-banner.is-win em { font: 800 18px Poppins, var(--ui-font); font-style: normal; font-variant-numeric: tabular-nums; }
+@keyframes vp-pop { from { transform: scale(.5); opacity: 0; } }
+
+/* ── 카드 5장 ──────────────────────────────────────────────────────────────── */
+/* 카드 폭 = 남은 폭·높이 중 작은 쪽에 맞춘다(컨테이너 단위). HOLD 줄은 늘 자리를 차지해 카드 크기가 안 바뀐다. */
+.vp-cards {
+  display: grid; flex: 1 1 0; place-items: center; min-height: 0; container-type: size;
+  border: 1px solid var(--vp-line); border-radius: 14px; background: radial-gradient(ellipse 80% 90% at 50% 50%, #142a72 0%, #0b1640 75%);
+}
+.vp-row {
+  --vp-gap: clamp(6px, 1.6cqw, 18px);
+  --vp-hold-h: 22px;
+  --vp-cw: min(calc((100cqw - 24px - 4 * var(--vp-gap)) / 5), calc((100cqh - var(--vp-hold-h) - 22px) / 1.4), 240px);
+  display: grid; grid-template-columns: repeat(5, var(--vp-cw)); gap: var(--vp-gap);
+}
+.vp-slot {
+  position: relative; display: grid; grid-template-rows: var(--vp-hold-h) auto; justify-items: center; gap: 6px;
+  margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.vp-slot:disabled { cursor: default; }
+.vp-slot:focus-visible { outline: 2px solid var(--vp-ink); outline-offset: 4px; border-radius: 8px; }
+.vp-hold {
+  display: grid; place-items: center; height: var(--vp-hold-h); padding: 0 12px; border-radius: 6px;
+  background: var(--vp-ink); color: #1a1240; font: 800 12px/1 Poppins, var(--ui-font); letter-spacing: .08em; visibility: hidden;
+}
+.vp-slot.is-held .vp-hold { visibility: visible; }
+.vp-key {
+  position: absolute; top: 0; right: 0; display: none; place-items: center; min-width: 20px; height: var(--vp-hold-h); padding: 0 4px;
+  border: 1px solid var(--vp-line); border-radius: 5px; color: #9fb4ff; font: 600 12px var(--ui-font); box-sizing: border-box;
+}
+@media (hover: hover) and (pointer: fine) { .vp-slot:not(:disabled) .vp-key { display: grid; } }
+
+.vp-card { --_cw: var(--vp-cw); position: relative; display: block; width: var(--vp-cw); height: calc(var(--vp-cw) * 1.4); border-radius: calc(var(--vp-cw) * .06); transition: opacity .25s ease, filter .25s ease; }
+.vp-card-back, .vp-card-face { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .7); }
+.vp-slot.is-held .vp-card { box-shadow: 0 0 0 3px var(--vp-ink); }
+/* 결과: 족보를 만든 카드만 또렷하게. 잡은 표시는 내려놓는다(이미 끝난 손). */
+.vp-row.is-result .vp-hold { visibility: hidden; }
+.vp-row.is-result .vp-slot.is-held .vp-card { box-shadow: none; }
+.vp-row.is-result .vp-slot.is-winning .vp-card { box-shadow: 0 0 0 3px var(--vp-ink), 0 0 18px rgba(255, 224, 122, .45); }
+.vp-slot.is-dim .vp-card { opacity: .45; filter: grayscale(.5); }
+
+/* 납작하게 뒤집기: 뒷면이 가로로 접히고(0→.15s) 앞면이 펴진다(.15→.3s). --vp-delay 동안은 뒷면 그대로. */
+.vp-card.is-flipping .vp-card-back { animation: vp-fold .15s ease-in var(--vp-delay, 0ms) both; }
+.vp-card.is-flipping .vp-card-face { animation: vp-unfold .15s ease-out calc(var(--vp-delay, 0ms) + .15s) both; }
+@keyframes vp-fold { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes vp-unfold { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ── 조작 줄: 베팅 · DEAL/DRAW · 잔액·당첨 · 채팅 ───────────────────────────── */
+.vp-controls { display: grid; flex: 0 0 auto; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; }
+.vp-bet { display: grid; justify-items: start; gap: 4px; }
+.vp-bet small, .vp-money small { color: var(--muted); font: 600 12px var(--ui-font); }
+.vp-stepper { display: flex; align-items: center; gap: 6px; }
+.vp-stepper button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px;
+  background: var(--panel-raised); color: var(--text); cursor: pointer;
+}
+.vp-stepper button:disabled { opacity: .35; cursor: not-allowed; }
+.vp-stepper strong { min-width: 72px; color: var(--vp-ink); font: 800 22px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+.vp-primary {
+  width: clamp(150px, 18vw, 220px); height: 60px; padding: 0; border: 2px solid #ffe08a; border-radius: 16px;
+  background: linear-gradient(to bottom, #ffd75a, #e0a514); color: #2f1d02; font: 800 26px Poppins, var(--ui-font); letter-spacing: .08em;
+  box-shadow: 0 8px 22px -8px rgba(240, 180, 28, .55); cursor: pointer; transition: transform .1s ease, filter .15s ease;
+}
+.vp-primary.is-draw { border-color: #ff9a8f; background: linear-gradient(to bottom, #e2483c, #a3201a); color: #fff; box-shadow: 0 8px 22px -8px rgba(220, 60, 50, .6); }
+.vp-primary:active { transform: scale(.97); }
+.vp-primary:disabled { filter: grayscale(.7) brightness(.65); cursor: not-allowed; }
+.vp-right { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-width: 0; }
+.vp-money { display: flex; gap: 14px; }
+.vp-money span { display: grid; justify-items: center; gap: 2px; min-width: 64px; }
+.vp-money b { color: var(--text); font: 800 18px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; }
+.vp-money .is-win b { color: var(--vp-ink); }
+.vp-tools { display: flex; }
+.game-shell .vp-room .vp-tools .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; width: 44px; height: 44px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+
+/* ── 오른쪽: 당첨 소식 · 최근 손 ───────────────────────────────────────────── */
+.vp-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
+.vp-side .winner-feed { flex: 0 0 auto; border-radius: 12px; }
+.vp-side .winner-feed ul { max-height: 132px; overflow-y: auto; scrollbar-width: none; }
+.vp-side header {
+  padding: 10px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--panel-2);
+  color: var(--text); font: 700 13px var(--ui-font); text-align: center;
+}
+.vp-recent {
+  flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; margin: -8px 0 0; padding: 6px 8px; overflow-y: auto; list-style: none;
+  border: 1px solid var(--line); border-radius: 0 0 12px 12px; background: var(--panel); scrollbar-width: thin;
+}
+.vp-recent li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px; border-radius: 6px;
+  color: var(--muted); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.vp-recent li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vp-recent li b { min-width: 48px; color: var(--muted); text-align: right; }
+.vp-recent li.is-push span { color: #c9c1b2; }
+.vp-recent li.is-win { background: rgba(255, 224, 122, .07); }
+.vp-recent li.is-win span, .vp-recent li.is-win b { color: var(--vp-ink); }
+.vp-recent li.is-empty { display: block; padding: 12px 6px; text-align: center; }
+
+.vp-recent li small { font-size: 12px; }
+
+/* ── 짧은 화면(가로 폰·낮은 PC 창): 오른쪽 기둥에 배당표(지금 베팅 열만), 왼쪽에 배너·카드·조작 ──
+   위에 배당표를 두면 카드가 높이에 막혀 작아진다 — 높이를 전부 카드에 주고 표는 옆으로 뺀다. */
+@media (orientation: landscape) and (max-height: 680px) {
+  .vp-room { grid-template-columns: minmax(0, 1fr); padding-block: 8px; }
+  .vp-side { display: none; }
+  .vp-machine { display: grid; grid-template-columns: minmax(0, 1fr) clamp(220px, 26vw, 320px); grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px 12px; }
+  .vp-paytable { grid-column: 2; grid-row: 1 / 4; align-self: stretch; height: 100%; font-size: 14px; }
+  .vp-paytable th, .vp-paytable td { height: auto; }
+  .vp-paytable thead th { height: 28px; }
+  .vp-paytable .vp-step:not(.is-current) { display: none; }
+  .vp-paytable .vp-name { width: 50%; }
+  .vp-paytable .vp-mult { width: 20%; }
+  .vp-paytable thead .vp-step button { pointer-events: none; }
+  .vp-message { grid-column: 1; grid-row: 1; }
+  .vp-cards { grid-column: 1; grid-row: 2; }
+  .vp-controls { grid-column: 1; grid-row: 3; }
+  .vp-primary { height: 54px; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .vp-room { padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); }
+  .vp-machine { grid-template-columns: minmax(0, 1fr) clamp(190px, 30vw, 280px); gap: 6px 10px; }
+  .vp-paytable { font-size: 12px; }
+  .vp-paytable thead th { height: 24px; }
+  .vp-message { height: 30px; }
+  .vp-controls { gap: 8px; }
+  .vp-bet small { display: none; }
+  .vp-stepper { gap: 4px; }
+  .vp-stepper strong { min-width: 48px; font-size: 18px; }
+  .vp-primary { width: 124px; height: 46px; font-size: 20px; }
+  .vp-right, .vp-money { gap: 8px; }
+  .vp-money span { min-width: 0; }
+  .vp-money b { font-size: 15px; }
+}
+@media (pointer: coarse) and (min-width: 901px) and (min-height: 681px) { .vp-paytable thead th { height: 44px; } }
+
+/* ── 세로 폰: 배당표(지금 베팅 열만) → 배너 → 카드 → 잔액 → 베팅·DEAL·채팅 ──── */
+@media (max-width: 900px) and (orientation: portrait) {
+  .vp-room { display: flex; flex-direction: column; gap: 0; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .vp-side { display: none; }
+  .vp-machine { flex: 1 1 auto; gap: 6px; }
+  /* 카드는 폭에 막혀 높이가 남는다 — 남는 높이는 배당표 줄이 나눠 가진다(표는 늘어난 높이를 줄마다 나눈다). */
+  .vp-paytable { flex: 1 1 auto; font-size: clamp(12px, 3.8vw, 16px); }
+  .vp-paytable th, .vp-paytable td { height: auto; }
+  .vp-paytable thead th { height: 28px; font-size: 12px; }
+  .vp-paytable .vp-step:not(.is-current) { display: none; }
+  .vp-paytable .vp-name { width: 50%; }
+  .vp-paytable .vp-mult { width: 20%; }
+  .vp-paytable thead .vp-step button { pointer-events: none; }
+  .vp-message { height: 36px; }
+  .vp-banner { padding: 0 10px; font-size: 13px; }
+  .vp-banner.is-win b, .vp-banner.is-win em { font-size: 16px; }
+  /* 카드 밑 HOLD 막대: 기계의 HOLD 버튼 자리. 작은 카드 대신 엄지가 누르기 좋은 넓은 칸이 된다(카드를 눌러도 같다). */
+  .vp-cards { flex: 0 0 auto; height: calc((100vw - 16px - 12px - 4 * var(--vp-gap-phone)) / 5 * 1.4 + 44px + 6px + 22px); --vp-gap-phone: clamp(5px, 1.4vw, 10px); }
+  .vp-row { --vp-gap: var(--vp-gap-phone); --vp-hold-h: 44px; --vp-cw: calc((100cqw - 12px - 4 * var(--vp-gap)) / 5); }
+  .vp-slot { grid-template-rows: auto var(--vp-hold-h); }
+  .vp-hold, .vp-row.is-result .vp-hold { order: 2; width: 100%; padding: 0; box-sizing: border-box; visibility: visible; border: 1px solid var(--vp-line); background: rgba(255, 255, 255, .04); color: #9fb4ff; font-size: 13px; }
+  .vp-slot.is-held .vp-hold { border-color: var(--vp-ink); background: var(--vp-ink); color: #1a1240; }
+  .vp-slot:disabled .vp-hold { opacity: .4; }
+  .vp-row.is-result .vp-slot.is-held .vp-hold { border-color: var(--vp-line); background: rgba(255, 255, 255, .04); color: #9fb4ff; }
+  .vp-controls { grid-template-columns: 1fr auto auto; grid-template-areas: "money money money" "bet primary tools"; gap: 8px 10px; }
+  .vp-right { display: contents; }
+  .vp-money { grid-area: money; justify-content: center; gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .vp-money span { flex: 1 1 0; grid-template-columns: auto auto; justify-content: center; align-items: baseline; gap: 8px; padding: 6px 0; }
+  .vp-money span + span { border-left: 1px solid var(--line); }
+  .vp-money b { font-size: 16px; }
+  .vp-bet { grid-area: bet; justify-items: center; }
+  .vp-bet small { display: none; }
+  .vp-stepper { gap: 4px; }
+  .vp-stepper strong { min-width: clamp(44px, 13vw, 64px); font-size: clamp(16px, 4.8vw, 20px); }
+  .vp-primary { grid-area: primary; width: clamp(108px, 34vw, 180px); height: 56px; font-size: 22px; }
+  .vp-tools { grid-area: tools; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-card.is-flipping .vp-card-back, .vp-card.is-flipping .vp-card-face, .vp-banner.is-win, .vp-paytable tr.is-hit th, .vp-paytable tr.is-hit td { animation: none; }
+  .vp-card.is-flipping .vp-card-back { transform: scaleX(0); }
+}

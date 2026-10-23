@@ -1,0 +1,252 @@
+/* ── 리텐션 메타: 로비 위젯(미션·랭킹), 미션·랭킹 화면, 프로필 업적 ─────────────────────
+   로비 게임 카드·프로필 패널과 같은 재료(금색 테두리 카드, --panel 바탕, 평평한 2D)로 만든다.
+   MetaBits.tsx 가 불러온다. 로비가 첫 화면이라 이 파일은 main.tsx 의 styles.css 보다 **먼저** 들어간다 —
+   styles.css 의 클래스(.profile-panel 등)를 덮을 땐 클래스를 하나 더 붙여 우선순위로 이긴다. */
+
+.tabular { font-variant-numeric: tabular-nums; }
+.amt-up { color: var(--positive); }
+.amt-down { color: var(--negative); }
+
+/* 진행 막대: 진행 중 금색, 다 채우고 아직 안 받음 초록, 받음 밝은 금색. */
+.meta-bar { display: block; height: 8px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel-sunken); }
+.meta-bar i { display: block; height: 100%; border-radius: inherit; background: var(--gold-deep); transition: width .3s ease; }
+.meta-bar.is-ready i { background: var(--positive); }
+.meta-bar.is-claimed i { background: var(--gold-light); }
+
+.rank-medal {
+  display: grid; place-items: center; flex: none; width: 24px; height: 24px;
+  border: 1px solid var(--line-strong); border-radius: 50%; background: var(--panel-sunken);
+  color: var(--muted); font: 700 12px var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.rank-medal.r1 { border-color: var(--gold); background: var(--gold); color: var(--on-gold); }
+.rank-medal.r2 { border-color: #c4cad3; background: #c4cad3; color: #17191d; }
+.rank-medal.r3 { border-color: #c98a55; background: #c98a55; color: #1e1006; }
+
+/* ── 로비 맨 위 두 칸 ─────────────────────────────────────────────────────────── */
+.lobby-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+.lobby-meta.is-single { grid-template-columns: minmax(0, 1fr); }
+.meta-card {
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--gold-deep); border-radius: 12px; background: var(--panel);
+  color: var(--text); text-decoration: none;
+  transition: border-color .15s, background .15s;
+}
+.meta-card:hover, .meta-card:focus-visible { border-color: var(--gold-light); background: var(--panel-2); }
+.meta-card:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -2px; }
+.meta-card-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.meta-card-head > svg { flex: none; color: var(--gold); }
+.meta-card-head strong { overflow: hidden; font: 600 15px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; }
+.meta-card-go { display: inline-flex; align-items: center; flex: none; gap: 2px; margin-left: auto; color: var(--gold); font: 600 12.5px var(--ui-font); }
+.meta-card:hover .meta-card-go { color: var(--gold-light); }
+.meta-card-note { margin-top: auto; color: var(--muted); font: 500 12.5px var(--ui-font); line-height: 1.45; }
+.meta-card-note b { color: var(--gold-light); font-weight: 600; }
+/* 오늘 기록이 없는 랭킹 카드: 세 줄 자리가 비니 안내를 남는 높이 가운데로(바닥에 붙으면 위가 텅 빈다). */
+.meta-rank-card > .meta-card-note { margin: auto 0; text-align: center; }
+.meta-missions-card.has-reward { border-color: var(--positive); }
+.meta-go-reward { color: var(--positive); font-weight: 700; }
+/* 미션 줄 앞 동그라미: 진행률만큼 채운 원형 막대(가운데를 판 색으로 덮어 고리로). */
+.meta-mission-mark {
+  position: relative; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: conic-gradient(var(--gold-mid) calc(var(--p, 0) * 1%), var(--panel-sunken) 0);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.meta-mission-mark::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--panel); transition: background .15s; }
+.meta-card:hover .meta-mission-mark::after { background: var(--panel-2); }
+.meta-mission-row.is-ready .meta-mission-mark { background: var(--positive); box-shadow: none; }
+.meta-mission-row.is-claimed .meta-mission-mark { background: var(--gold); box-shadow: none; color: var(--on-gold); }
+.meta-mission-row.is-ready .meta-mission-mark::after, .meta-mission-row.is-claimed .meta-mission-mark::after { display: none; }
+.meta-mission-row b { color: var(--muted); }
+.meta-mission-row.is-ready b { color: var(--positive); }
+.meta-mission-row.is-claimed b { color: var(--gold); }
+.meta-mission-row.is-claimed .meta-rank-name { color: var(--muted); }
+.meta-rank-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.meta-rank-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 9px; min-height: 24px; font: 500 13px var(--ui-font); }
+.meta-rank-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.meta-rank-row.is-me .meta-rank-name { color: var(--gold-light); font-weight: 600; }
+.meta-rank-row b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+@media (max-width: 620px) {
+  .lobby-meta { gap: 8px; margin-bottom: 12px; }
+  .meta-card { gap: 8px; padding: 11px 11px 12px; }
+  .meta-card-head { gap: 6px; }
+  .meta-card-head strong { font-size: 14px; }
+  /* 두 칸이 나란히라 "보기·전체 보기" 글자는 빼고 화살표만(게임 카드와 같은 처리). */
+  .meta-card-go span { display: none; }
+  .meta-card-note { font-size: 12px; }
+  .meta-rank-list { gap: 5px; }
+  .meta-rank-row { grid-template-columns: 20px minmax(0, 1fr) auto; gap: 6px; min-height: 20px; font-size: 12px; }
+  .meta-rank-row .rank-medal, .meta-mission-mark { width: 20px; height: 20px; font-size: 12px; }
+  .meta-mission-mark::after { inset: 4px; }
+  /* 머리의 "+3코인 받기"도 뺀다 — 제목이 잘리고, 받을 보상은 줄 끝의 초록 "+2코인"과 칸 테두리가 이미 말한다. */
+  .meta-card-go .meta-go-reward { display: none; }
+}
+
+/* ── 미션·랭킹 화면 공통 ───────────────────────────────────────────────────────── */
+.meta-footnote { margin: 12px 2px 0; color: var(--muted-dim); font: 500 12px var(--ui-font); line-height: 1.5; }
+
+/* ── 오늘의 미션 ──────────────────────────────────────────────────────────────── */
+.mission-summary {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  margin: 0 0 12px; padding: 12px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel);
+  color: var(--muted); font: 500 13px var(--ui-font);
+}
+.mission-summary b { color: var(--text); font-weight: 600; }
+.mission-summary-reset { display: inline-flex; align-items: center; gap: 6px; }
+.mission-summary-reset svg { color: var(--gold); }
+.mission-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.mission-card {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel);
+}
+.mission-card.is-ready { border-color: var(--positive); }
+.mission-card.is-claimed { border-color: var(--gold-line-soft); }
+.mission-reward {
+  display: grid; place-content: center; justify-items: center; gap: 2px; width: 64px; height: 64px;
+  border: 1px solid var(--gold-line); border-radius: 12px; background: var(--panel-sunken);
+}
+.mission-reward b { color: var(--gold-light); font: 700 21px var(--ui-font); line-height: 1; }
+.mission-reward small { color: var(--muted); font: 500 12px var(--ui-font); }
+.mission-card.is-claimed .mission-reward { border-color: var(--line-strong); }
+.mission-card.is-claimed .mission-reward b { color: var(--muted); }
+.mission-body { display: grid; gap: 4px; min-width: 0; }
+.mission-body strong { color: var(--text); font: 600 16px var(--ui-font); }
+.mission-body small { color: var(--muted); font: 500 12.5px var(--ui-font); line-height: 1.45; }
+.mission-progress { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 4px; }
+.mission-progress em { color: var(--text); font: 600 12.5px var(--ui-font); font-style: normal; white-space: nowrap; }
+.mission-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 104px; min-height: 44px; padding: 0 14px;
+  border-radius: var(--radius-sm); font: 600 13.5px var(--ui-font); text-decoration: none; white-space: nowrap;
+}
+.mission-action.is-claim { border: 0; background: var(--gold-btn); color: var(--on-gold); cursor: pointer; transition: background .15s; }
+.mission-action.is-claim:hover:not(:disabled) { background: var(--gold-btn-hover); }
+.mission-action.is-claim:disabled { opacity: .6; cursor: progress; }
+.mission-action.is-go { border: 1px solid var(--gold-line); color: var(--gold-light); transition: background .15s; }
+.mission-action.is-go:hover { background: var(--gold-wash); }
+.mission-action.is-claimed { color: var(--gold); }
+
+@media (max-width: 620px) {
+  .mission-summary { padding: 10px 12px; font-size: 12.5px; }
+  .mission-card { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; padding: 12px; }
+  .mission-reward { width: 52px; height: 52px; border-radius: 10px; }
+  .mission-reward b { font-size: 18px; }
+  .mission-body strong { font-size: 15px; }
+  /* 버튼은 카드 아래 한 줄을 다 쓴다 — 엄지가 닿는 넓이. */
+  .mission-action { grid-column: 1 / -1; width: 100%; }
+  .mission-action.is-claimed { min-height: 24px; }
+}
+
+/* ── 랭킹 ────────────────────────────────────────────────────────────────────── */
+.meta-tabs { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0 0 12px; }
+.meta-segmented { display: inline-grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; padding: 3px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-sunken); }
+.meta-segmented button {
+  min-height: 36px; padding: 0 18px;
+  border: 0; border-radius: 7px; background: transparent;
+  color: var(--muted); font: 600 13px var(--ui-font); white-space: nowrap; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.meta-segmented button:hover { color: var(--text); }
+.meta-segmented button[aria-pressed="true"] { background: var(--gold-btn); color: var(--on-gold); }
+@media (pointer: coarse) { .meta-segmented button { min-height: 44px; } }
+
+.profile-panel.leaderboard-panel { padding: 14px 14px 0; transition: opacity .15s; }
+.leaderboard-panel.is-stale { opacity: .55; }
+.leaderboard-list { margin: 0; padding: 0; list-style: none; }
+.leaderboard-row {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  min-height: 46px; padding: 0 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text); font: 500 14px var(--ui-font);
+}
+.leaderboard-row .rank-medal { width: 28px; height: 28px; font-size: 13px; }
+.leaderboard-row b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* 단상: 1위 금, 2위 은, 3위 동 테두리. 카드 안 글자는 가운데. */
+.leaderboard-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 6px; padding: 0; list-style: none; }
+.podium-card {
+  position: relative; display: grid; justify-items: center; align-content: center; gap: 6px; min-width: 0;
+  min-height: 132px; padding: 16px 12px;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel-sunken);
+  text-align: center;
+}
+.podium-card .rank-medal { width: 40px; height: 40px; font-size: 17px; }
+.podium-card .leaderboard-name { max-width: 100%; color: var(--text); font: 600 16px var(--ui-font); }
+.podium-card b { font: 700 18px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.podium-card.r1 { border-color: var(--gold); background: var(--gold-wash); }
+.podium-card.r2 { border-color: rgba(196, 202, 211, .55); }
+.podium-card.r3 { border-color: rgba(201, 138, 85, .6); }
+.podium-card.is-me { box-shadow: inset 0 0 0 1px var(--gold-light); }
+.podium-me { position: absolute; top: 10px; right: 10px; padding: 1px 7px; border-radius: 999px; background: var(--gold); color: var(--on-gold); font: 700 12px var(--ui-font); }
+.leaderboard-row.is-me { box-shadow: inset 3px 0 0 var(--gold); }
+.leaderboard-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.leaderboard-name small { margin-left: 7px; padding: 1px 7px; border-radius: 999px; background: var(--gold); color: var(--on-gold); font: 700 12px var(--ui-font); vertical-align: 1px; }
+/* 내 순위는 목록이 길어도 화면 아래에 붙어 있다. .app-shell 의 overflow-x:hidden 은 sticky 의 기준을
+   자기 자신으로 바꿔 버리므로(스크롤하지 않는 상자라 영영 안 붙는다) 이 화면에서만 clip 으로 바꾼다.
+   html·body·#root 도 같은 이유 — 관리자 레일(styles.css 의 html:has(.admin-layout))과 같은 처리. */
+html:has(.leaderboard-me), html:has(.leaderboard-me) body, html:has(.leaderboard-me) #root, .app-shell:has(.leaderboard-me) { overflow-x: clip; }
+.leaderboard-me {
+  position: sticky; bottom: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 52px; margin: 0 -14px; padding: 0 24px;
+  border-top: 1px solid var(--gold-deep); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--panel-2);
+  color: var(--muted); font: 500 13px var(--ui-font);
+}
+.leaderboard-me b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.leaderboard-me-rank b { color: var(--gold-light); }
+.leaderboard-me-rank small { color: var(--muted-dim); font-size: 12px; }
+
+@media (max-width: 720px) {
+  /* 폰 아래 탭 줄 위에 붙는다. */
+  .leaderboard-me { bottom: calc(59px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 620px) {
+  .meta-tabs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .meta-segmented { display: grid; }
+  .meta-segmented button { padding: 0 8px; }
+  .leaderboard-row { gap: 10px; padding: 0 6px; font-size: 13.5px; }
+  .leaderboard-podium { gap: 6px; }
+  .podium-card { gap: 5px; min-height: 112px; padding: 12px 6px; }
+  .podium-card .rank-medal { width: 32px; height: 32px; font-size: 15px; }
+  .podium-card .leaderboard-name { font-size: 13.5px; }
+  .podium-card b { font-size: 13.5px; }
+  .podium-me { top: 6px; right: 6px; padding: 0 6px; }
+  .leaderboard-me { padding: 0 18px; }
+}
+
+/* ── 프로필 업적 ─────────────────────────────────────────────────────────────── */
+.meta-panel-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.meta-panel-heading span { color: var(--muted); font: 600 13px var(--ui-font); font-variant-numeric: tabular-nums; }
+.meta-panel-heading span b { color: var(--gold-light); }
+/* 배지가 12개라 4·3·2칸이면 마지막 줄이 늘 꽉 찬다(auto-fill 이면 5칸 + 빈 세 칸이 났다). */
+.badge-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 980px) { .badge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.badge-card {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px;
+  min-height: 86px; padding: 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-sunken);
+}
+.badge-icon {
+  display: grid; place-items: center; width: 44px; height: 44px;
+  border: 1.5px solid var(--line-strong); border-radius: 50%; background: var(--panel);
+  color: var(--muted-dim);
+}
+.badge-card.is-achieved { border-color: var(--gold-line); background: var(--panel-2); }
+.badge-card.is-achieved .badge-icon { border-color: var(--gold); background: var(--gold); color: var(--on-gold); }
+.badge-body { display: grid; gap: 3px; min-width: 0; }
+.badge-body strong { color: var(--muted); font: 600 14px var(--ui-font); }
+.badge-card.is-achieved .badge-body strong { color: var(--text); }
+.badge-body small { color: var(--muted-dim); font: 500 12px var(--ui-font); line-height: 1.4; }
+.badge-date { color: var(--gold); font: 600 12px var(--ui-font); font-style: normal; }
+.badge-progress { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 2px; }
+.badge-progress .meta-bar { height: 6px; }
+.badge-progress em { color: var(--muted); font: 600 12px var(--ui-font); font-style: normal; white-space: nowrap; }
+
+@media (max-width: 620px) {
+  .badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .badge-card { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-height: 0; padding: 10px; }
+  .badge-icon { width: 36px; height: 36px; }
+  .badge-icon svg { width: 17px; height: 17px; }
+}

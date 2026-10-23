@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#1f7a57"/>
+      <stop offset=".55" stop-color="#0f4a35"/>
+      <stop offset="1" stop-color="#04180f"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6dc8a"/>
+      <stop offset=".5" stop-color="#c9982f"/>
+      <stop offset="1" stop-color="#8a5f14"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffe9a0" stop-opacity=".85"/>
+      <stop offset=".45" stop-color="#f0b41c" stop-opacity=".38"/>
+      <stop offset="1" stop-color="#f0b41c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rayfade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="-400">
+      <stop offset="0" stop-color="#ffe08a" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#ffe08a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf7"/>
+      <stop offset="1" stop-color="#ece4d2"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000" flood-opacity=".55"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+
+    <!-- 무늬 네 개: 원점 중심, 대략 ±64 -->
+    <g id="sp"><path d="M0 -64C-18 -38 -62 -14 -50 22C-44 42 -20 44 -8 28C-10 46 -14 54 -24 62L24 62C14 54 10 46 8 28C20 44 44 42 50 22C62 -14 18 -38 0 -64Z"/></g>
+    <g id="ht"><path d="M0 -20c-18-26-56-8-48 22 5 18 33 38 48 52 15-14 43-34 48-52 8-30-30-48-48-22z" transform="translate(0 -4) scale(1.1)"/></g>
+    <g id="di"><path d="M0 -66L42 0L0 66L-42 0Z"/></g>
+    <g id="cl"><circle cx="0" cy="-34" r="27"/><circle cx="-33" cy="10" r="27"/><circle cx="33" cy="10" r="27"/><circle cx="0" cy="0" r="16"/><path d="M-7 8Q-7 44 -24 64H24Q7 44 7 8Z"/></g>
+
+    <!-- 카드 한 장: 아래 가운데가 원점, 위로 350 -->
+    <g id="card">
+      <rect x="-125" y="-350" width="250" height="350" rx="18" fill="url(#face)"/>
+      <rect x="-125" y="-350" width="250" height="350" rx="18" fill="none" stroke="#b8a77f" stroke-opacity=".55" stroke-width="2"/>
+    </g>
+    <path id="ray" d="M0 0L-26 -400L26 -400Z" fill="url(#rayfade)"/>
+    <g id="chip">
+      <circle r="44" fill="#a3172b"/>
+      <circle r="44" fill="none" stroke="#fff" stroke-width="7" stroke-dasharray="14 14" opacity=".9"/>
+      <circle r="30" fill="#7c0f20" stroke="url(#gold)" stroke-width="3"/>
+      <circle r="14" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#felt)"/>
+  <ellipse cx="600" cy="370" rx="540" ry="260" fill="none" stroke="url(#gold)" stroke-width="5" opacity=".5"/>
+  <ellipse cx="600" cy="370" rx="568" ry="280" fill="none" stroke="url(#gold)" stroke-width="2" opacity=".32"/>
+
+  <!-- 칩 두 더미 -->
+  <g filter="url(#shadow)">
+    <use href="#chip" transform="translate(84 602)"/>
+    <use href="#chip" transform="translate(84 586)"/>
+    <use href="#chip" transform="translate(84 570)"/>
+    <use href="#chip" transform="translate(1118 612)"/>
+    <use href="#chip" transform="translate(1118 596)"/>
+  </g>
+
+  <!-- 1등 카드 뒤: 후광과 빛살 -->
+  <ellipse cx="702" cy="395" rx="330" ry="300" fill="url(#halo)"/>
+  <g transform="translate(702 470)" opacity=".8">
+    <use href="#ray" transform="rotate(-56)"/>
+    <use href="#ray" transform="rotate(-42)"/>
+    <use href="#ray" transform="rotate(-28)"/>
+    <use href="#ray" transform="rotate(-14)"/>
+    <use href="#ray"/>
+    <use href="#ray" transform="rotate(14)"/>
+    <use href="#ray" transform="rotate(28)"/>
+    <use href="#ray" transform="rotate(42)"/>
+    <use href="#ray" transform="rotate(56)"/>
+  </g>
+
+  <!-- 왼쪽부터 ♠ ♥ ♣, 마지막에 1등(♦ 에이스)을 위로. 통째로 조금 줄여 가장자리에서 안 잘리게 -->
+  <g transform="translate(600 330) scale(.9) translate(-600 -340)">
+  <!-- ♠ : 세 개 -->
+  <g transform="translate(285 655) rotate(-13)" filter="url(#shadow)">
+    <use href="#card"/>
+    <g fill="#16181d">
+      <use href="#sp" transform="translate(0 -278) scale(.7)"/>
+      <use href="#sp" transform="translate(0 -175) scale(.7)"/>
+      <use href="#sp" transform="translate(0 -72) scale(.7)"/>
+      <use href="#sp" transform="translate(-92 -314) scale(.3)"/>
+      <use href="#sp" transform="translate(92 -36) rotate(180) scale(.3)"/>
+    </g>
+  </g>
+  <!-- ♥ : 다섯 개 -->
+  <g transform="translate(492 642) rotate(-5)" filter="url(#shadow)">
+    <use href="#card"/>
+    <g fill="#c8202f">
+      <use href="#ht" transform="translate(-58 -268) scale(.68)"/>
+      <use href="#ht" transform="translate(58 -268) scale(.68)"/>
+      <use href="#ht" transform="translate(0 -175) scale(.68)"/>
+      <use href="#ht" transform="translate(-58 -82) scale(.68)"/>
+      <use href="#ht" transform="translate(58 -82) scale(.68)"/>
+      <use href="#ht" transform="translate(-92 -314) scale(.28)"/>
+      <use href="#ht" transform="translate(92 -36) rotate(180) scale(.28)"/>
+    </g>
+  </g>
+  <!-- ♣ : 네 개 -->
+  <g transform="translate(915 655) rotate(13)" filter="url(#shadow)">
+    <use href="#card"/>
+    <g fill="#16181d">
+      <use href="#cl" transform="translate(-56 -255) scale(.72)"/>
+      <use href="#cl" transform="translate(56 -255) scale(.72)"/>
+      <use href="#cl" transform="translate(-56 -95) scale(.72)"/>
+      <use href="#cl" transform="translate(56 -95) scale(.72)"/>
+      <use href="#cl" transform="translate(-92 -314) scale(.28)"/>
+      <use href="#cl" transform="translate(92 -36) rotate(180) scale(.28)"/>
+    </g>
+  </g>
+  <!-- ♦ : 에이스 — 위로 올라와 금테 -->
+  <g transform="translate(702 590) rotate(4)">
+    <rect x="-136" y="-362" width="272" height="374" rx="24" fill="#ffd25a" opacity=".6" filter="url(#glow)"/>
+    <g filter="url(#shadow)">
+      <use href="#card"/>
+      <rect x="-125" y="-350" width="250" height="350" rx="18" fill="none" stroke="url(#gold)" stroke-width="7"/>
+      <g fill="#c8202f">
+        <use href="#di" transform="translate(0 -175) scale(1.5)"/>
+        <use href="#di" transform="translate(-92 -314) scale(.3)"/>
+        <use href="#di" transform="translate(92 -36) rotate(180) scale(.3)"/>
+      </g>
+    </g>
+    <!-- 왕관 -->
+    <g transform="translate(0 -372)" filter="url(#shadow)">
+      <path d="M-74 0L-86 -66L-42 -34L0 -92L42 -34L86 -66L74 0Z" fill="url(#gold)" stroke="#f9e8a8" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="-76" y="-12" width="152" height="18" rx="6" fill="url(#gold)" stroke="#f9e8a8" stroke-width="3"/>
+      <circle cx="-86" cy="-70" r="9" fill="#fff6cf"/>
+      <circle cx="0" cy="-96" r="11" fill="#e63946" stroke="#fff6cf" stroke-width="3"/>
+      <circle cx="86" cy="-70" r="9" fill="#fff6cf"/>
+      <circle cx="-34" cy="-2" r="4" fill="#7c0f20"/>
+      <circle cx="0" cy="-2" r="4" fill="#7c0f20"/>
+      <circle cx="34" cy="-2" r="4" fill="#7c0f20"/>
+    </g>
+  </g>
+  </g>
+</svg>

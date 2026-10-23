@@ -1,0 +1,144 @@
+/* =============================================================================
+   연습 판(/learn) — 진짜 방 화면 위에 띠 하나와 코치 말풍선만 얹는다.
+   방 화면(.game-shell)은 원래 100dvh 를 혼자 쓰므로, 띠가 들어갈 자리만큼 줄여 세로 스크롤을 막는다.
+   ============================================================================= */
+.learn-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+.learn-root > .game-shell,
+.learn-root > .loading-screen { flex: 1 1 0; min-height: 0; height: auto; }
+
+/* 위 띠: 연습 중이라는 사실 + 처음부터 · 건너뛰기. 코치가 판을 덮어도 늘 눌린다. */
+.learn-strip {
+  position: relative;
+  z-index: 9003;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--gold-line);
+  background: #241b0c;
+  color: var(--gold-pale);
+  font: 500 12px var(--ui-font);
+}
+.learn-strip p { min-width: 0; margin: 0 4px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.learn-strip b { color: var(--gold-light); font-weight: 700; }
+.learn-strip button {
+  position: relative;
+  flex: none;
+  min-height: 24px;
+  padding: 0 12px;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gold-light);
+  font: 600 12px var(--ui-font);
+  cursor: pointer;
+}
+.learn-strip button:hover { background: var(--gold-wash); }
+.learn-strip button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+/* 손가락으로 누를 땐 44px — 띠는 얇게 두고 누르는 자리만 위아래로 넓힌다. */
+@media (pointer: coarse) {
+  .learn-strip button::after { content: ""; position: absolute; inset: -10px -4px; }
+}
+
+/* 판 덮개: 짚은 요소만 구멍(clip-path)으로 남긴다. 클릭은 코치의 가드가 막으므로 덮개는 그림일 뿐이다. */
+.learn-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(6, 5, 3, .58);
+  pointer-events: none;
+}
+
+.learn-ring {
+  position: fixed;
+  z-index: 9001;
+  border: 2px solid var(--gold-light);
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgba(255, 210, 74, .18);
+  pointer-events: none;
+}
+/* 눌러야 하는 곳은 숨 쉬듯 한 번 더 — 설명만 하는 곳과 구분된다. */
+.learn-ring.is-act { animation: learn-ring-pulse 1.4s ease-in-out infinite; }
+@keyframes learn-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 210, 74, .18); }
+  50% { box-shadow: 0 0 0 9px rgba(255, 210, 74, .06); }
+}
+@media (prefers-reduced-motion: reduce) { .learn-ring.is-act { animation: none; } }
+
+.learn-coach {
+  position: fixed;
+  z-index: 9002;
+  box-sizing: border-box;
+  width: min(330px, calc(100vw - 16px));
+  padding: 12px 14px 12px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius-md);
+  background: var(--panel-raised);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+  color: var(--text);
+  font-family: var(--ui-font);
+}
+.learn-coach header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.learn-coach header strong { color: var(--gold-light); font-size: 15px; font-weight: 700; }
+.learn-coach header small { flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.learn-coach p { margin: 6px 0 0; font-size: 13px; line-height: 1.55; white-space: pre-line; word-break: keep-all; overflow-wrap: anywhere; }
+.learn-coach footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.learn-coach footer:empty { display: none; }
+.learn-primary,
+.learn-secondary {
+  min-height: 34px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  font: 700 13px var(--ui-font);
+  cursor: pointer;
+}
+.learn-primary { border: 0; background: var(--gold-btn); color: var(--on-gold); }
+.learn-primary:hover { background: var(--gold-btn-hover); }
+.learn-secondary { border: 1px solid var(--gold-line); background: transparent; color: var(--gold-light); }
+.learn-secondary:hover { background: var(--gold-wash); }
+.learn-primary:focus-visible,
+.learn-secondary:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 2px; }
+@media (pointer: coarse) { .learn-primary, .learn-secondary { min-height: 44px; } }
+.learn-do { margin-right: auto; color: var(--gold-pale); font-size: 12px; font-weight: 600; }
+.learn-coach.is-end { width: min(360px, calc(100vw - 16px)); text-align: center; }
+.learn-coach.is-end header { justify-content: center; }
+.learn-coach.is-end header strong { font-size: 18px; }
+.learn-coach.is-end footer { justify-content: center; }
+
+/* 말풍선 꼬리 — 짚은 요소 쪽 변에. */
+.learn-coach::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: solid var(--gold-line);
+  border-width: 1px 0 0 1px;
+  background: var(--panel-raised);
+}
+.learn-coach[data-side="none"]::after { display: none; }
+.learn-coach[data-side="below"]::after { top: -7px; left: calc(var(--arrow) - 6px); transform: rotate(45deg); }
+.learn-coach[data-side="above"]::after { bottom: -7px; left: calc(var(--arrow) - 6px); transform: rotate(225deg); }
+.learn-coach[data-side="right"]::after { left: -7px; top: calc(var(--arrow) - 6px); transform: rotate(-45deg); }
+.learn-coach[data-side="left"]::after { right: -7px; top: calc(var(--arrow) - 6px); transform: rotate(135deg); }
+
+/* 가로 폰: 세로 390px 안에 말풍선과 짚은 버튼이 같이 들어가야 한다. */
+@media (max-height: 540px) {
+  .learn-strip { min-height: 26px; font-size: 12px; }
+  .learn-strip button { min-height: 22px; padding: 0 10px; }
+  /* 280 — 가로 폰에서 보드 오른쪽 빈 자리(약 290px)에 말풍선이 들어가는 폭. */
+  .learn-coach { width: min(280px, calc(100vw - 16px)); padding: 9px 12px; }
+  .learn-coach header strong { font-size: 14px; }
+  .learn-coach p { margin-top: 4px; font-size: 12.5px; line-height: 1.45; }
+  .learn-coach footer { margin-top: 7px; }
+}
