@@ -130,7 +130,7 @@ export function payoutForSicBoBet(choice: string, dice: Dice, stake: number, tab
 
    자리 54개(대·소·홀·짝을 뺀 48칸, 싱글은 2개·3개 일치로 나눠 12자리). 판마다 자리마다 따로 q 의
    확률로 번개가 떨어지고(0개인 판도 있다), 값은 그 자리 목록에서 고르게 하나. 값 목록은 에볼루션
-   공식 범위 안(docs/research/roulette-sicbo/B-evolution-sicbo.md B1 표).
+   공식 범위 안.
 
    q 는 목표 RTP 에서 거꾸로 푼다. 번개는 주사위와 독립이라 식이 닫혀 있다:
      RTP = 기본RTP + q · P(이김) · (E[배수] − 기본 반환)

@@ -185,7 +185,7 @@
 /* 내 순위는 목록이 길어도 화면 아래에 붙어 있다. .app-shell 의 overflow-x:hidden 은 sticky 의 기준을
    자기 자신으로 바꿔 버리므로(스크롤하지 않는 상자라 영영 안 붙는다) 이 화면에서만 clip 으로 바꾼다.
    html·body·#root 도 같은 이유 — 관리자 레일(styles.css 의 html:has(.admin-layout))과 같은 처리. */
-html:has(.leaderboard-me), html:has(.leaderboard-me) body, html:has(.leaderboard-me) #root, .app-shell:has(.leaderboard-me) { overflow-x: clip; }
+html:has(.leaderboard-me), body:has(.leaderboard-me), #root:has(.leaderboard-me), .app-shell:has(.leaderboard-me) { overflow-x: clip; } /* :has() 는 대상 자신에게만(styles.css 관리자 화면 주석) */
 .leaderboard-me {
   position: sticky; bottom: 0; z-index: 2;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;

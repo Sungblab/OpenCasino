@@ -52,9 +52,9 @@
 
 /* 세로 폰: 위 줄 TIE | SUITED TIE, 아래 줄 DRAGON | TIGER — 바카라(사이드 한 줄 + 메인 두 칸)와 같은 모양.
    데스크톱처럼 가운데에 두 칸을 쌓으면 폰에선 그 열이 100px 남짓이라 칩 더미가 글씨를 덮는다. 칸 높이는
-   바카라와 같이 고정(사이드 40px, 메인은 남는 높이)이라 베팅해도 바뀌지 않는다. */
+   바카라와 같이 고정(사이드 40px, 메인은 --bac-main-h: 화면 높이에 따라 64~120px)이라 베팅해도 바뀌지 않는다. */
 @media (max-width: 900px) and (orientation: portrait) {
-  .bac-room.is-columns .bac-grid.is-dt { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto minmax(64px, 1fr); }
+  .bac-room.is-columns .bac-grid.is-dt { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto var(--bac-main-h); }
   .bac-room.is-columns .bac-grid.is-dt .zone-tie { grid-column: 1; grid-row: 1; }
   .bac-room.is-columns .bac-grid.is-dt .zone-suited_tie { grid-column: 2; grid-row: 1; }
   .bac-room.is-columns .bac-grid.is-dt .zone-dragon { grid-column: 1; grid-row: 2; }

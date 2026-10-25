@@ -9,13 +9,8 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 /**
  * 웹 빌드용 환경 파일은 apps/web 에 둔다(envDir = apps/web).
  *
- * 예전에는 envDir 가 저장소 루트였고, 운영 빌드용 VITE_API_URL 이 루트의 `.env.production` 에
- * 있었다. 그런데 서버의 비밀값 파일(DATABASE_URL·JWT_SECRET·POSTGRES_*)도 같은 이름이라, 문서의
- * `scp -r .` 배포가 서버의 비밀값을 이 파일로 덮어썼다. 이제 운영 빌드 값은 apps/web/.env.production,
- * 서버 비밀값은 루트의 .env.server(저장소에 없음)로 이름부터 갈라 둔다.
- *
- * 개발은 그대로 둔다: 개발자 대부분이 루트 .env 에 VITE_API_URL 을 넣어 쓰고 있으므로, production 이
- * 아닌 모드(dev, --mode qa 등)에서는 루트의 .env / .env.local / .env.[mode] 에 있는 VITE_* 를
+ * 개발: 루트 .env 에 VITE_API_URL 을 넣어 쓰고 있으므로, production 이
+ * 아닌 모드(dev 등)에서는 루트의 .env / .env.local / .env.[mode] 에 있는 VITE_* 를
  * 뒤에 받쳐 준다. 우선순위: 셸 환경변수 > apps/web 의 파일 > 루트의 파일. 운영 빌드(mode=production)는
  * 루트를 보지 않는다 — 루트 .env 의 개발용 http://127.0.0.1:5100 이 운영 번들에 박히면 브라우저가
  * 자기 자신에게 요청해서 Failed to fetch 가 난다.

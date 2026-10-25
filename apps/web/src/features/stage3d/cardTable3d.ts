@@ -4,6 +4,7 @@ import {
   BoxGeometry,
   CanvasTexture,
   CapsuleGeometry,
+  CatmullRomCurve3,
   Color,
   CylinderGeometry,
   HemisphereLight,
@@ -13,7 +14,6 @@ import {
   ExtrudeGeometry,
   FrontSide,
   Group,
-  LineCurve3,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
@@ -23,14 +23,12 @@ import {
   Path,
   PlaneGeometry,
   Quaternion,
-  RepeatWrapping,
   SRGBColorSpace,
   Shape,
   ShapeGeometry,
   TubeGeometry,
   Vector2,
   Vector3,
-  Curve,
   type Texture,
 } from "three";
 import { bokehBackdrop, feltNormal, leatherNormal, woodMaps } from "./materials";
@@ -90,7 +88,7 @@ export interface FeltPainter {
 }
 
 /**
- * 펠트에 찍는 OpenCasino 엠블럼(금빛 고리 + OC + 글자). 실제 테이블처럼 은은하게 — 카드보다 눈에 띄면 안 된다.
+ * 펠트에 찍는 골든 카지노 엠블럼(금빛 고리 + GC + 글자). 실제 테이블처럼 은은하게 — 카드보다 눈에 띄면 안 된다.
  * x·z 는 월드 좌표, r 은 고리 반지름(월드).
  */
 export function paintEmblem(g: CanvasRenderingContext2D, px: (x: number) => number, pz: (z: number) => number, unit: number, x: number, z: number, r: number): void {
@@ -123,9 +121,9 @@ export function paintEmblem(g: CanvasRenderingContext2D, px: (x: number) => numb
   g.textBaseline = "middle";
   g.font = `700 ${Math.round(R * 0.78)}px ${DISPLAY_FONT}`;
   g.fillStyle = shade;
-  g.fillText("OC", cx, cy + R * 0.02 + lift);
+  g.fillText("GC", cx, cy + R * 0.02 + lift);
   g.fillStyle = foil;
-  g.fillText("OC", cx, cy + R * 0.02);
+  g.fillText("GC", cx, cy + R * 0.02);
   // 아래 글자는 안쪽 고리(0.88R)의 그 높이 현(弦) 안에 들어가게 폭을 재서 줄인다 — 그냥 두면 글자 끝이 고리를 넘었다.
   const textY = R * 0.56;
   const chord = 2 * Math.sqrt((R * 0.88) ** 2 - textY ** 2) * 0.86;
@@ -157,19 +155,21 @@ function drawCanvas(w: number, h: number, draw: (ctx: CanvasRenderingContext2D) 
 const PRINT = { x0: -6.4, z0: -4.4, w: 12.8, d: 8.8 };
 const PRINT_PX = 160;
 
-/** 테이블 가장자리 타원(xz) 위를 도는 곡선 — 플레이어 쪽 가죽 팔걸이의 뼈대. a0→a1 은 각(라디안, +z 쪽이 sin>0). */
-class RimCurve extends Curve<Vector3> {
-  constructor(private readonly cx: number, private readonly cz: number, private readonly rx: number, private readonly rz: number, private readonly y: number, private readonly a0: number, private readonly a1: number) {
-    super();
-  }
-  override getPoint(t: number, target = new Vector3()): Vector3 {
-    const a = this.a0 + (this.a1 - this.a0) * t;
-    return target.set(this.cx + this.rx * Math.cos(a), this.y, this.cz + this.rz * Math.sin(a));
-  }
-}
+/**
+ * 플레이어 쪽 테이블 가장자리. 이 바깥은 펠트 대신 가죽 팔걸이와 나무 테두리다.
+ * 타원(바카라·용호): 펠트 가장자리 타원, 팔걸이 가운데에 황동 명판. edge(블랙잭): 좌석 호를 따라가는 펠트 가장자리
+ * 점들(왼쪽→오른쪽) — 블랙잭 좌석은 얕은 호라 타원으로는 가장자리 좌석에 팔걸이가 걸렸다. scale 은 팔걸이 굵기 배율.
+ */
+export type TableRim = { cz: number; rx: number; rz: number } | { edge: Array<{ x: number; z: number }>; scale?: number };
 
-/** 플레이어 쪽 테이블 가장자리(타원). 이 바깥은 펠트 대신 나무 테두리와 어둠이다. */
-export interface TableRim { cz: number; rx: number; rz: number }
+/** 점들을 진행 방향의 오른쪽(왼쪽→오른쪽으로 가면 +z, 플레이어 쪽)으로 d 만큼 민다. */
+function offsetEdge(points: Array<{ x: number; z: number }>, d: number): Array<{ x: number; z: number }> {
+  return points.map((p, i) => {
+    const a = points[Math.max(0, i - 1)]!, b = points[Math.min(points.length - 1, i + 1)]!;
+    const len = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    return { x: p.x - ((b.z - a.z) / len) * d, z: p.z + ((b.x - a.x) / len) * d };
+  });
+}
 
 /**
  * vipRoom: VIP 시크릿 룸이면 모두에게 블랙 골드 펠트. 아니면 상점에서 장착한 펠트(내 화면만), 없으면 게임 기본색.
@@ -227,6 +227,7 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     n.putImageData(img, 0, 0);
   });
   const printCanvas = drawCanvas(Math.round(PRINT.w * PRINT_PX), Math.round(PRINT.d * PRINT_PX), () => {});
+  const inkCanvas = drawCanvas(printCanvas.width, printCanvas.height, () => {});
   const printTex = texture(printCanvas);
   const print = new Mesh(new PlaneGeometry(PRINT.w, PRINT.d), new MeshPhysicalMaterial({
     map: printTex, roughness: 0.92, sheen: 0.6, sheenRoughness: 0.8, sheenColor: feltSheen,
@@ -269,43 +270,103 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     g.fillStyle = dark;
     g.fillRect(0, 0, w, h);
     g.restore();
-    painter?.(g, px, pz, PRINT_PX);
+    if (painter) {
+      // 인쇄는 따로 그려 잉크가 천에 번진 옅은 테두리를 먼저 깐다 — 실제 레이아웃은 염료 승화라 잉크가 섬유에 스며
+      // 평평하다(도드라진 그림자를 주면 스티커처럼 떴다). 그림자만 그리려고 그림은 판 밖에 두고 그림자를 끌어온다.
+      const ink = inkCanvas.getContext("2d")!;
+      ink.clearRect(0, 0, w, h);
+      painter(ink, px, pz, PRINT_PX);
+      g.save();
+      g.shadowColor = "rgba(0,0,0,.3)";
+      g.shadowOffsetX = w;
+      g.shadowOffsetY = 0.5;
+      g.shadowBlur = 2.5;
+      g.drawImage(inkCanvas, -w, 0);
+      g.restore();
+      g.drawImage(inkCanvas, 0, 0);
+    }
     printTex.needsUpdate = true;
   };
 
-  // 딜러 쪽 가죽 레일과 턱(게임이 자리를 정한다). 가죽은 오돌토돌한 노멀맵에 얇은 광택(clearcoat), 나무는 결.
+  /**
+   * 판 상태에 따라 켜고 끄거나 다시 그리는 인쇄(블랙잭 규칙 문구·좌석 동그라미)는 펠트와 따로, 그 자리만 덮는 작은 판에
+   * 그린다. 펠트에 그려 두면 바꿀 때마다 2048×1408 그림 전체를 다시 그려 GPU 로 올려야 해서(밉맵까지) 결과가 뜰 때와
+   * 카드를 다 쓸어 담은 직후에 프레임이 떨어졌다. 켜고 끄기는 보이기만 바꾸고, 다시 그리기도 이 작은 판만 올린다.
+   * rect 는 월드 xz 사각형, paint 는 펠트 painter 와 같은 좌표 약속(px·pz 가 월드 → 이 판의 캔버스).
+   */
+  const decal = () => {
+    const canvas = drawCanvas(1, 1, () => {});
+    const ink = drawCanvas(1, 1, () => {});
+    const tex = texture(canvas);
+    const mesh = new Mesh(new PlaneGeometry(1, 1), new MeshStandardMaterial({
+      map: tex, transparent: true, depthWrite: false, roughness: 0.92,
+      normalMap: feltNormal([1, 1]), normalScale: new Vector2(0.35, 0.35),
+      polygonOffset: true, polygonOffsetFactor: -1,
+    }));
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.y = 0.0005;
+    mesh.receiveShadow = true;
+    mesh.visible = false;
+    scene.add(mesh);
+    let rect = { x0: 0, z0: 0, w: 0, d: 0 };
+    let shown = true;
+    return {
+      paint(next: { x0: number; z0: number; w: number; d: number }, draw: FeltPainter) {
+        if (next.w !== rect.w || next.d !== rect.d) {
+          canvas.width = ink.width = Math.max(1, Math.round(next.w * PRINT_PX));
+          canvas.height = ink.height = Math.max(1, Math.round(next.d * PRINT_PX));
+          mesh.scale.set(next.w, next.d, 1);
+          (mesh.material.normalMap as Texture).repeat.set(next.w * 1.25, next.d * 1.25);
+          // 크기가 바뀐 캔버스는 GPU 쪽 그림도 새로 만들어야 한다(같은 텍스처에 크기만 바꿔 올리면 three 가 거부한다).
+          tex.dispose();
+        }
+        rect = next;
+        mesh.position.x = rect.x0 + rect.w / 2;
+        mesh.position.z = rect.z0 + rect.d / 2;
+        const g = canvas.getContext("2d")!, k = ink.getContext("2d")!;
+        g.clearRect(0, 0, canvas.width, canvas.height);
+        k.clearRect(0, 0, ink.width, ink.height);
+        draw(k, (x) => (x - rect.x0) * PRINT_PX, (z) => (z - rect.z0) * PRINT_PX, PRINT_PX);
+        // 펠트 인쇄와 같은 잉크 번짐(repaintFelt 주석).
+        g.save();
+        g.shadowColor = "rgba(0,0,0,.3)";
+        g.shadowOffsetX = canvas.width;
+        g.shadowOffsetY = 0.5;
+        g.shadowBlur = 2.5;
+        g.drawImage(ink, -canvas.width, 0);
+        g.restore();
+        g.drawImage(ink, 0, 0);
+        tex.needsUpdate = true;
+        mesh.visible = shown && rect.w > 0;
+      },
+      setVisible(on: boolean) {
+        shown = on;
+        mesh.visible = on && rect.w > 0;
+      },
+    };
+  };
+
+  // 가죽은 오돌토돌한 노멀맵에 은은한 광택(clearcoat) — 비닐을 감싸 밑에서 고정하는 실제 팔걸이처럼 윗면에 솔기가 없다.
   const leather = new MeshPhysicalMaterial({
     color: "#2b150c", roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.45,
     normalMap: leatherNormal([30, 1.5]), normalScale: new Vector2(0.6, 0.6),
   });
-  // 턱(20.4 × 1.8)의 면 UV 는 0~1 이라, 한 장(결 14줄)이 가로 약 2.5·세로 1.8 단위가 되게.
+  // 턱(20.4 × 3)의 면 UV 는 0~1 이라, 한 장(결 14줄)이 가로 약 2.5 단위가 되게.
   const woodTex = woodMaps("#5a321a", [8, 1]);
   const wood = new MeshPhysicalMaterial({ map: woodTex.map, normalMap: woodTex.normalMap, normalScale: new Vector2(0.4, 0.4), roughness: 0.42, clearcoat: 0.6, clearcoatRoughness: 0.25 });
   const brass = new MeshStandardMaterial({ color: "#d4a640", roughness: 0.24, metalness: 1 });
-  // 가죽 박음질: 점선 알파맵을 입힌 가는 관. 관의 UV u 가 길이 방향이라 repeat.x = 땀 수.
-  const stitchDash = texture(drawCanvas(32, 4, (g) => { g.fillStyle = "#fff"; g.fillRect(0, 0, 19, 4); }));
-  stitchDash.wrapS = RepeatWrapping;
-  const STITCH = 0.09;
-  const stitch = (path: Curve<Vector3>) => {
-    const dash = stitchDash.clone();
-    dash.repeat.set(Math.round(path.getLength() / STITCH), 1);
-    dash.needsUpdate = true;
-    return new Mesh(new TubeGeometry(path, Math.max(32, Math.round(path.getLength() * 12)), 0.007, 4, false), new MeshStandardMaterial({ color: "#cdb78f", roughness: 0.85, alphaMap: dash, alphaTest: 0.5 }));
-  };
-  // 둥근 가죽 단면(반지름 r, 중심 높이 y)의 윗면 양옆 솔기 자리: 꼭대기에서 50° 기운 곳.
-  const SEAM = { up: Math.cos((50 * Math.PI) / 180), side: Math.sin((50 * Math.PI) / 180) };
+  // 딜러 쪽 모서리(게임이 자리를 정한다). 실제 블랙잭·미니 바카라 테이블은 딜러 쪽에 팔걸이가 없다 — 곧은 나무 모서리에
+  // 칩 랙이 박혀 있다. 펠트보다 살짝 높은 니스 칠 나무판, 둥글린 앞 모서리, 펠트와 만나는 곳에 가는 황동 띠.
   const rail = new Group();
-  const railPad = new Mesh(new CapsuleGeometry(0.2, 19.6, 8, 20), leather);
-  railPad.rotation.z = Math.PI / 2;
-  railPad.position.y = 0.1;
-  railPad.castShadow = true;
-  const railLedge = new Mesh(new BoxGeometry(20.4, 0.2, 1.8), wood);
-  railLedge.position.set(0, 0.02, -1.05);
-  for (const side of [-1, 1]) {
-    const z = side * 0.2 * SEAM.side;
-    rail.add(stitch(new LineCurve3(new Vector3(-9.8, 0.1 + 0.2 * SEAM.up, z), new Vector3(9.8, 0.1 + 0.2 * SEAM.up, z))));
-  }
-  rail.add(railPad, railLedge);
+  const railLedge = new Mesh(new BoxGeometry(20.4, 0.1, 3), wood);
+  railLedge.position.set(0, 0, -1.5);
+  railLedge.receiveShadow = true;
+  const railNose = new Mesh(new CapsuleGeometry(0.05, 20.3, 6, 12), wood);
+  railNose.rotation.z = Math.PI / 2;
+  railNose.castShadow = true;
+  const railTrim = new Mesh(new BoxGeometry(20.4, 0.008, 0.03), brass);
+  railTrim.position.set(0, 0.004, 0.07);
+  rail.add(railLedge, railNose, railTrim);
   scene.add(rail);
 
   /* ───────── 플레이어 쪽 테이블 가장자리 ─────────
@@ -342,7 +403,7 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     g.textAlign = "center";
     g.textBaseline = "middle";
     g.font = `700 ${Math.round(h * 0.46)}px ${DISPLAY_FONT}`;
-    g.fillText("OPEN  CASINO", w / 2, h * 0.5);
+    g.fillText("GOLDEN  CASINO", w / 2, h * 0.5);
   }));
   plaqueTex.repeat.set(1 / PLAQUE_W, 1 / PLAQUE_H);
   plaqueTex.offset.set(0.5, 0.5);
@@ -364,14 +425,23 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
   const setRim = (rim: TableRim | null) => {
     disposeRim();
     if (!rim) return;
-    const pad = 0.2;
-    // 팔걸이: 타원 아래쪽 반을 조금 넘게(양 끝이 화면 옆으로 빠져나가게).
-    const curve = new RimCurve(0, rim.cz, rim.rx + pad, rim.rz + pad, pad * 0.75, -0.08 * Math.PI, 1.08 * Math.PI);
-    const arm = new Mesh(new TubeGeometry(curve, 160, pad, 16, false), leather);
+    const ellipse = "cz" in rim ? rim : null;
+    const s = "cz" in rim ? 1 : rim.scale ?? 1;
+    const pad = 0.2 * s;
+    // 펠트 가장자리(왼쪽→오른쪽). 타원은 아래쪽 반을 조금 넘게(양 끝이 화면 옆으로 빠져나가게).
+    const edge = "cz" in rim
+      ? Array.from({ length: 161 }, (_, i) => {
+        const a = (1.08 - (1.16 * i) / 160) * Math.PI;
+        return { x: rim.rx * Math.cos(a), z: rim.cz + rim.rz * Math.sin(a) };
+      })
+      : rim.edge;
+    const along = (d: number, y: number) => new CatmullRomCurve3(offsetEdge(edge, d).map((p) => new Vector3(p.x, y, p.z)));
+    const segments = Math.max(160, edge.length * 2);
+    const arm = new Mesh(new TubeGeometry(along(pad, pad * 0.75), segments, pad, 16, false), leather);
     arm.castShadow = true;
     arm.receiveShadow = true;
-    const inlay = new Mesh(new TubeGeometry(new RimCurve(0, rim.cz, rim.rx - 0.03, rim.rz - 0.03, 0.012, -0.08 * Math.PI, 1.08 * Math.PI), 160, 0.018, 6, false), brass);
-    // 바깥 나무판: 인쇄 영역을 덮는 큰 사각형에서 팔걸이 타원을 뚫는다.
+    const inlay = new Mesh(new TubeGeometry(along(-0.03 * s, 0.012), segments, 0.018 * s, 6, false), brass);
+    // 바깥 나무판: 인쇄 영역을 덮는 큰 사각형에서 팔걸이 안쪽을 뚫는다.
     const outer = new Shape();
     outer.moveTo(-40, -40);
     outer.lineTo(40, -40);
@@ -379,7 +449,16 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     outer.lineTo(-40, 40);
     outer.closePath();
     const hole = new Path();
-    hole.absellipse(0, -rim.cz, rim.rx + pad, rim.rz + pad, 0, Math.PI * 2, false, 0);
+    if (ellipse) hole.absellipse(0, -ellipse.cz, ellipse.rx + pad, ellipse.rz + pad, 0, Math.PI * 2, false, 0);
+    else {
+      // 팔걸이 중심선을 따라가다 딜러 쪽(레일·턱 뒤, 안 보이는 곳)으로 닫는다.
+      const line = offsetEdge(edge, pad);
+      hole.moveTo(line[0]!.x, -line[0]!.z);
+      for (const p of line.slice(1)) hole.lineTo(p.x, -p.z);
+      hole.lineTo(line[line.length - 1]!.x, 39);
+      hole.lineTo(line[0]!.x, 39);
+      hole.closePath();
+    }
     outer.holes.push(hole);
     const apronGeo = new ShapeGeometry(outer, 96);
     apronGeo.rotateX(-Math.PI / 2); // 모양의 y 가 −z 로 가고 앞면이 위를 본다(그래서 구멍 중심을 −cz 에 둔다)
@@ -387,13 +466,15 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     apron.position.y = 0.002;
     apron.receiveShadow = true;
     // 딜러 쪽(타원 위쪽 반)은 레일·턱이 가리므로 판이 덮어도 안 보인다. 펠트가 타원 안에만 남는다.
-    const seams = [-1, 1].map((side) => stitch(new RimCurve(0, rim.cz, rim.rx + pad + side * pad * SEAM.side, rim.rz + pad + side * pad * SEAM.side, pad * 0.75 + pad * SEAM.up, -0.08 * Math.PI, 1.08 * Math.PI)));
-    rimGroup.add(arm, inlay, apron, ...seams);
+    rimGroup.add(arm, inlay, apron);
     const plaqueGeo = new ExtrudeGeometry(plaqueShape, { depth: 0.02, bevelEnabled: true, bevelSize: 0.006, bevelThickness: 0.006, bevelSegments: 2 });
     plaqueGeo.rotateX(-Math.PI / 2); // 눕힌다: 모양의 위쪽이 −z(화면 위), 두께가 +y
     const plaque = new Mesh(plaqueGeo, plaqueMat);
     // 가죽 팔걸이(관) 위 가운데 — 바깥 나무 테두리는 화면 아래에 걸쳐 글자가 잘렸다. 관의 꼭대기(중심선 위, 높이 pad*1.75)에 얹는다.
-    plaque.position.set(0, pad * 1.75 - 0.006, rim.cz + rim.rz + pad);
+    // 호 모양 팔걸이(블랙잭)는 가운데(x=0)가 호의 바닥이라 거기서 접선이 수평이다 — 같은 자리에 팔걸이 굵기만큼 줄여 얹는다.
+    const middle = ellipse ? { x: 0, z: ellipse.cz + ellipse.rz + pad } : offsetEdge(edge, pad).reduce((best, p) => (Math.abs(p.x) < Math.abs(best.x) ? p : best));
+    plaque.position.set(middle.x, pad * 1.75 - 0.006, middle.z);
+    plaque.scale.setScalar(s);
     plaque.castShadow = true;
     plaque.receiveShadow = true;
     rimGroup.add(plaque);
@@ -439,10 +520,13 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     return promise;
   };
   const backTex = await imageTexture(cardBackUrl());
-  // 엎은 카드는 판을 z 축으로 뒤집어 뒷면(BackSide)을 보이므로, 그대로 붙이면 좌우가 거울처럼 뒤집혀 OC 가 거꾸로 읽힌다.
+  // 엎은 카드는 판을 z 축으로 뒤집어 뒷면(BackSide)을 보이므로, 그대로 붙이면 좌우가 거울처럼 뒤집혀 GC 가 거꾸로 읽힌다.
   const backFaceTex = backTex.clone();
   backFaceTex.repeat.x = -1;
   backFaceTex.offset.x = 1;
+  // 첫 그리기에서 올리면 첫 딜에서 멈칫한다 — 뒷면 그림은 입장 때 미리 GPU 에 올려 둔다.
+  renderer.initTexture(backTex);
+  renderer.initTexture(backFaceTex);
   backFaceTex.needsUpdate = true;
   const backMat = new MeshStandardMaterial({ map: backFaceTex, alphaTest: 0.5, roughness: 0.78, side: BackSide });
   // 카드 더미의 옆면(카드 가장자리가 겹겹이 보이는 흰 줄무늬).
@@ -549,7 +633,8 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
   const PILE_MAX = 0.36;
   const tray = new Group();
   const glass = new MeshStandardMaterial({ color: "#d8ecff", transparent: true, opacity: 0.2, roughness: 0.05, metalness: 0.1, depthWrite: false });
-  const trayBase = new Mesh(new BoxGeometry(0.8, 0.04, 1.04), acrylic);
+  // 바닥도 옅은 연기색 아크릴 — 검은 판이면 비어 있을 때 위에서 검은 구멍처럼 보였다(밑의 펠트가 비쳐야 상자다).
+  const trayBase = new Mesh(new BoxGeometry(0.8, 0.04, 1.04), new MeshStandardMaterial({ color: "#3a2f26", transparent: true, opacity: 0.45, roughness: 0.1, metalness: 0.2, depthWrite: false }));
   trayBase.position.y = 0.02;
   trayBase.receiveShadow = true;
   const wallGeoX = new BoxGeometry(0.02, 0.4, 1.04);
@@ -661,6 +746,8 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     }
     rail.visible = next.railZ !== null;
     if (next.railZ !== null) rail.position.z = next.railZ;
+    // 레일도 소품과 같은 비율로 굵기·깊이만 줄인다(길이는 테이블 폭 그대로). 블랙잭은 카메라가 가까워 원래 굵기면 화면 위 두꺼운 띠가 됐다.
+    rail.scale.set(1, next.scale ?? 1, next.scale ?? 1);
   };
 
   /* ───────── 트윈·연출 큐 ───────── */
@@ -869,6 +956,9 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
   const SEGMENTS = 14;
   const newCard = async (card: Card | null, scale = 1): Promise<Card3D> => {
     const faceTex = card ? await imageTexture(cardStageFaceUrl(card)) : backTex;
+    // 새 얼굴 그림(660×924)은 처음 그려지는 프레임에서 GPU 로 올라가 딜이 막 움직이기 시작하는 순간 프레임이 떨어졌다.
+    // 카드를 만들 때 올려 두면 그 비용이 움직임이 없는 쪽으로 간다.
+    renderer.initTexture(faceTex);
     const geo = new PlaneGeometry(CARD_W, CARD_H, 8, SEGMENTS);
     geo.rotateX(-Math.PI / 2); // 누운 카드: 법선 +y, 그림의 위쪽이 −z(딜러 쪽)
     // 카드는 무광에 가깝게: 매끈하면(0.42) 천장 조명이 카드마다 하얗게 번쩍여 "너무 반짝거려"였다.
@@ -891,7 +981,9 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
   const setFace = async (c: Card3D, card: Card) => {
     c.card = card;
     const material = c.face.material as MeshStandardMaterial;
-    material.map = await imageTexture(cardStageFaceUrl(card));
+    const next = await imageTexture(cardStageFaceUrl(card));
+    renderer.initTexture(next);
+    material.map = next;
     material.needsUpdate = true;
   };
   /**
@@ -1083,7 +1175,7 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
     const lamp = new Mesh(glowGeo, material);
     lamp.rotation.x = -Math.PI / 2;
     lamp.scale.set(4.2, 0.62, 1);
-    lamp.position.set(x, 0.308, 0);
+    lamp.position.set(x, 0.06, 0); // 나무 모서리 윗면 바로 위
     rail.add(lamp);
     lamps.push(material);
   }
@@ -1151,7 +1243,13 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
 
   setStatus("테이블 준비 중");
   // 보이지 않는 카드 한 장: 카드 재질(앞·뒷면) 셰이더도 입장 때 같이 미리 컴파일된다(core3d) — 없으면 첫 딜에서 멈칫한다.
-  await newCard(null);
+  const warmCard = await newCard(null);
+  // 카드 그림자용 깊이 셰이더(알파 테스트+그림)는 카드가 그려질 때 처음 컴파일돼 첫 딜이 멈칫했다. 입장 때 아직 투명한
+  // 첫 그리기에 펠트 밑에 숨겨 한 장을 같이 그려 두고, 화면이 열리면 숨긴다.
+  warmCard.holder.position.set(0, -0.3, 0);
+  warmCard.holder.visible = true;
+  // 치우지 않고 숨기기만 한다: 이 카드가 카드 재질 셰이더를 붙들고 있어, 버리면 판의 카드가 전부 치워질 때 셰이더가 해제돼 다음 딜에서 다시 컴파일된다.
+  host.addEventListener("stage:ready", () => { warmCard.holder.visible = false; }, { once: true });
 
   return {
     scene,
@@ -1190,8 +1288,7 @@ export async function createCardTable(host: HTMLElement, sounds: StageSounds, op
       fitCamera();
       renderMine();
     },
-    /** 펠트 인쇄만 다시(좌석 표시·보험 줄처럼 판 상태에 따라 바뀌는 인쇄). */
-    repaint: () => repaintFelt(),
+    decal,
     focusOn,
     project,
     track,

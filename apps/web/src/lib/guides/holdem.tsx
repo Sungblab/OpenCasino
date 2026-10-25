@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { HOLDEM_RANKINGS } from "@opencasino/game-core/holdem";
 import { CardFace } from "../../components/CardFace";
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 function HoldemRankingList() {
   return (
@@ -27,6 +27,7 @@ export const holdemGuide: GameGuideContent = {
   title: "텍사스 홀덤",
   intro: "내 카드 2장 + 공유 카드 5장 중 5장으로 가장 좋은 조합을 만드는 게임. 마지막까지 남은 사람 중 조합이 가장 높은 사람이 팟을 가져갑니다.",
   sections: [
+    startSection({ steps: [{ title: "앉고 준비 완료", body: "빈 자리를 눌러 가져갈 칩(바이인)을 정하고 앉은 뒤, 준비 완료를 눌러요." }, { title: "카드 2장 받고 베팅", body: "내 카드 2장과 가운데 공유 카드 5장(3장 → 1장 → 1장)이 열릴 때마다 베팅해요." }, { title: "내 차례에 버튼 하나", body: "폴드(포기) · 체크/콜(따라가기) · 레이즈(올리기) 중 하나를 눌러요. 끝까지 남아 족보가 가장 높으면 판돈(팟)을 가져가요." }], tip: <>먼저 <Link to="/learn/holdem">연습 판</Link>을 쳐 보세요(코인이 오가지 않아요). 실제 방은 입문(Rookie) 테이블부터, 패가 약하면 일찍 폴드해도 괜찮아요.</> }),
     {
       id: "rankings",
       title: "족보표",

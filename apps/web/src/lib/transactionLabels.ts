@@ -8,6 +8,9 @@
  */
 export const TRANSACTION_LABEL: Record<string, string> = {
   OPENING_BALANCE: "초기 지급",
+  DEPOSIT_APPROVED: "충전 승인",
+  WITHDRAW_APPROVED: "환전 승인",
+  USER_TRANSFER: "개인 송금",
   ADMIN_ADJUSTMENT: "관리자 잔액 조정",
   MISSION_REWARD: "미션 보상",
   DAILY_COINS: "하루 무료 코인",

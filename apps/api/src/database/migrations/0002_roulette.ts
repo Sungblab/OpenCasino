@@ -9,7 +9,7 @@ import type { Migration } from "../migrator.js";
  */
 export const migration: Migration = {
   id: "0002_roulette",
-  description: "룰렛 — game_type·베팅 이름 제약에 룰렛 추가",
+  description: "룰렛 — game_type·베팅 이름·롤링 출처 제약에 룰렛 추가",
   sql: `
 ALTER TABLE game_rooms DROP CONSTRAINT IF EXISTS game_rooms_game_type_check;
 ALTER TABLE game_rooms ADD CONSTRAINT game_rooms_game_type_check
@@ -22,5 +22,8 @@ ALTER TABLE wagers ADD CONSTRAINT wagers_choice_check
     OR choice ~ '^(in:[0-9]{1,2}(-[0-9]{1,2}){0,5}|red|black|odd|even|low|high|dozen[1-3]|col[1-3])$'
   );
 
+ALTER TABLE wagering_progress_events DROP CONSTRAINT IF EXISTS wagering_progress_events_source_type_check;
+ALTER TABLE wagering_progress_events ADD CONSTRAINT wagering_progress_events_source_type_check
+  CHECK (source_type IN ('cash_deposit','baccarat_wager','dragon_tiger_wager','blackjack_hand','blackjack_behind','blackjack_insurance','holdem_rake','sutda_rake','gostop_rake','casino_holdem_wager','holdem_stake','sutda_stake','gostop_stake','roulette_wager'));
 `,
 };

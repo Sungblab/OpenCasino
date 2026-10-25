@@ -449,6 +449,30 @@ CREATE TABLE IF NOT EXISTS blackjack_insurance_bets (
 );
 CREATE INDEX IF NOT EXISTS blackjack_insurance_round_idx ON blackjack_insurance_bets(round_id);
 
+CREATE TABLE IF NOT EXISTS cash_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  request_type varchar(20) NOT NULL CHECK (request_type IN ('deposit','withdraw')),
+  amount_minor bigint NOT NULL CHECK (amount_minor > 0),
+  status varchar(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','cancelled')),
+  reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS cash_requests_user_idx ON cash_requests(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS cash_requests_pending_idx ON cash_requests(status, created_at DESC);
+
+-- A deposit creates a 1x wagering requirement. Progress only comes from
+-- qualifying, settled wagers recorded after that requirement exists.
+CREATE TABLE IF NOT EXISTS wagering_requirements (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE RESTRICT,
+  cycle_required_minor bigint NOT NULL DEFAULT 0 CHECK (cycle_required_minor >= 0),
+  cycle_completed_minor bigint NOT NULL DEFAULT 0 CHECK (cycle_completed_minor >= 0),
+  remaining_minor bigint NOT NULL DEFAULT 0 CHECK (remaining_minor >= 0),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT wagering_progress_balanced CHECK (cycle_required_minor = cycle_completed_minor + remaining_minor)
+);
+
 CREATE TABLE IF NOT EXISTS blackjack_lightning_awards (
   user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   multiplier smallint NOT NULL CHECK (multiplier IN (2,5,8,10,15,20,25)),
@@ -456,6 +480,41 @@ CREATE TABLE IF NOT EXISTS blackjack_lightning_awards (
   expires_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS wagering_progress_events (
+  id bigserial PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  source_type varchar(40) NOT NULL CHECK (source_type IN ('cash_deposit','baccarat_wager','dragon_tiger_wager','blackjack_hand','blackjack_behind','blackjack_insurance','holdem_rake','sutda_rake')),
+  source_id uuid NOT NULL,
+  qualifying_amount_minor bigint NOT NULL CHECK (qualifying_amount_minor > 0),
+  credited_amount_minor bigint NOT NULL DEFAULT 0 CHECK (credited_amount_minor >= 0 AND credited_amount_minor <= qualifying_amount_minor),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(source_type, source_id)
+);
+CREATE INDEX IF NOT EXISTS wagering_progress_user_idx ON wagering_progress_events(user_id, id DESC);
+-- dragon_tiger_wager, holdem_rake, and sutda_rake were each added to the application's
+-- WageringSourceType union after this table first shipped; the CHECK constraint never followed,
+-- so every non-push settlement in that game was silently crashing settlement mid-transaction.
+-- It happened a fourth time with gostop_rake: every Go-Stop hand that took a rake threw here,
+-- the round refunded, and after three in a row RoomCycleGuard paused the room for good.
+-- wagering-service.test.ts now fails if the union and this list ever drift apart again.
+-- *_stake replaced *_rake for PvP credit (stake-based, see PVP_RATE_PERCENT); the
+-- *_rake values stay so the events already recorded under them still satisfy the constraint.
+ALTER TABLE wagering_progress_events DROP CONSTRAINT IF EXISTS wagering_progress_events_source_type_check;
+ALTER TABLE wagering_progress_events ADD CONSTRAINT wagering_progress_events_source_type_check
+  CHECK (source_type IN ('cash_deposit','baccarat_wager','dragon_tiger_wager','blackjack_hand','blackjack_behind','blackjack_insurance','holdem_rake','sutda_rake','gostop_rake','casino_holdem_wager','holdem_stake','sutda_stake','gostop_stake'));
+
+CREATE TABLE IF NOT EXISTS wallet_transfers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id uuid NOT NULL UNIQUE,
+  sender_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  recipient_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  amount_minor bigint NOT NULL CHECK (amount_minor > 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT transfer_users_differ CHECK (sender_id <> recipient_id)
+);
+CREATE INDEX IF NOT EXISTS wallet_transfers_sender_idx ON wallet_transfers(sender_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS wallet_transfers_recipient_idx ON wallet_transfers(recipient_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS support_conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

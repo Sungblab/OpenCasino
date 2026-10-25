@@ -1,5 +1,5 @@
 import { VIDEO_POKER_PAYS, VIDEO_POKER_RANK_LABEL, VIDEO_POKER_RANKS } from "@opencasino/game-core/video-poker";
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 /** 족보마다 어떤 손인지 한 줄. 배당표 순서(VIDEO_POKER_RANKS)와 같다. */
 const RANK_NOTE: Record<(typeof VIDEO_POKER_RANKS)[number], string> = {
@@ -19,6 +19,7 @@ export const videoPokerGuide: GameGuideContent = {
   title: "비디오 포커 · 잭스 오어 베터",
   intro: "카드 5장을 받고, 마음에 드는 카드만 잡은 뒤 나머지를 한 번 바꿔요. 마지막 5장의 포커 족보로 배당이 정해집니다.",
   sections: [
+    startSection({ steps: [{ title: "베팅 고르고 DEAL", body: "− / + 로 금액을 정하고 DEAL 을 누르면 카드 5장이 와요." }, { title: "남길 카드 HOLD", body: "남기고 싶은 카드를 누르면 HOLD 가 붙어요." }, { title: "DRAW", body: "안 잡은 카드만 새로 바뀌고, 마지막 5장의 족보대로 바로 정산돼요." }], tip: "이미 족보(J 이상 원페어·투페어 등)가 있으면 그 카드를 잡고, 없으면 J·Q·K·A 같은 높은 카드나 같은 무늬 4장을 잡아요. J 보다 낮은 원페어는 당첨이 아니에요.", odds: <>배당표의 숫자가 그 족보로 받는 코인이에요(지금 베팅 기준). 원페어는 J 이상부터 당첨이에요.</> }),
     {
       id: "howto",
       title: "게임 방법",

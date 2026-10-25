@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ChatMessage, ProfileResponse } from "@opencasino/contracts";
-import { getProfile, getSupportMessages } from "../api";
+import { getProfile, getSupportMessages, markSupportRead } from "../api";
 import { AppShell } from "../components/AppShell";
 import { ChatComposer, ChatThread } from "../components/ChatThread";
+import { useFriends } from "../lib/friends";
 import { useGameSocket } from "../lib/gameSocket";
 
 function appendMessage(current: ChatMessage[], message: ChatMessage): ChatMessage[] {
@@ -16,6 +17,7 @@ export function SupportPage({ token, onLogout }: { token: string; onLogout: () =
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");
   const socket = useGameSocket();
+  const refreshFriends = useFriends()?.refresh;
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +27,8 @@ export function SupportPage({ token, onLogout }: { token: string; onLogout: () =
         setProfile(nextProfile);
         setMessages(history.items);
         setError("");
+        // 여기서 본 운영자 답변도 친구·메시지 목록의 "운영자" 줄에서 읽음으로.
+        void markSupportRead(token).then(() => refreshFriends?.(), () => undefined);
       })
       .catch((caught) => {
         if (!cancelled) setError(caught instanceof Error ? caught.message : "문의 내역을 불러오지 못했습니다.");
@@ -32,7 +36,7 @@ export function SupportPage({ token, onLogout }: { token: string; onLogout: () =
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, refreshFriends]);
 
   useEffect(() => {
     const handleConnect = () => setConnected(true);

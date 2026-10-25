@@ -44,7 +44,8 @@
 .gostop-v2 .gv2-seat .holdem-seat-plate { width: 100%; min-width: 0; margin: 0; padding: 5px 10px 6px; }
 .gostop-v2 .gv2-seat.is-lost .holdem-seat-plate { filter: grayscale(.5) brightness(.8); }
 .gostop-v2 .gv2-seat.is-winner .holdem-seat-plate { border-color: var(--gold-light); box-shadow: 0 0 14px rgba(240,180,28, .45), 0 6px 16px rgba(0,0,0, .55); }
-.gostop-v2 .gv2-badge { position: absolute; left: 50%; bottom: calc(100% - 4px); transform: translateX(-50%); }
+/* 이름표 위 테두리에 2px 만 걸친다 — 폰 이름표의 위 여백이 테두리 포함 3px 라 4px 걸치면 이름 윗단을 덮었다. */
+.gostop-v2 .gv2-badge { position: absolute; left: 50%; bottom: calc(100% - 2px); transform: translateX(-50%); }
 .gostop-v2 .gv2-badge .pvp-badge { position: static; display: block; transform: none; white-space: nowrap; }
 .gostop-overlay .holdem-seat-empty { position: absolute; z-index: 2; }
 .gostop-overlay .holdem-seat-empty[data-side="right"] { transform: translate(0, -50%); }
@@ -141,6 +142,8 @@
 /* 폰: 앉은 사람용 도구(봇·자리 비우기·표정)는 "⋯" 안으로 — 도구 줄이 길어 상대 이름표에 닿았다. */
 .gv2-stage:not([data-mode="wide"]) .pvp-more { display: block; position: relative; }
 .gv2-stage:not([data-mode="wide"]) .pvp-more-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; font-size: 15px; letter-spacing: .05em; }
+/* 터치 폰: "⋯" 도 보이는 폭을 44px 로 — 30px 이면 옆 도구에 막혀 누르는 영역이 34px 뿐이었다. */
+@media (pointer: coarse) { .gv2-stage:not([data-mode="wide"]) .pvp-more-toggle { min-width: 44px; } }
 .gv2-stage:not([data-mode="wide"]) .pvp-more-menu {
   display: none;
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;

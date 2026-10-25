@@ -64,6 +64,13 @@
 .hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-pick-card .card-face-image { --_cw: 54px; }
 .hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-sheet header :is(strong, small), .hv6-stage:not([data-mode="wide"]) ~ .hv6-dock-slot .spk-sheet .sv6-sheet-note { font-size: 12px; }
 .hv6-stage[data-mode="short"] ~ .hv6-dock-slot .spk-sheet-foot { gap: 8px; }
+/* 주소창이 보이는 낮은 가로 폰(보이는 높이 360px 아래): 판이 300px 아래로 줄어 고르는 창이 위쪽 상대 이름표를 10px 덮었다 —
+   카드를 한 치수 더 작게. */
+@media (orientation: landscape) and (max-height: 359px) and (pointer: coarse) {
+  .hv6-stage[data-mode="short"] ~ .hv6-dock-slot .spk-sheet { gap: 3px; padding-block: 4px 6px; }
+  .hv6-stage[data-mode="short"] ~ .hv6-dock-slot .spk-pick-card { width: 48px; height: 67px; }
+  .hv6-stage[data-mode="short"] ~ .hv6-dock-slot .spk-pick-card .card-face-image { --_cw: 48px; }
+}
 
 /* 이름표 모서리의 베팅 칩: 판당 최대가 1,000·5,000 인 방은 네 자리 금액이 26px 칩을 넘쳤다 — 금액만큼 늘어나는 알약으로. */
 .seven-poker .spk-seat .chip-stack.pvp-bet .chip-stack-top { width: auto; min-width: 22px; padding: 0 5px; border-radius: 11px; white-space: nowrap; }

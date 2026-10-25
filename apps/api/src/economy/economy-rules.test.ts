@@ -6,7 +6,7 @@ import {
 } from "@opencasino/contracts";
 
 /**
- * contracts economy.ts 의 규칙을 스펙(docs/superpowers/specs/2026-10-23-public-operation-design.md §5–§8)의 숫자로 검산한다.
+ * contracts economy.ts 의 규칙을 스펙의 숫자로 검산한다.
  * contracts 에는 테스트 러너가 없어 API 의 vitest 로 돈다.
  */
 describe("레벨", () => {
@@ -73,12 +73,13 @@ describe("VIP·등급 입장", () => {
     expect(vipTierForPoints(shopItem("cardback.blackgold")!.price)).toBe("gold");
   });
 
-  it("입장 조건: 입문 PvP 상한, 고액 Lv10, 시크릿 골드", () => {
+  it("입장 조건: 입문 PvP 상한, 고액 Lv5, 시크릿 골드", () => {
     const who = { balance: 30_000, level: 1, vip: null };
     expect(checkTierGate("rookie", true, who)).toBeNull();
     expect(checkTierGate("rookie", true, { ...who, balance: 30_001 })).toEqual({ code: "TIER_BALANCE_TOO_HIGH", max: 30_000 });
     expect(checkTierGate("rookie", false, { ...who, balance: 1e6 })).toBeNull();
-    expect(checkTierGate("high", false, { ...who, level: 9 })).toEqual({ code: "TIER_LEVEL_REQUIRED", need: 10 });
+    expect(checkTierGate("high", false, { ...who, level: 4 })).toEqual({ code: "TIER_LEVEL_REQUIRED", need: 5 });
+    expect(checkTierGate("high", false, { ...who, level: 5 })).toBeNull();
     expect(checkTierGate("vip", false, { ...who, vip: "silver" })).toEqual({ code: "TIER_VIP_REQUIRED", need: "gold" });
     expect(checkTierGate("vip", false, { ...who, vip: "gold" })).toBeNull();
   });

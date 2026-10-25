@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Link } from "react-router-dom";
-import { CircleHelp, Expand, History, LogOut, Menu, MessageCircle, MessageSquare, Minimize2, Music2, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
+import { BookOpen, CircleHelp, Expand, History, LogOut, Menu, MessageCircle, MessageSquare, Minimize2, Music2, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
 import { useCurrentUser } from "../app/auth";
 import { getBgmVolume, getSfxVolume, isBgmOn, isSoundMuted, playChip, setBgmOn, setBgmVolume, setSfxVolume, setSoundMuted } from "../lib/sound";
 import { badgeLabel, useFriends } from "../lib/friends";
@@ -172,11 +172,13 @@ export function ProfileMenu({ onLogout, game, icon = "profile" }: { onLogout: ()
           <Link to="/profile" onClick={close}><UserRound size={15} aria-hidden="true" /> 내 프로필</Link>
           {!game?.onHistory && <Link to="/game-history" onClick={close}><History size={15} aria-hidden="true" /> 게임 기록</Link>}
           <Link to="/wallet" onClick={close}><Wallet size={15} aria-hidden="true" /> 지갑</Link>
+          {!game && <Link to="/guide" onClick={close}><BookOpen size={15} aria-hidden="true" /> 이용 가이드</Link>}
+          {/* 화면을 넘기지 않고 창으로 — 게임방에서 열어도 방이 그대로 남는다. */}
           {friends && (
-            <Link to="/friends" onClick={close}>
+            <button type="button" onClick={() => { close(); friends.openFriends(); }}>
               <MessageSquare size={15} aria-hidden="true" /> 친구·메시지
               {friendsBadge > 0 && <span className="profile-dropdown-count">{badgeLabel(friendsBadge)}</span>}
-            </Link>
+            </button>
           )}
           <Link to={isAdmin ? "/admin/support" : "/support"} onClick={close}><MessageCircle size={15} aria-hidden="true" /> {isAdmin ? "문의 관리" : "1:1 문의"}</Link>
           <ResponsiblePlayNotice placement="menu" />

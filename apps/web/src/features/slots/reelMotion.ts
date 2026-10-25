@@ -1,5 +1,5 @@
 /**
- * 슬롯 릴 한 줄의 움직임. three 를 모르는 순수 함수라 브라우저 없이 검사한다(docs/research/slots/C-reels-tech.md 1.4·2절).
+ * 슬롯 릴 한 줄의 움직임. three 를 모르는 순수 함수라 브라우저 없이 검사한다.
  *
  * d: 스핀 시작부터 릴이 내려간 거리(칸). 드럼은 둘레 N칸이고, 칸 c 는 늘 "슬롯" j ≡ c (mod N) 하나를
  * 맡는다. 화면 줄 k(+1 위, 0 가운데, −1 아래)에 보이는 슬롯은 j = k + d, 그 슬롯의 심볼은 스트립의
@@ -29,7 +29,7 @@ export interface ReelTiming {
   H: number;
 }
 
-/** 첫 릴 약 0.95초, 이후 0.24초마다(docs/research/slots/B-slot-ux.md C표). 바운스 약 0.1칸. */
+/** 첫 릴 약 0.95초, 이후 0.24초마다. 바운스 약 0.1칸. */
 export const REEL_TIMING: ReelTiming = { v: 14, ta: 0.3, minSpin: 0.5, gap: 0.24, T: 0.45, s: 1.5, lead: 0.05, H: 2.1 };
 /** 드럼 둘레 칸 수. 칸 교체는 정면에서 N/2 칸 떨어진 뒤쪽에서 일어난다. */
 export const DRUM_CELLS = 12;

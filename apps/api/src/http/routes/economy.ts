@@ -7,7 +7,7 @@ import { spinWheel } from "../../economy/daily-rewards.js";
 import { claimAllRewards, rewardsStatus } from "../../economy/rewards.js";
 import { auctionState, placeBid } from "../../economy/auction-service.js";
 import { claimLevelReward, progressResponse } from "../../economy/progress.js";
-import { recentVipEntries } from "../../economy/vip-entries.js";
+import { onlineEntries } from "../../economy/online-entries.js";
 import { buyItem, changeNickname, equipItem, forgetBadge, shopState, userBadges } from "../../economy/shop.js";
 import { walletService } from "../../wallet/wallet-service.js";
 import { HTTP_LIMITS } from "../../rate-limit/limits.js";
@@ -35,9 +35,9 @@ const BIG_WINS_SQL = `${ALL_BETS_CTE},
   WHERE r.net >= $1 AND u.role='user' AND u.deleted_at IS NULL
   ORDER BY r.settled_at DESC LIMIT 20`;
 const BIG_WINS_TTL_MS = 30_000;
-let bigWinsCache: { at: number; body: Promise<Omit<BigWinsResponse, "vipEntries">> } | null = null;
+let bigWinsCache: { at: number; body: Promise<Omit<BigWinsResponse, "entries">> } | null = null;
 
-function bigWins(): Promise<Omit<BigWinsResponse, "vipEntries">> {
+function bigWins(): Promise<Omit<BigWinsResponse, "entries">> {
   if (bigWinsCache && Date.now() - bigWinsCache.at < BIG_WINS_TTL_MS) return bigWinsCache.body;
   const body = pool.query<{ user_id: string; nickname: string; game_type: string; net: string; settled_at: Date }>(BIG_WINS_SQL, [BIG_WIN_TICKER_MIN * COIN_SCALE])
     .then((result) => ({ items: result.rows.map((row) => ({ userId: row.user_id, nickname: row.nickname, gameType: row.game_type, amount: Number(row.net) / COIN_SCALE, settledAt: row.settled_at.toISOString() })) }));
@@ -125,8 +125,8 @@ export function economyRoutes({ io }: RouteDeps): Router {
     res.json({ badges: await userBadges(ids) });
   }));
 
-  router.get("/api/v1/feed/big-wins", requireAuth, domainHandler(async (_req, res) => {
-    res.json({ ...(await bigWins()), vipEntries: recentVipEntries() });
+  router.get("/api/v1/feed/big-wins", requireAuth, domainHandler(async (req, res) => {
+    res.json({ ...(await bigWins()), entries: await onlineEntries(io, (req as AuthRequest).user.id) });
   }));
 
   router.get("/api/v1/auction", requireAuth, domainHandler(async (req, res) => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Card } from "@opencasino/contracts";
 import {
   blackjackFit, blackjackMinW, blackjackRoundNet, canDoubleHand, canSplitHand, cascadeSlot, dealOrder, dealerSlot,
-  handAnchor, handBadge, netForOutcome, scoreLabel, seatAnchor, seatSettlement, seatSpacing, seatSpot,
+  handAnchor, handBadge, netForOutcome, scoreLabel, seatAnchor, seatSettlement, seatSpacing, seatSpot, tableRimY,
 } from "./logic";
 
 const c = (rank: Card["rank"], suit: Card["suit"] = "S"): Card => ({ rank, suit });
@@ -43,6 +43,15 @@ describe("blackjack seat layout", () => {
     const second = cascadeSlot(one, 1);
     expect(second.x).toBeGreaterThan(one.x);
     expect(second.y).toBeLessThan(one.y);
+  });
+
+  it("runs the player armrest below every seat's name tag (spot centre + 35), with room for the pad's height", () => {
+    for (const [w, h] of [[640, 400], [859, 400], [480, 400], [480, 720]] as const) {
+      for (let seat = 1; seat <= 7; seat += 1) {
+        const spot = seatSpot(seat, w, h);
+        expect(tableRimY(spot.x, w, h) - spot.y).toBeGreaterThanOrEqual(56);
+      }
+    }
   });
 
   it("centres the dealer cards", () => {

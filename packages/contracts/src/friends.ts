@@ -30,6 +30,17 @@ export const friendSchema = friendUserSchema.extend({
 });
 export type Friend = z.infer<typeof friendSchema>;
 
+/**
+ * 운영자 대화(1:1 문의) 요약 — 친구·메시지 목록 맨 위에 고정되는 "운영자" 줄. 관리자는 친구가 아니어도 회원에게 말을
+ * 걸 수 있고, 회원은 이 줄에서 답한다(문의와 같은 대화). 회원끼리의 1:1 메시지는 여기에 섞이지 않는다.
+ */
+export const supportSummarySchema = z.object({
+  /** 내가 마지막으로 본 뒤 운영자가 보낸 메시지 수. */
+  unread: z.number().int().nonnegative(),
+  lastMessage: z.object({ message: z.string(), createdAt: z.string(), fromAdmin: z.boolean() }).nullable(),
+});
+export type SupportSummary = z.infer<typeof supportSummarySchema>;
+
 export const friendsResponseSchema = z.object({
   /** 최근 대화순(대화가 없으면 맨 뒤, 닉네임순). */
   friends: z.array(friendSchema),
@@ -39,6 +50,8 @@ export const friendsResponseSchema = z.object({
   outgoing: z.array(friendUserSchema),
   /** 내가 차단한 사람. */
   blocked: z.array(friendUserSchema),
+  /** 게스트는 null. 옛 서버 응답에는 없을 수 있어 optional(배포 직후 화면·서버가 잠깐 어긋나도 깨지지 않게). */
+  support: supportSummarySchema.nullable().optional(),
 });
 export type FriendsResponse = z.infer<typeof friendsResponseSchema>;
 
@@ -70,16 +83,9 @@ export type DmHistoryResponse = z.infer<typeof dmHistoryResponseSchema>;
 export const dmSendCommandSchema = z.object({ toUserId: z.string().uuid(), message: z.string() });
 export type DmSendCommand = z.infer<typeof dmSendCommandSchema>;
 
-/** 관리자 DM 열람 — 대화 하나 = 두 사람. */
-export const adminDmConversationSchema = z.object({
-  users: z.tuple([friendUserSchema, friendUserSchema]),
-  messageCount: z.number().int().nonnegative(),
-  lastMessage: dmMessageSchema,
-});
-export type AdminDmConversation = z.infer<typeof adminDmConversationSchema>;
-
-export const adminDmConversationListSchema = z.object({ items: z.array(adminDmConversationSchema) });
-export type AdminDmConversationList = z.infer<typeof adminDmConversationListSchema>;
-
-export const adminDmHistoryResponseSchema = dmHistoryResponseSchema.extend({ users: z.tuple([friendUserSchema, friendUserSchema]) });
-export type AdminDmHistoryResponse = z.infer<typeof adminDmHistoryResponseSchema>;
+/** 같은 방에 있는 사람 — 테이블 채팅의 "이 방 사람들". 게스트에게는 친구 요청을 걸 수 없다. */
+export interface RoomPerson {
+  userId: string;
+  nickname: string;
+  isGuest: boolean;
+}

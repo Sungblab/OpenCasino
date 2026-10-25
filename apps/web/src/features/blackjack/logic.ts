@@ -79,6 +79,16 @@ export function tableArcY(x: number, designW: number, designH: number = BJ_H): n
   return seatCurveY((x - designW / 2) / (3 * seatSpacing(designW)), designH) + 26;
 }
 
+/**
+ * 플레이어 쪽 가죽 팔걸이가 시작하는 펠트 가장자리: 좌석 호와 나란히, 베팅 동그라미 아래 이름표(동그라미 가운데에서
+ * 35 아래까지)를 비켜 지난다. 팔걸이는 높이가 있어 화면에선 윗면이 좌석 쪽으로 올라와 보이므로 그만큼 더 띄우고,
+ * 좌석 호보다 조금 덜 휘게 해 가장자리 좌석(가로 폰의 큰 이름표)에서 더 비킨다.
+ */
+export function tableRimY(x: number, designW: number, designH: number = BJ_H): number {
+  const t = (x - designW / 2) / (3 * seatSpacing(designW));
+  return seatCurveY(0, designH) + 64 + 56 - SEAT_SAG * 0.8 * t * t;
+}
+
 /** 좌석의 베팅 자리(칩 더미·이름표가 붙는 동그라미) 가운데. */
 export function seatSpot(seatNumber: number, designW: number, designH: number = BJ_H): { x: number; y: number } {
   const a = seatAnchor(seatNumber, designW, designH);
@@ -194,6 +204,9 @@ export function blackjackRoundNet(snapshot: Pick<BlackjackRoomSnapshot, "myHands
     staked,
     settled: outcomes.length > 0 || Boolean(insurance?.outcome),
     blackjack: outcomes.some((entry) => entry.outcome === "blackjack"),
+    // 라이트닝은 수수료가 판돈만큼이라 배수 없는 1:1 승리는 순손익 0, 푸시는 수수료만큼 − 다. 제목은 손익이 아니라 결과로.
+    won: outcomes.some((entry) => entry.outcome === "win" || entry.outcome === "blackjack"),
+    pushed: outcomes.length > 0 && outcomes.every((entry) => entry.outcome === "push"),
   };
 }
 

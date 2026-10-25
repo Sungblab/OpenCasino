@@ -188,13 +188,16 @@
 }
 .bac-message:empty { display: none; }
 
-.bac-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; flex: 1 1 auto; min-height: 0; }
+/* 베팅 칸 묶음은 따로 합성되는 층 — 판마다 칸 상태(베팅·승패)가 바뀌는데, 페이지 바닥 층에 같이 그리면 그 자리의 배경
+   그라데이션·그림자까지 다시 래스터해 결과 순간 GPU 가 밀렸다. */
+.bac-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; flex: 1 1 auto; min-height: 0; will-change: transform; }
 .bac-zone {
   position: relative; grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   min-height: 62px; padding: 7px 10px; overflow: hidden;
   border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-2);
   color: var(--text); font-family: var(--ui-font); text-align: center; cursor: pointer;
-  transition: opacity .2s ease, box-shadow .25s ease, transform .1s ease;
+  /* box-shadow 는 트랜지션하지 않는다 — 0.25초 동안 매 프레임 칸을 다시 칠한다(아래 is-win 주석). */
+  transition: opacity .2s ease, transform .1s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .bac-zone.big { grid-column: span 3; min-height: 98px; }
@@ -218,9 +221,12 @@
 .bac-zone-table.is-empty { visibility: hidden; }
 .bac-grid.is-locked .bac-zone { cursor: not-allowed; }
 .bac-grid.is-locked .bac-zone:not(.has-bet):not(.is-win) { opacity: .6; }
-.bac-zone.is-win { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 22px rgba(255, 210, 74, .28); animation: bac-win-pulse 1s ease-in-out 3; }
+/* 이긴 칸의 맥박은 안쪽 빛(::after)의 투명도만 움직인다 — box-shadow 를 애니메이션하면 3초 내내 매 프레임 칸을 다시 칠하고
+   래스터해서(배경 그라데이션까지) 결과 순간 GPU 가 밀려 3D 테이블 프레임이 떨어졌다. 투명도는 합성만 한다. */
+.bac-zone.is-win { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 22px rgba(255, 210, 74, .28); }
+.bac-zone.is-win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--gold-light), inset 0 0 22px rgba(255, 210, 74, .5); opacity: 0; pointer-events: none; animation: bac-win-pulse 1s ease-in-out 3; }
 .bac-zone.is-lose { opacity: .5; }
-@keyframes bac-win-pulse { 50% { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 34px rgba(255, 210, 74, .5); } }
+@keyframes bac-win-pulse { 50% { opacity: 1; } }
 
 /* 칩 더미(기본 자리는 chip-pile.css): 작은 칸은 한 치수 작게. */
 .bac-zone:not(.big) .chip-pile-slot { right: 6px; bottom: 5px; width: 32px; }
@@ -303,18 +309,21 @@
   .bac-room.is-columns .bac-band { display: contents; }
   /* 게임 화면은 폰 전용 설계(바카라 460×226·라이트닝 460×280, 용호 480×216)에 맞춘 16:9 — 설계 모양과
      비슷해야 카드 위아래로 빈 펠트가 덜 남는다(남는 건 fitStage 가 위아래로 반씩 나눈다). */
-  .bac-room.is-columns .bac-stage { flex: 1 1 auto; min-height: 120px; aspect-ratio: 16 / 9; max-height: calc((100vw - 16px) * 9 / 16 + 40px); }
+  /* 메인 베팅 칸(PLAYER·BANKER, 용호는 DRAGON·TIGER) 높이는 화면 높이에서 정하되 120px 까지만 — 남는 높이를 다
+     받던 때는 긴 폰에서 칸이 200~280px 로 길쭉해졌다. 짧은 폰(높이 624px 이하)에선 64px 까지 준다. */
+  .bac-room.is-columns { --bac-main-h: clamp(64px, calc(100dvh - 560px), 120px); }
+  /* 남는 높이는 게임 화면이 받는다(카드·테이블이 보이는 곳). */
+  .bac-room.is-columns .bac-stage { flex: 1 1 auto; min-height: 120px; aspect-ratio: 16 / 9; }
   .bac-room.is-columns .bac-mobile-slot { display: flex; flex: 1 1 180px; min-height: 110px; max-height: 200px; }
   .bac-room.is-columns .bac-mobile-widget .bac-widget-body { height: auto; padding: 4px 8px; }
   .bac-room.is-columns .bac-mobile-widget .bac-widget-body .big-road-grid { padding: 4px; gap: 2px; }
   .bac-room.is-columns .bac-mobile-widget .bac-widget-body .big-road-column { --cell: clamp(6px, calc((100cqh - 5 * 2px) / 6), 40px); gap: 2px; }
   .bac-room.is-columns .bac-mobile-widget .bac-widget-body .bead-road { --cell: clamp(8px, calc((100cqh - 4px - 5 * 2px) / 6), 44px); gap: 2px; }
   .bac-room.is-columns .bac-mobile-widget .bac-widget-body .shoe-stats dl > div { padding: 1px 6px; }
-  /* 게임 화면(16:9 + 40px 까지)·위젯(200px 까지)이 받고 남는 높이는 메인 베팅 칸이 받는다. 칸 높이는 화면
-     크기로만 정해져 베팅해도 바뀌지 않는다. */
-  .bac-room.is-columns .bac-center { flex: 1 0 auto; }
-  .bac-room.is-columns .bac-grid { flex: 1 0 auto; grid-template-rows: auto minmax(64px, 1fr); }
-  .bac-room.is-columns.is-bonus .bac-grid { grid-template-rows: auto auto minmax(64px, 1fr); }
+  /* 칸 높이는 화면 크기로만 정해져 베팅해도 바뀌지 않는다. */
+  .bac-room.is-columns .bac-center { flex: none; }
+  .bac-room.is-columns .bac-grid { flex: none; grid-template-rows: auto var(--bac-main-h); }
+  .bac-room.is-columns.is-bonus .bac-grid { grid-template-rows: auto auto var(--bac-main-h); }
   /* 보너스 칸도 폰에선 사이드 칸과 같은 40px(이름·배당 한 줄). */
   .bac-room.is-columns.is-bonus .bac-zone:is(.bonus-p, .bonus-b) { height: 40px; min-height: 0; }
   /* 칩 줄: 되돌리기 · 반복/×2 | 칩 단위 버튼(가운데) | 채팅. 칩은 버튼을 누르면 위로 뜨는 판에서 고른다 —
@@ -401,7 +410,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bac-zone.is-win, .bead.is-preview { animation: none; }
+  .bac-zone.is-win::after, .bead.is-preview { animation: none; }
 }
 
 /* 칸을 둘로 나누면 한 칸 높이가 100px 안팎이라 구슬판 여섯 줄이 다 들어가도록 구슬을 줄인다.

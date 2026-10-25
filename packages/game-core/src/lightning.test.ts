@@ -3,8 +3,10 @@ import type { BaccaratResult } from "./baccarat.js";
 import {
   applyLightningBlackjackMultiplier,
   generateLightningCards,
-  LIGHTNING_BLACKJACK_AWARD_PERCENT,
-  rollLightningBlackjackAward,
+  drawLightningBlackjackBoard,
+  LIGHTNING_BLACKJACK_TOTALS,
+  LIGHTNING_BLACKJACK_WEIGHTS,
+  lightningBlackjackTotal,
   lightningFee,
   matchingLightningMultiplier,
   payoutForLightningBaccaratBet,
@@ -79,18 +81,26 @@ describe("lightning games", () => {
     expect(applyLightningBlackjackMultiplier(100, 100, 25)).toBe(100);
   });
 
-  it("awards a multiplier to a winning hand 9% of the time", () => {
-    expect(LIGHTNING_BLACKJACK_AWARD_PERCENT).toBe(9);
-    // The roll is one draw in [0, 100): 0-8 award, 9-99 don't.
-    expect(rollLightningBlackjackAward(() => 0)).toBe(true);
-    expect(rollLightningBlackjackAward(() => 8)).toBe(true);
-    expect(rollLightningBlackjackAward(() => 9)).toBe(false);
-    expect(rollLightningBlackjackAward(() => 99)).toBe(false);
+  it("strikes one multiplier per total, weighted to a mean of about ×7.1", () => {
+    const total = LIGHTNING_BLACKJACK_WEIGHTS.reduce((sum, [, weight]) => sum + weight, 0);
+    expect(total).toBe(1_000);
+    // The RTP (~99.2% at a 100% fee) was simulated against this mean — retune both together.
+    expect(LIGHTNING_BLACKJACK_WEIGHTS.reduce((sum, [multiplier, weight]) => sum + multiplier * weight, 0) / total).toBeCloseTo(7.095, 3);
     const asked: number[] = [];
-    rollLightningBlackjackAward((max) => { asked.push(max); return 0; });
-    expect(asked).toEqual([100]);
-    // Every face of the draw counted once: exactly 9 of 100 award.
-    expect(Array.from({ length: 100 }, (_, face) => rollLightningBlackjackAward(() => face)).filter(Boolean)).toHaveLength(9);
+    const board = drawLightningBlackjackBoard((max) => { asked.push(max); return 0; });
+    expect(asked).toEqual(LIGHTNING_BLACKJACK_TOTALS.map(() => 1_000));
+    expect(board).toEqual({ 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, BJ: 2 });
+    expect(Object.values(drawLightningBlackjackBoard(() => 999))).toEqual(LIGHTNING_BLACKJACK_TOTALS.map(() => 25));
+  });
+
+  it("maps a winning hand to its board total", () => {
+    expect(lightningBlackjackTotal("blackjack", 21)).toBe("BJ");
+    expect(lightningBlackjackTotal("win", 21)).toBe("21");
+    expect(lightningBlackjackTotal("win", 17)).toBe("17");
+    // A win on 16 or less (dealer bust) earns nothing, nor does a push or a loss on a board total.
+    expect(lightningBlackjackTotal("win", 16)).toBeNull();
+    expect(lightningBlackjackTotal("push", 20)).toBeNull();
+    expect(lightningBlackjackTotal("lose", 19)).toBeNull();
   });
 
   it("multiplies only as much stake as earned the award", () => {

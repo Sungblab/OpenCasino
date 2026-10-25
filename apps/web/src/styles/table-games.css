@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    표 게임(HiLo·Bac Bo·메가볼·탑 카드): 위 판 그림(게임마다 다른 보드) · 가운데 최근 결과 구슬 · 아래 베팅 칸과 칩 줄.
    TableGameRoomPage 가 불러오므로 이 방에 들어갈 때만 받는다. 규칙은 .tg-room 아래로 묶고, 게임별 보드 규칙은
-   그 게임 이름(.tg-hilo …)으로 시작한다. 칸 색은 tone-<이름> 이 --tone/--ink 두 값을 정한다.
+   그 게임 이름(.tg-bacbo …)으로 시작한다. 칸 색은 tone-<이름> 이 --tone/--ink 두 값을 정한다.
    ───────────────────────────────────────────────────────────────────────────── */
 
 .game-shell .game-body:has(.tg-room) { width: 100%; padding: 0; }
@@ -31,7 +31,7 @@
 /* ── 판 그림 ──────────────────────────────────────────────────────────────── */
 .tg-stage {
   position: relative; display: grid; place-items: center; min-height: 0; overflow: hidden; border-radius: 14px;
-  background: radial-gradient(ellipse 80% 90% at 50% 40%, color-mix(in srgb, var(--tg-felt) 72%, #fff) 0%, var(--tg-felt) 55%, color-mix(in srgb, var(--tg-felt) 40%, #000) 100%);
+  background: var(--felt-grain), radial-gradient(ellipse 80% 90% at 50% 40%, color-mix(in srgb, var(--tg-felt) 72%, #fff) 0%, var(--tg-felt) 55%, color-mix(in srgb, var(--tg-felt) 40%, #000) 100%);
   box-shadow: 0 0 0 1px rgba(92, 57, 14, .88), 0 0 0 4px rgba(10, 8, 5, .96), 0 22px 44px -24px rgba(0, 0, 0, .9);
 }
 .tg-status {
@@ -101,7 +101,7 @@
     radial-gradient(120% 85% at 50% -10%, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 62%),
     linear-gradient(180deg, color-mix(in srgb, var(--tone) 88%, #fff) 0%, var(--tone) 42%, color-mix(in srgb, var(--tone) 70%, #000) 100%);
   color: var(--ink); font-family: var(--ui-font); cursor: pointer; box-shadow: var(--bevel);
-  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, box-shadow .2s ease, filter .15s ease;
+  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, filter .15s ease;
 }
 .tg-spot::before { content: ""; position: absolute; inset: 5px; border: 1px solid color-mix(in srgb, var(--ink) 38%, transparent); border-radius: 7px; pointer-events: none; }
 .tg-spot:hover { filter: brightness(1.08) saturate(1.05); }
@@ -112,8 +112,12 @@
 .tg-spots.is-locked .tg-spot { cursor: not-allowed; }
 .tg-spots.is-locked .tg-spot:hover { filter: none; }
 .tg-spots.has-result .tg-spot:not(.is-win) { opacity: .38; }
-.tg-spot.is-win { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 24px rgba(255, 210, 74, .6); animation: tg-win-pulse 1s ease-in-out 3; }
-@keyframes tg-win-pulse { 50% { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 36px rgba(255, 210, 74, .85); } }
+/* 맥박은 빛을 얹은 가상 요소의 투명도만 움직인다 — box-shadow 를 애니메이션하면 그동안 매 프레임 칸을 다시 칠하고 래스터해
+   결과 순간 GPU 가 밀렸다(바카라 baccarat-table.css 의 is-win 주석). */
+/* 칸이 넘침을 자르므로 안쪽 빛으로(::before 는 인쇄 테). 메가볼 번호 칸은 ::after 가 색 막대라 고정 빛만. */
+.tg-spot.is-win { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 24px rgba(255, 210, 74, .6); }
+.tg-spot.is-win:not(.g-num .tg-spot)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--gold-light), inset 0 0 20px rgba(255, 220, 120, .7); opacity: 0; pointer-events: none; animation: tg-win-pulse 1s ease-in-out 3; }
+@keyframes tg-win-pulse { 50% { opacity: 1; } }
 .tg-pile { --chip-step: 2.5px; position: absolute; left: 5px; bottom: 5px; width: 26px; height: 26px; pointer-events: none; }
 .tg-pile .chip-pile img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .55)); }
 .tg-spot.is-lose .tg-pile { opacity: .4; }
@@ -152,25 +156,18 @@
   .tg-stage .winner-feed { display: none; }
   .tg-table { flex: 0 0 auto; width: 100%; }
   .tg-rail { flex-wrap: wrap; justify-content: center; }
+  /* 360px 폰에서 "이번 판 베팅" 칸의 78px 하한 때문에 칩 다섯 개가 한 줄을 못 채우고 다음 줄로 밀려 줄이 셋이 됐다. */
+  .tg-money { min-width: 0; }
   .tg-board { gap: 14px; padding: 40px 8px 44px; }
+}
+/* 가장 좁은 폰(320px): 칩을 조금 줄여 잔액 · 칩이 한 줄에 들어가게. */
+@media (max-width: 340px) and (orientation: portrait) {
+  .game-shell .tg-room .ot-tray { gap: 6px; }
+  .game-shell .tg-room .chip.chip-art { width: 40px; height: 40px; }
 }
 @media (max-width: 900px), (max-height: 540px) {
   .tg-stage .winner-feed { display: none; }
 }
-
-/* ── 하이로우 ──────────────────────────────────────────────────────────────── */
-.tg-hilo { --card-w: clamp(72px, min(21dvh, 29vw), 180px); position: relative; }
-.tg-hilo-card { display: grid; justify-items: center; gap: 6px; }
-.tg-hilo-card small { color: rgba(255, 255, 255, .72); font: 600 12px var(--ui-font); }
-.tg-hilo-arrow {
-  display: grid; place-items: center; width: clamp(44px, 8dvh, 64px); aspect-ratio: 1; border-radius: 50%;
-  background: rgba(0, 0, 0, .45); border: 2px solid rgba(240, 180, 28, .5); color: var(--gold-light); font: 900 clamp(22px, 4dvh, 32px)/1 var(--ui-font);
-  transition: background .25s ease, color .25s ease, transform .35s cubic-bezier(.3, 1.6, .5, 1);
-}
-.tg-hilo-arrow.is-high { background: #2d7bdc; color: #fff; transform: scale(1.12); }
-.tg-hilo-arrow.is-low { background: #d32f3d; color: #fff; transform: scale(1.12); }
-.tg-hilo-arrow.is-same { background: #23a25a; color: #fff; transform: scale(1.12); }
-.tg-hilo-odds { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 18px; margin: 0; color: rgba(255, 255, 255, .78); font: 600 12px var(--ui-font); }
 
 /* ── 박 보 ─────────────────────────────────────────────────────────────────── */
 /* 보드가 스테이지를 꽉 채운 컨테이너라, 주사위(--die) 크기를 화면이 아니라 스테이지 칸 크기(cqh·cqw)에서 뽑는다. */
@@ -185,7 +182,7 @@
   padding: calc(var(--die) * .18) calc(var(--die) * .2) calc(var(--die) * .2); border-radius: calc(var(--die) * .3);
   background: linear-gradient(180deg, color-mix(in srgb, var(--side) 34%, transparent), color-mix(in srgb, var(--side) 14%, rgba(0, 0, 0, .55)));
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--side-hi) 55%, transparent), inset 0 1px 0 rgba(255, 255, 255, .22), 0 12px 24px -14px #000;
-  transition: opacity .3s ease, filter .3s ease, transform .35s cubic-bezier(.3, 1.5, .5, 1), box-shadow .3s ease;
+  position: relative; transition: opacity .3s ease, filter .3s ease, transform .35s cubic-bezier(.3, 1.5, .5, 1);
 }
 .tg-bacbo-side.is-banker { --side: #d32f3d; --side-hi: #ff6670; --side-lo: #b11f2c; --side-glow: rgba(255, 90, 100, .8); }
 .tg-bacbo-name {
@@ -248,13 +245,15 @@
 
 /* 결과: 이긴 쪽은 금테 + 쪽 색 빛, 진 쪽은 어둡게, 타이는 양쪽 금테. */
 .tg-bacbo-side.is-win {
-  transform: scale(1.05); animation: tg-bacbo-glow 1s ease-in-out 3;
+  transform: scale(1.05);
   box-shadow: inset 0 0 0 3px var(--gold-light), 0 0 calc(var(--die) * .55) var(--side-glow), 0 12px 24px -14px #000;
 }
+/* 맥박: 더 큰 쪽 색 빛을 가상 요소에 두고 투명도만(위 tg-spot 주석). */
+.tg-bacbo-side.is-win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 calc(var(--die) * .85) var(--side-glow); opacity: 0; pointer-events: none; animation: tg-bacbo-glow 1s ease-in-out 3; }
 .tg-bacbo-side.is-win .tg-bacbo-total.is-set { box-shadow: 0 0 0 3px var(--gold-light), inset 0 1px 0 rgba(255, 255, 255, .5), 0 4px 10px rgba(0, 0, 0, .4); }
 .tg-bacbo-side.is-lose { opacity: .5; filter: saturate(.55); }
 .tg-bacbo-side.is-tie { box-shadow: inset 0 0 0 3px var(--gold-light), 0 0 calc(var(--die) * .3) rgba(255, 210, 74, .55), 0 12px 24px -14px #000; }
-@keyframes tg-bacbo-glow { 50% { box-shadow: inset 0 0 0 3px var(--gold-light), 0 0 calc(var(--die) * .85) var(--side-glow), 0 12px 24px -14px #000; } }
+@keyframes tg-bacbo-glow { 50% { opacity: 1; } }
 
 .tg-bacbo-sum {
   position: absolute; left: 0; right: 0; bottom: 12px; display: flex; align-items: center; gap: 8px; width: fit-content; margin: 0 auto; padding: 4px 6px 4px 14px;
@@ -267,7 +266,7 @@
 .tg-bacbo-sum em.is-small { background: #9446d2; color: #fff; }
 
 /* 베팅 칸: 스몰·빅은 낮은 한 줄. */
-.tg-room:has(.tg-bacbo) .tg-group.g-side { min-height: clamp(48px, 8dvh, 68px); }
+.tg-room.is-bac_bo .tg-group.g-side { min-height: clamp(48px, 8dvh, 68px); }
 
 /* 세로 폰: 쪽마다 주사위를 세로로 쌓아 폭을 아끼고 그만큼 크게. */
 @media (max-width: 900px) and (orientation: portrait) {
@@ -278,7 +277,7 @@
   .tg-bacbo-name { font-size: clamp(12px, calc(var(--die) * .16), 20px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tg-bacbo-die.is-roll, .tg-bacbo-total.is-set, .tg-bacbo-vs.is-tie, .tg-bacbo-side.is-win, .tg-bacbo-sum { animation: none; }
+  .tg-bacbo-die.is-roll, .tg-bacbo-total.is-set, .tg-bacbo-vs.is-tie, .tg-bacbo-side.is-win::after, .tg-bacbo-sum { animation: none; }
   .tg-bacbo-side { transition: none; }
 }
 
@@ -297,17 +296,20 @@
 /* 금테: 열린 카드 중 지금 1등은 옅게, 네 장이 다 열린 뒤의 탑은 환하게. */
 .tg-tc-card::before {
   content: ""; position: absolute; inset: -5px; z-index: 2; border: 2px solid var(--gold-light); border-radius: calc(var(--card-w) * .09);
-  opacity: 0; pointer-events: none; transition: opacity .3s ease, box-shadow .4s ease;
+  opacity: 0; pointer-events: none; transition: opacity .3s ease;
 }
 .tg-tc-slot.is-lead .tg-tc-card::before { opacity: .5; }
 .tg-tc-slot.is-top { z-index: 1; transform: translateY(calc(var(--card-w) * -.07)) scale(1.05); }
-.tg-tc-slot.is-top .tg-tc-card::before {
-  opacity: 1; box-shadow: 0 0 20px 3px rgba(255, 210, 74, .7), inset 0 0 14px rgba(255, 210, 74, .3); animation: tg-tc-glow 1.3s ease-in-out infinite alternate;
+.tg-tc-slot.is-top .tg-tc-card::before { opacity: 1; box-shadow: 0 0 20px 3px rgba(255, 210, 74, .7), inset 0 0 14px rgba(255, 210, 74, .3); }
+/* 탑 카드의 숨쉬는 빛: 더 큰 빛을 ::after 에 두고 투명도만 오간다(빛이 도는 내내 매 프레임 다시 칠하지 않게). */
+.tg-tc-slot.is-top .tg-tc-card::after {
+  content: ""; position: absolute; inset: -5px; z-index: 2; border-radius: calc(var(--card-w) * .09); pointer-events: none;
+  box-shadow: 0 0 30px 6px rgba(255, 210, 74, .9), inset 0 0 18px rgba(255, 210, 74, .45); opacity: 0; animation: tg-tc-glow 1.3s ease-in-out infinite alternate;
 }
 .tg-tc-slot.is-out { filter: brightness(.55) saturate(.8); }
 /* 카드 그림자는 이웃 카드 가장자리까지 번지지 않게 작게(기본 그림자는 간격이 좁은 한 줄에선 옆 카드를 어둡게 한다). */
 .tg-topcard .playing-card-back, .tg-topcard .playing-card-face { filter: drop-shadow(0 calc(var(--card-w) * .04) calc(var(--card-w) * .06) rgba(0, 0, 0, .5)); }
-@keyframes tg-tc-glow { to { box-shadow: 0 0 30px 6px rgba(255, 210, 74, .9), inset 0 0 18px rgba(255, 210, 74, .45); } }
+@keyframes tg-tc-glow { to { opacity: 1; } }
 .tg-tc-tag {
   min-width: 40px; padding: 2px 9px; border-radius: 99px; box-sizing: border-box; text-align: center;
   background: linear-gradient(180deg, #ffe58f, #e0a82a); color: #2b1d02; font: 800 11px/1.3 Poppins, var(--ui-font); letter-spacing: .08em;
@@ -322,12 +324,14 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .tg-tc-slot, .tg-tc-card::before, .tg-tc-tag { transition: none; }
-  .tg-tc-slot.is-top .tg-tc-card::before { animation: none; }
+  .tg-tc-slot.is-top .tg-tc-card::after { animation: none; }
 }
 /* 베팅 칸: 무늬 칸은 네 칸이 한 줄이라 글자가 폰 폭에 맞게 작아지고, 사이드 칸은 낮은 한 줄. */
-.tg-room:has(.tg-topcard) .tg-group.g-side { min-height: clamp(48px, 8dvh, 68px); }
-.tg-room:has(.tg-topcard) .tg-group.g-pos .tg-spot-label { font-size: clamp(13px, min(3.7vw, 2.6dvh), 21px); text-align: center; text-wrap: balance; }
-.tg-room:has(.tg-topcard) .tg-group.g-side .tg-spot-label { font-size: clamp(13px, min(3.7vw, 2.4dvh), 20px); text-align: center; text-wrap: balance; }
+.tg-room.is-top_card .tg-group.g-side { min-height: clamp(48px, 8dvh, 68px); }
+/* 무늬 이름(DIAMONDS 가 가장 길다)은 칸 폭(cqi)에도 맞춘다 — 화면 폭만 보면 390px 이하 폰에서 칸 밖으로 넘쳤다. */
+.tg-room.is-top_card .tg-group.g-pos .tg-spot { container-type: inline-size; }
+.tg-room.is-top_card .tg-group.g-pos .tg-spot-label { font-size: clamp(10.5px, min(3.7vw, 2.6dvh, 15cqi), 21px); text-align: center; text-wrap: balance; }
+.tg-room.is-top_card .tg-group.g-side .tg-spot-label { font-size: clamp(13px, min(3.7vw, 2.4dvh), 20px); text-align: center; text-wrap: balance; }
 
 /* ── 메가볼 ────────────────────────────────────────────────────────────────── */
 .tg-board.tg-mball {
@@ -420,18 +424,18 @@
   100% { opacity: 1; transform: none; }
 }
 /* 메가볼: 금빛 후광. 마지막 단계에서 작게 시작해 커지며 튀어 오른다. */
-.tg-mball-ball.is-mega { box-shadow: 0 0 0 3px #ffe58f, 0 0 20px 6px rgba(255, 205, 60, .75), 0 3px 8px rgba(0, 0, 0, .5), inset 0 -3px 6px rgba(0, 0, 0, .28); animation: tg-mball-glow 1.4s ease-in-out infinite alternate; }
-.tg-mball-ball.is-mega.is-roll { animation: tg-mball-mega-in 1.1s cubic-bezier(.2, .8, .3, 1) backwards, tg-mball-glow 1.4s ease-in-out 1.1s infinite alternate; }
+.tg-mball-ball.is-mega { box-shadow: 0 0 0 3px #ffe58f, 0 0 14px 3px rgba(255, 205, 60, .6), 0 3px 8px rgba(0, 0, 0, .5), inset 0 -3px 6px rgba(0, 0, 0, .28); }
+.tg-mball-ball.is-mega.is-roll { animation: tg-mball-mega-in 1.1s cubic-bezier(.2, .8, .3, 1) backwards; }
+/* 후광의 숨쉬기는 ::before 의 투명도만(공 바깥 빛뿐이라 번호 위를 덮지 않는다 — ::after 는 내 번호 체크). */
+.tg-mball-ball.is-mega::before { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 3px #fff2b8, 0 0 30px 10px rgba(255, 205, 60, .95); opacity: 0; pointer-events: none; animation: tg-mball-glow 1.4s ease-in-out infinite alternate; }
+.tg-mball-ball.is-mega.is-roll::before { animation-delay: 1.1s; }
 @keyframes tg-mball-mega-in {
   0% { opacity: 0; transform: translate(calc(var(--mb-slot) * -2.4), calc(var(--mb-slot) * -1.2)) rotate(-720deg) scale(.3); }
   20% { opacity: 1; }
   70% { transform: scale(1.28) rotate(10deg); }
   100% { transform: none; }
 }
-@keyframes tg-mball-glow {
-  from { box-shadow: 0 0 0 3px #ffe58f, 0 0 14px 3px rgba(255, 205, 60, .6), 0 3px 8px rgba(0, 0, 0, .5), inset 0 -3px 6px rgba(0, 0, 0, .28); }
-  to { box-shadow: 0 0 0 3px #fff2b8, 0 0 30px 10px rgba(255, 205, 60, .95), 0 3px 8px rgba(0, 0, 0, .5), inset 0 -3px 6px rgba(0, 0, 0, .28); }
-}
+@keyframes tg-mball-glow { to { opacity: 1; } }
 /* 내가 번호 칸에 건 숫자가 나왔다: 흰 고리 + 체크. */
 .tg-mball-ball.is-mine { outline: 2px solid #fff; outline-offset: 2px; }
 .tg-mball-ball.is-mine::after {
@@ -446,7 +450,7 @@
 .tg-mball-stats .is-tie { color: rgba(255, 255, 255, .6); }
 .tg-mball-stats.is-idle { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  .tg-mball-spin, .tg-mball-dball, .tg-mball-ball, .tg-mball-ball.is-mega.is-roll { animation: none !important; }
+  .tg-mball-spin, .tg-mball-dball, .tg-mball-ball, .tg-mball-ball.is-mega.is-roll, .tg-mball-ball.is-mega::before { animation: none !important; }
 }
 /* 세로 폰: 추첨기는 왼쪽에 작게, 받침대는 4열 3줄(마지막 줄 오른쪽이 메가볼)로 폭에 맞춰 줄어들고, 통계 줄은 아래로 내려간다. */
 @media (max-width: 900px) and (orientation: portrait) {
@@ -458,35 +462,129 @@
 }
 
 /* 베팅 칸: 홀짝·대소와 메가 구간은 낮은 한 줄, 번호 40칸은 작은 타일 격자(PC 10열 · 폰 8열). */
-.tg-room:has(.tg-mball) .tg-group.g-side, .tg-room:has(.tg-mball) .tg-group.g-mega { min-height: clamp(42px, 6.6dvh, 62px); }
-.tg-room:has(.tg-mball) .tg-group:is(.g-side, .g-mega) .tg-spot-label { font-size: clamp(12.5px, min(3.5vw, 2.1dvh), 19px); line-height: 1.12; text-align: center; text-wrap: balance; }
-.tg-room:has(.tg-mball) .tg-group:is(.g-side, .g-mega) .tg-spot-odds { font-size: clamp(11px, 1.6dvh, 14px); }
+.tg-room.is-mega_ball .tg-group.g-side, .tg-room.is-mega_ball .tg-group.g-mega { min-height: clamp(42px, 6.6dvh, 62px); }
+.tg-room.is-mega_ball .tg-group:is(.g-side, .g-mega) .tg-spot-label { font-size: clamp(12.5px, min(3.5vw, 2.1dvh), 19px); line-height: 1.12; text-align: center; text-wrap: balance; }
+.tg-room.is-mega_ball .tg-group:is(.g-side, .g-mega) .tg-spot-odds { font-size: clamp(11px, 1.6dvh, 14px); }
 /* 칩은 글자를 가리지 않게 오른쪽 아래 모서리에 작게. */
-.tg-room:has(.tg-mball) .tg-group:is(.g-side, .g-mega) .tg-pile { left: auto; right: 5px; bottom: 4px; width: 20px; height: 20px; }
-.tg-room:has(.tg-mball) .tg-group.g-num { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; min-height: 0; }
-.tg-room:has(.tg-mball) .g-num .tg-spot { height: clamp(34px, 5.3dvh, 48px); gap: 0; padding: 2px; border-radius: 7px; }
-.tg-room:has(.tg-mball) .g-num .tg-spot::before { inset: 3px; border-radius: 5px; }
-.tg-room:has(.tg-mball) .g-num .tg-spot-label { font-size: clamp(14px, 2.4dvh, 20px); }
-.tg-room:has(.tg-mball) .g-num .tg-spot-odds { font-size: clamp(9px, 1.3dvh, 11.5px); opacity: .7; }
+.tg-room.is-mega_ball .tg-group:is(.g-side, .g-mega) .tg-pile { left: auto; right: 5px; bottom: 4px; width: 20px; height: 20px; }
+.tg-room.is-mega_ball .tg-group.g-num { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; min-height: 0; }
+.tg-room.is-mega_ball .g-num .tg-spot { height: clamp(34px, 5.3dvh, 48px); gap: 0; padding: 2px; border-radius: 7px; }
+.tg-room.is-mega_ball .g-num .tg-spot::before { inset: 3px; border-radius: 5px; }
+.tg-room.is-mega_ball .g-num .tg-spot-label { font-size: clamp(14px, 2.4dvh, 20px); }
+.tg-room.is-mega_ball .g-num .tg-spot-odds { font-size: clamp(9px, 1.3dvh, 11.5px); opacity: .7; }
 /* 숫자 구간 색 막대(공 색과 같다) */
-.tg-room:has(.tg-mball) .g-num .tg-spot::after { content: ""; position: absolute; left: 24%; right: 24%; bottom: 3px; height: 2px; border-radius: 2px; background: var(--rc); pointer-events: none; }
-.tg-room:has(.tg-mball) .g-num .tg-spot:nth-child(-n+10) { --rc: #e9bd38; }
-.tg-room:has(.tg-mball) .g-num .tg-spot:nth-child(n+11):nth-child(-n+20) { --rc: #4a93ee; }
-.tg-room:has(.tg-mball) .g-num .tg-spot:nth-child(n+21):nth-child(-n+30) { --rc: #ee5662; }
-.tg-room:has(.tg-mball) .g-num .tg-spot:nth-child(n+31) { --rc: #3fc27b; }
+.tg-room.is-mega_ball .g-num .tg-spot::after { content: ""; position: absolute; left: 24%; right: 24%; bottom: 3px; height: 2px; border-radius: 2px; background: var(--rc); pointer-events: none; }
+.tg-room.is-mega_ball .g-num .tg-spot:nth-child(-n+10) { --rc: #e9bd38; }
+.tg-room.is-mega_ball .g-num .tg-spot:nth-child(n+11):nth-child(-n+20) { --rc: #4a93ee; }
+.tg-room.is-mega_ball .g-num .tg-spot:nth-child(n+21):nth-child(-n+30) { --rc: #ee5662; }
+.tg-room.is-mega_ball .g-num .tg-spot:nth-child(n+31) { --rc: #3fc27b; }
 /* 작은 칸이라 칩은 모서리에 조그맣게, 칩이 올라간 칸은 금테로 알아본다. */
-.tg-room:has(.tg-mball) .g-num .tg-pile { --chip-step: 1px; left: auto; right: 2px; top: 2px; bottom: auto; width: 14px; height: 14px; }
-.tg-room:has(.tg-mball) .g-num .tg-spot:has(.chip-pile img) { box-shadow: var(--bevel), 0 0 0 2px var(--gold-light); }
+.tg-room.is-mega_ball .g-num .tg-pile { --chip-step: 1px; left: auto; right: 2px; top: 2px; bottom: auto; width: 14px; height: 14px; }
+.tg-room.is-mega_ball .g-num .tg-spot:has(.chip-pile img) { box-shadow: var(--bevel), 0 0 0 2px var(--gold-light); }
 @media (max-width: 900px) and (orientation: portrait) {
-  .tg-room:has(.tg-mball) .tg-group.g-num { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
-  .tg-room:has(.tg-mball) .g-num .tg-spot { height: clamp(34px, 4.7dvh, 42px); }
-  .tg-room:has(.tg-mball) .tg-group.g-side, .tg-room:has(.tg-mball) .tg-group.g-mega { min-height: clamp(40px, 5.4dvh, 50px); }
+  .tg-room.is-mega_ball .tg-group.g-num { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
+  .tg-room.is-mega_ball .g-num .tg-spot { height: clamp(34px, 4.7dvh, 42px); }
+  .tg-room.is-mega_ball .tg-group.g-side, .tg-room.is-mega_ball .tg-group.g-mega { min-height: clamp(40px, 5.4dvh, 50px); }
+}
+/* 짧은 세로 폰(높이 700px 이하, 360×640 등): 숫자 40칸까지 쌓으면 판 그림이 잘리고 DRAW·채팅 줄이 화면 밖으로 나갔다.
+   추첨기를 줄이고 받침대를 두 줄(5열 + 메가볼)로, 숫자 칸을 낮춘다. */
+@media (max-width: 900px) and (orientation: portrait) and (max-height: 700px) {
+  .tg-board.tg-mball {
+    --mb-drum: 76px; --mb-cols: 5; --mb-slot: min(32px, calc((100vw - 175px) / 6.35)); --mb-mega: 1.35;
+    gap: 6px 10px; padding: 38px 8px 6px;
+  }
+  .tg-room.is-mega_ball .g-num .tg-spot { height: 28px; }
+  .tg-room.is-mega_ball .g-num .tg-spot-label { font-size: 13.5px; }
+  .tg-room.is-mega_ball .tg-group.g-side, .tg-room.is-mega_ball .tg-group.g-mega { min-height: 38px; }
 }
 
-/* 가로로 누운 폰(높이 ~350px): 판 그림 최소 200px 이 베팅 칸·칩 줄을 화면 밖으로 밀어 RED/BLACK·칩 줄이 접힌 아래에 있었다.
-   판 그림을 낮추고 여백을 줄여 한 화면에 다 들어오게 한다(그림은 안에서 줄어든다). 메가볼은 40칸 숫자판 때문에 이 정도로도 안 들어와 제외 — 판 그림이 잘리기만 한다. */
-@media (max-height: 520px) and (orientation: landscape) {
-  .tg-room:not(:has(.tg-mball)) { grid-template-rows: minmax(96px, 1fr) auto; gap: 4px; padding: 4px 10px 6px; }
-  .tg-room:not(:has(.tg-mball)) .tg-board { padding: 30px 12px 22px; }
-  .tg-room:not(:has(.tg-mball)) .tg-status { top: 6px; padding: 3px 12px; }
+/* ── 가로 폰(높이 ~350px): 판 그림 왼쪽 · 구슬 → 베팅 칸 → 칩 줄 오른쪽 ─────────────────────────
+   위아래로 쌓으면 판 그림이 납작하게 잘리고(박 보·탑 카드), 메가볼은 40칸 숫자판과 칩 줄이 화면 밖으로 밀렸다.
+   칩은 버튼 하나(지금 칩) → 누르면 칩 줄 위로 판(아래 공통 규칙). */
+@media (orientation: landscape) and (max-height: 540px) {
+  .tg-room {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: minmax(0, 1fr); gap: 8px;
+    padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left));
+  }
+  .tg-status { top: 6px; left: 8px; padding: 3px 12px; font-size: 13px; }
+  .tg-result { top: auto; right: 8px; bottom: 8px; left: 8px; justify-content: center; padding: 5px 10px; font-size: 13px; }
+  .tg-board { gap: 10px; padding: 34px 8px 10px; }
+  .tg-table { justify-content: center; gap: 6px; min-width: 0; }
+  .tg-recent, .tg-spots, .tg-rail { width: 100%; }
+  .tg-recent { flex: none; height: 26px; }
+  .tg-recent li { min-width: 26px; height: 26px; font-size: 12px; }
+  .tg-message { top: 2px; transform: translateX(-50%); }
+  /* 칸은 남는 높이를 나눠 가진다(위아래로 비지 않게) — 너무 길쭉해지지 않게 상한. */
+  .tg-spots { flex: 0 1 260px; gap: 5px; min-height: 0; padding: 5px; }
+  .tg-group { flex: 1 1 0; gap: 5px; min-height: clamp(44px, 14dvh, 64px); }
+  .tg-room.is-mega_ball .tg-group.g-num { flex: none; }
+  .tg-group.g-color, .tg-room.is-bac_bo .tg-group.g-side, .tg-room.is-top_card .tg-group.g-side { min-height: clamp(38px, 11dvh, 52px); }
+  .tg-spot-label { font-size: clamp(13px, 4.4dvh, 18px); }
+  .tg-rail { gap: 6px; }
+  .tg-money { flex: 1 1 auto; min-width: 0; }
+  .tg-money small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tg-acts { gap: 4px; }
+
+  /* 박 보: 판 그림 칸이 세로로 길어 세로 폰처럼 쪽마다 주사위를 세로로 쌓는다. */
+  .tg-bacbo-row { --die: clamp(34px, min(22cqh, 24cqw), 96px); gap: calc(var(--die) * .16); }
+  .tg-bacbo-side { padding-inline: calc(var(--die) * .14); }
+  .tg-bacbo-dice { flex-direction: column; }
+  .tg-bacbo-vs { width: calc(var(--die) * .5); }
+  .tg-bacbo-name { font-size: clamp(11px, calc(var(--die) * .16), 18px); }
+  .tg-bacbo-sum { bottom: 6px; font-size: 12px; }
+
+  /* 탑 카드: 네 장이 왼쪽 칸(화면 폭의 약 44%) 한 줄에 들어가게. */
+  .tg-board.tg-topcard { --card-w: clamp(40px, min(8.4vw, 26dvh), 96px); gap: 0; padding: 38px 8px 8px; }
+  .tg-tc-row { gap: clamp(6px, 1.4vw, 16px); }
+  .tg-tc-hint { display: none; }
+  .tg-room.is-top_card .tg-group.g-pos .tg-spot-label { font-size: clamp(11px, min(2vw, 15cqi), 17px); }
+  .tg-room.is-top_card .tg-group.g-side .tg-spot-label { font-size: clamp(12px, 2vw, 17px); }
+
+  /* 메가볼: 추첨기 왼쪽 · 받침대(3열 + 메가볼) 오른쪽, 통계는 아래. 칸은 낮은 줄 · 번호는 10열을 낮게. */
+  .tg-board.tg-mball {
+    --mb-drum: clamp(76px, min(13vw, 30dvh), 120px); --mb-slot: clamp(24px, min(calc((44vw - var(--mb-drum) - 64px) / 4.45), 11dvh), 44px); --mb-mega: 1.45; --mb-cols: 3;
+    grid-template-areas: "drum tray" "stats stats"; gap: 8px 10px; padding: 36px 8px 8px;
+  }
+  .tg-mball-tray { gap: 4px; padding: 6px 6px 10px; }
+  .tg-mball-stats { font-size: 11px; }
+  .tg-room.is-mega_ball .tg-group.g-side, .tg-room.is-mega_ball .tg-group.g-mega { min-height: clamp(34px, 10dvh, 44px); }
+  /* 칸 폭(cqi)에도 맞춰 MORE SMALL 이 두 줄로 접혀 칸 밖으로 넘치지 않게. */
+  .tg-room.is-mega_ball .tg-group:is(.g-side, .g-mega) .tg-spot { container-type: inline-size; }
+  .tg-room.is-mega_ball .tg-group:is(.g-side, .g-mega) .tg-spot-label { font-size: clamp(10.5px, min(3.6dvh, 12.4cqi), 15px); }
+  .tg-room.is-mega_ball .tg-group:is(.g-side, .g-mega) .tg-spot-odds { font-size: 11px; }
+  .tg-room.is-mega_ball .tg-group.g-num { gap: 3px; }
+  .tg-room.is-mega_ball .g-num .tg-spot { height: clamp(26px, 8dvh, 34px); }
+  .tg-room.is-mega_ball .g-num .tg-spot-label { font-size: clamp(12px, 3.8dvh, 15px); }
+  .tg-room.is-mega_ball .g-num .tg-spot-odds { font-size: 9px; }
+}
+
+/* ── 짧은 세로 폰(보이는 높이 620px 이하, 아이폰 SE 사파리 등): 칩 줄을 한 줄로 ─────────────────────
+   칩 다섯 개 + 버튼 줄로 두 줄이면 메가볼 칩·DRAW 가 화면 아래로 잘렸다. 칩은 버튼 하나로 접고, 이번 판 베팅
+   합계는 뺀다(바카라 세로 폰과 같다 — 건 칸마다 칩이 쌓여 보인다). */
+@media (max-width: 900px) and (orientation: portrait) and (max-height: 620px) {
+  .tg-stage { min-height: 130px; }
+  .tg-rail { flex-wrap: nowrap; justify-content: space-between; }
+  .tg-money { display: none; }
+}
+
+/* 칩을 버튼 하나(지금 칩)로 접은 칩 줄(가로 폰 · 짧은 세로 폰): 누르면 칩 줄 위로, 칩 줄 폭만큼 판이 뜬다. */
+@media (orientation: landscape) and (max-height: 540px), (max-width: 900px) and (orientation: portrait) and (max-height: 620px) {
+  .game-shell .tg-room .tg-rail { position: relative; }
+  .game-shell .tg-room .ot-tray { position: static; flex: 0 0 auto; }
+  .game-shell .tg-room .ot-tray.is-art .chip-option { display: none; }
+  .game-shell .tg-room .ot-tray.is-art .chip-picker-trigger {
+    display: grid; width: 44px; height: 44px; min-width: 44px; padding: 0; border: 0; border-radius: 50%;
+    background: none; box-shadow: 0 0 0 2px var(--gold); cursor: pointer;
+  }
+  .game-shell .tg-room .ot-tray.is-art :is(.chip-picker-trigger, .chip-picker-menu button) img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .game-shell .tg-room .ot-tray.is-art .chip-picker-menu {
+    position: absolute; right: 0; bottom: calc(100% + 8px); left: 0; z-index: 80; display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 6px; width: auto; max-width: none; padding: 8px; transform: none;
+    border: 1px solid rgba(240, 180, 28, .7); border-radius: var(--radius-md);
+    background: linear-gradient(180deg, rgba(35, 25, 11, .98), rgba(12, 10, 7, .98)); box-shadow: 0 10px 24px rgba(0, 0, 0, .48);
+  }
+  .game-shell .tg-room .ot-tray.is-art .chip-picker-menu::after { display: none; }
+  .game-shell .tg-room .ot-tray.is-art .chip-picker-menu button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; box-shadow: none; cursor: pointer; }
+  .game-shell .tg-room .ot-tray.is-art .chip-picker-menu button.selected { transform: none; outline: 0; box-shadow: 0 0 0 3px var(--gold-light); }
+  .game-shell .tg-room .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
 }

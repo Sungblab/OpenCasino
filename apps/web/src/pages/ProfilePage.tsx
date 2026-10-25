@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProfileResponse } from "@opencasino/contracts";
 import { AppShell } from "../components/AppShell";
-import { changePassword, getProfile } from "../api";
+import { changePassword, getProfile, withdrawAccount } from "../api";
 import { LoadError, SkeletonPanel, SkeletonStats } from "../app/placeholders";
 import { ProfileAchievements } from "../components/MetaBits";
 import { ProfileItems } from "../components/EconomyBits";
@@ -18,6 +18,28 @@ export function ProfilePage({ token, onLogout }: { token: string; onLogout: () =
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
+
+  const [showWithdrawForm, setShowWithdrawForm] = useState(false);
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [withdrawError, setWithdrawError] = useState("");
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+
+  const submitWithdraw = async (event: FormEvent) => {
+    event.preventDefault();
+    setWithdrawError("");
+    if (!withdrawPassword) return setWithdrawError("비밀번호를 입력해주세요.");
+    if (!window.confirm("정말 탈퇴할까요? 코인·아이템·1:1 메시지가 삭제되고 되돌릴 수 없습니다.")) return;
+    setWithdrawBusy(true);
+    try {
+      await withdrawAccount(token, withdrawPassword);
+      onLogout();
+      navigate("/login", { replace: true, state: { notice: "탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다." } });
+    } catch (caught) {
+      setWithdrawError(caught instanceof Error ? caught.message : "탈퇴에 실패했습니다.");
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
 
   const reload = () => getProfile(token)
     .then((next) => {
@@ -64,9 +86,10 @@ export function ProfilePage({ token, onLogout }: { token: string; onLogout: () =
 
       <section className="profile-panel profile-actions-panel">
         <div className="profile-panel-heading"><h2>계정 관리</h2></div>
-        <div className="profile-actions single">
+        <div className="profile-actions manage">
           <ActionButton active={showPasswordForm} onClick={() => setShowPasswordForm((value) => !value)} title="비밀번호 변경" description="현재 비밀번호 확인 후 변경" />
           {/* 폰에선 위 띠의 프로필 메뉴가 빠지고(아래 탭 줄과 겹친다) 문의·로그아웃은 여기서 한다. */}
+          <ActionButton active={false} onClick={() => navigate("/guide")} title="이용 가이드" description="코인·게임·등급 한눈에" />
           <ActionButton active={false} onClick={() => navigate("/support")} title="1:1 문의" description="운영자에게 직접 묻기" />
           <ActionButton active={false} onClick={onLogout} title="로그아웃" description="이 기기에서 로그아웃" />
         </div>
@@ -77,6 +100,26 @@ export function ProfilePage({ token, onLogout }: { token: string; onLogout: () =
             <label>새 비밀번호 확인<input type="password" value={newPasswordConfirm} onChange={(event) => setNewPasswordConfirm(event.target.value)} autoComplete="new-password" /></label>
             {passwordError && <p className="error-message" role="alert">{passwordError}</p>}
             <button className="gold-button" disabled={passwordBusy}>{passwordBusy ? "변경 중…" : "비밀번호 변경"}</button>
+          </form>
+        )}
+        <div className="profile-danger">
+          <div>
+            <strong>회원 탈퇴</strong>
+            <small>계정과 개인정보를 삭제합니다. 되돌릴 수 없어요.</small>
+          </div>
+          <button type="button" className="profile-danger-button" aria-expanded={showWithdrawForm} onClick={() => setShowWithdrawForm((value) => !value)}>
+            {showWithdrawForm ? "닫기" : "회원 탈퇴"}
+          </button>
+        </div>
+        {showWithdrawForm && (
+          <form className="profile-form password" onSubmit={submitWithdraw}>
+            <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+              탈퇴하면 아이디·닉네임이 익명으로 바뀌고 1:1 메시지와 친구 목록이 삭제됩니다. 코인과 아이템은 사라지며 되돌릴 수 없습니다.{" "}
+              <Link to="/privacy">개인정보처리방침</Link>
+            </p>
+            <label>비밀번호 확인<input type="password" value={withdrawPassword} onChange={(event) => setWithdrawPassword(event.target.value)} autoComplete="current-password" /></label>
+            {withdrawError && <p className="error-message" role="alert">{withdrawError}</p>}
+            <button className="gold-button profile-danger-submit" disabled={withdrawBusy}>{withdrawBusy ? "처리 중…" : "탈퇴하기"}</button>
           </form>
         )}
       </section>

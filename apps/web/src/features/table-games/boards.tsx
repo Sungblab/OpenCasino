@@ -1,5 +1,4 @@
 import type { ComponentType } from "react";
-import { HiLoBoard } from "./HiLoBoard";
 import { MegaBallBoard } from "./MegaBallBoard";
 import { BacBoBoard } from "./BacBoBoard";
 import { TopCardBoard } from "./TopCardBoard";
@@ -10,7 +9,6 @@ import type { BoardProps } from "./types";
  * (규칙은 game-core table-games, 서버·베팅 칸·칩은 TableGameRoomPage 가 이미 한다).
  */
 export const BOARDS: Readonly<Record<string, ComponentType<BoardProps>>> = {
-  hilo: HiLoBoard,
   mega_ball: MegaBallBoard,
   bac_bo: BacBoBoard,
   top_card: TopCardBoard,

@@ -19,4 +19,5 @@ export * from "./sutda.js";
 export * from "./table-games/index.js";
 export * from "./video-poker.js";
 export * from "./pachinko.js";
+export * from "./hilo.js";
 

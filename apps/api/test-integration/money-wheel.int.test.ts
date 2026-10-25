@@ -110,7 +110,7 @@ describe("머니 휠 라운드", () => {
     expect(round.rows[0]!.result_data.spins.map((spin) => spin.segment)).toEqual([TWO_X, SEVEN_X, TEN]);
   });
 
-  it("여섯 칸을 다 덮어도 정산이 맞는다", async () => {
+  it("여섯 칸을 다 덮어도 정산은 칸마다 따로 맞는다", async () => {
     const next = (await log.waitFor<MoneyWheelRoomSnapshot>("moneyWheel.snapshot", (s) => s.room.phase === "BETTING" && !!s.roundId && s.roundId !== firstRoundId, 30_000, "다음 BETTING")).payload;
     const roundId = next.roundId!;
     // 휠은 지난 판 마지막 칸에 서 있다가 거기서 출발한다.

@@ -1,4 +1,6 @@
-const CHIP_CANDIDATES = [1, 5, 10, 25, 50, 100, 250, 500] as const;
+const CHIP_CANDIDATES = [1, 5, 10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 25_000] as const;
+/** 칩 줄 한 칸에 놓는 최대 개수. 넘으면 최소 칩 바로 위의 작은 칩부터 뺀다(큰 판돈 방은 큰 칩을 쓴다). */
+const MAX_CHIPS = 7;
 
 /**
  * Chip face colours, one per denomination tier. These are the single source of truth:
@@ -40,8 +42,10 @@ export function chipRimForAmount(amount: number): string {
 
 /** Chip denominations tailored to a room, always including its exact limits. */
 export function chipValuesForRoom(minBet: number, maxBet: number): number[] {
-  return [...new Set([minBet, ...CHIP_CANDIDATES.filter((value) => value >= minBet && value <= maxBet), maxBet])]
+  const values = [...new Set([minBet, ...CHIP_CANDIDATES.filter((value) => value >= minBet && value <= maxBet), maxBet])]
     .sort((a, b) => a - b);
+  while (values.length > MAX_CHIPS) values.splice(1, 1);
+  return values;
 }
 
 export function chipTier(value: number): number {

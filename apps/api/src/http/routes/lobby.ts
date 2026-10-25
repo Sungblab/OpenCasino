@@ -3,7 +3,6 @@ import type { Features } from "@opencasino/contracts";
 import { requireAuth, type AuthRequest } from "../../auth/auth.js";
 import { config } from "../../config.js";
 import { pool } from "../../database/pool.js";
-import { noteLobbyEntry } from "../../economy/vip-entries.js";
 import { walletService } from "../../wallet/wallet-service.js";
 import { asyncHandler } from "../async-handler.js";
 import type { RouteDeps } from "../route-deps.js";
@@ -20,6 +19,7 @@ export function lobbyRoutes({ rooms }: RouteDeps): Router {
   /** 이 서버의 운영 방식. 로그인 전 화면(가입 안내)도 읽으므로 인증이 없다. */
   router.get("/api/v1/features", (_req, res) => {
     const features: Features = {
+      playMoney: config.playMoney,
       signupApproval: !config.autoApproveSignups,
       dailyCoins: config.dailyCoinsTarget > 0 ? { target: config.dailyCoinsTarget } : null,
     };
@@ -34,7 +34,6 @@ export function lobbyRoutes({ rooms }: RouteDeps): Router {
   // 비공개 사용자 방은 코드(/api/v1/rooms/code/:code)로만 찾는다.
   router.get("/api/v1/lobby", requireAuth, asyncHandler(async (req, res) => {
     const user = (req as AuthRequest).user;
-    await noteLobbyEntry(user.id, user.nickname).catch(() => undefined);
     res.json({ rooms: rooms.publicRooms(), walletBalance: await walletService.getUserBalance(user.id) });
   }));
 

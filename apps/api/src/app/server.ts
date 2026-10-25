@@ -54,8 +54,8 @@ export async function startServer(): Promise<void> {
   const safetyNet = createProcessSafetyNet({ log: logger, shutdown: (reason, code) => crashShutdown(reason, code) });
   safetyNet.install();
   // 그물과 따로 단다(그물의 처리는 그대로): 운영 알림만 보낸다. 같은 글은 10분에 한 번.
-  process.on("uncaughtException", (error) => void sendAlert(`[OpenCasino] 처리되지 않은 예외 — 재시작합니다: ${errorText(error)}`));
-  process.on("unhandledRejection", (reason) => void sendAlert(`[OpenCasino] 처리되지 않은 거부: ${errorText(reason)}`));
+  process.on("uncaughtException", (error) => void sendAlert(`[골든 카지노] 처리되지 않은 예외 — 재시작합니다: ${errorText(error)}`));
+  process.on("unhandledRejection", (reason) => void sendAlert(`[골든 카지노] 처리되지 않은 거부: ${errorText(reason)}`));
 
   // 중단된 판 복구가 여기서 돈다 — 게임별 순서는 RoomRegistry.initialize 주석 참고.
   await rooms.initialize();
@@ -69,7 +69,7 @@ export async function startServer(): Promise<void> {
   });
   // 진행도 갱신·빈 방 닫기·일일 정리·경매·랭킹 칭호(ops/scheduler.ts).
   stopScheduler = startScheduler(opsJobs(rooms));
-  void sendAlert(`[OpenCasino] API 기동${process.env.GIT_COMMIT ? ` ${process.env.GIT_COMMIT}` : ""} (port ${config.port})`);
+  void sendAlert(`[골든 카지노] API 기동${process.env.GIT_COMMIT ? ` ${process.env.GIT_COMMIT}` : ""} (port ${config.port})`);
 
   process.on("SIGINT", () => void gracefulShutdown("SIGINT", 0));
   process.on("SIGTERM", () => void gracefulShutdown("SIGTERM", 0));

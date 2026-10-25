@@ -24,7 +24,8 @@
 .tier-chip.is-locked { color: var(--muted-dim); }
 .tier-chip.is-locked.is-on { color: var(--muted); border-color: var(--line-strong); }
 .quick-start-actions { display: flex; gap: 8px; }
-.quick-start-go, .quick-start-create { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; margin: 0; white-space: nowrap; }
+/* 한 단계 더 구체적으로: .gold-button 의 margin-top(6px)이 이 파일보다 늦게 읽혀 빠른 시작만 6px 내려앉았다. */
+.quick-start-actions :is(.quick-start-go, .quick-start-create) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; margin: 0; white-space: nowrap; }
 .quick-start-go { min-width: 132px; padding: 0 18px; }
 .quick-start-go:disabled { cursor: not-allowed; }
 .quick-start-create { padding: 0 14px; }

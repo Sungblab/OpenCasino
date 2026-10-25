@@ -7,7 +7,7 @@ import type { Migration } from "../migrator.js";
  */
 export const migration: Migration = {
   id: "0003_sicbo",
-  description: "식보 — game_type·베팅 이름 제약에 식보 추가",
+  description: "식보 — game_type·베팅 이름·롤링 출처 제약에 식보 추가",
   sql: `
 ALTER TABLE game_rooms DROP CONSTRAINT IF EXISTS game_rooms_game_type_check;
 ALTER TABLE game_rooms ADD CONSTRAINT game_rooms_game_type_check
@@ -21,5 +21,8 @@ ALTER TABLE wagers ADD CONSTRAINT wagers_choice_check
     OR choice ~ '^(small|big|odd|even|t([4-9]|1[0-7])|tr[1-6]|trany|d[1-6]|c[1-6][1-6]|s[1-6])$'
   );
 
+ALTER TABLE wagering_progress_events DROP CONSTRAINT IF EXISTS wagering_progress_events_source_type_check;
+ALTER TABLE wagering_progress_events ADD CONSTRAINT wagering_progress_events_source_type_check
+  CHECK (source_type IN ('cash_deposit','baccarat_wager','dragon_tiger_wager','blackjack_hand','blackjack_behind','blackjack_insurance','holdem_rake','sutda_rake','gostop_rake','casino_holdem_wager','holdem_stake','sutda_stake','gostop_stake','roulette_wager','sicbo_wager'));
 `,
 };

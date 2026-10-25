@@ -117,7 +117,6 @@ export class GostopService {
         const detail = plan.detail.get(item.userId);
         await client.query("UPDATE gostop_contributions SET payout_minor=$2,outcome=$3,points=$4,multiplier=$5,settled_at=now() WHERE id=$1", [item.id, payout, outcome, detail?.points ?? null, detail?.multiplier ?? null]);
       }
-
       await client.query("COMMIT");
       for (const id of touched) balances.set(id, await walletService.getUserBalance(id));
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }

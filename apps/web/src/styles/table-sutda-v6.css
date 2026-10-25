@@ -132,8 +132,9 @@
 .sutda-overlay:not(.is-wide) .holdem-seat-empty { display: flex; align-items: center; justify-content: center; gap: 3px; width: 76px; height: 30px; border-radius: 9px; font-size: 12px; }
 .sutda-overlay:not(.is-wide) .holdem-seat-empty::before { content: ""; position: absolute; inset: -8px 0; }
 
-/* 12px 배지는 70% 만 걸치면 아랫단이 바로 밑 이름표 윗줄을 덮는다 — 폰에선 패 쪽으로 더 올린다. */
-.sutda-overlay:not(.is-wide) .sv6-badge { transform: translate(-50%, -88%); }
+/* 12px 배지는 70% 만 걸치면 아랫단이 바로 밑 이름표 윗줄을 덮는다 — 폰에선 패 쪽으로 더 올린다. 판이 설계보다 작게
+   줄어드는 낮은 화면(가로 330px 안팎)에선 이름표와 1px 이 붙어 겹쳐 보여 1px 더 띄운다. */
+.sutda-overlay:not(.is-wide) .sv6-badge { transform: translate(-50%, calc(-88% - 1px)); }
 .sutda-overlay:not(.is-wide) .pvp-badge { padding: 0 7px; font-size: 12px; line-height: 1.5; max-width: 96px; }
 .sutda-overlay:not(.is-wide) .table-bubble { max-width: 150px; padding: 3px 8px; font-size: 12px; border-radius: 10px; }
 
@@ -263,6 +264,13 @@
 .sv6-stage:not([data-mode="wide"]) ~ :is(.sv6-dock-slot, .sv6-squeeze-float) .sv6-sheet-open { min-height: 44px; padding: 0 12px; font-size: 12px; }
 .sutda-overlay:not(.is-wide) .sv6-cut-strip button { width: 9px; height: 40px; }
 .sutda-overlay:not(.is-wide) .sv6-cutter { padding: 2px 8px 6px 12px; gap: 2px; }
+/* 주소창이 보이는 낮은 가로 폰(보이는 높이 360px 아래): 판이 줄어 기리 창(88px)이 윗줄 상대 이름표에 2px 걸쳤다 —
+   머리줄(건너뛰기)과 아래 여백을 줄여 창을 6px 낮게. 건너뛰기의 누르는 영역은 ::before 로 44px 그대로. */
+@media (orientation: landscape) and (max-height: 359px) and (pointer: coarse) {
+  .sutda-overlay:not(.is-wide) .sv6-cutter { padding-bottom: 4px; }
+  .sutda-overlay:not(.is-wide) .sv6-cut-skip { min-height: 28px; }
+  .sutda-overlay:not(.is-wide) .sv6-cut-skip::before { inset: -8px -4px; }
+}
 
 /* 고르는 창 뒤의 판: 한 톤 눌러 창이 "지금 할 일"로 읽히게. 머리줄(단계·도구)과 외침은 그 위에. */
 .sv6-scrim { position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0, .42); pointer-events: none; animation: sv6-scrim-in .2s ease-out; }

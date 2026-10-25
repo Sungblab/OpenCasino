@@ -13,12 +13,14 @@ import {
 import {
   applyLightningBlackjackMultiplier,
   blackjackSideBetResult,
-  drawLightningBlackjackMultiplier,
+  handValue,
   insurancePayout,
+  LIGHTNING_BLACKJACK_FEE_PERCENT,
+  lightningBlackjackTotal,
   payoutForOutcome,
-  rollLightningBlackjackAward,
   settleHand,
   splitLightningTotal,
+  type LightningBlackjackBoard,
 } from "@opencasino/game-core";
 import { pool } from "../../database/pool.js";
 import { walletService } from "../../wallet/wallet-service.js";
@@ -80,8 +82,8 @@ export interface BlackjackWin {
   payoutMinor: number;
 }
 
-/** Ante-style fee taken out of the first bet on a lightning blackjack hand (mirrors baccarat's 20%). */
-export const LIGHTNING_FEE_PERCENT = 20;
+/** 라이트닝 테이블의 첫 베팅에서 떼는 수수료(%) — 에볼루션처럼 판돈만큼(game-core LIGHTNING_BLACKJACK_FEE_PERCENT). */
+export const LIGHTNING_FEE_PERCENT = LIGHTNING_BLACKJACK_FEE_PERCENT;
 
 /** Moves the reserved stake out of the room account and balances the exact player return.
  * This also covers partial returns such as late surrender (half the stake). */
@@ -491,7 +493,6 @@ export class BlackjackHandService {
           entries: buildBlackjackSettlementEntries(accounts, amountMinor, payoutMinor),
           metadata: { kind: row.kind, label: result?.label ?? null, multiplier: result?.multiplier ?? 0 },
         });
-
         await client.query(
           "UPDATE blackjack_side_bets SET payout_minor=$2,outcome=$3,result_label=$4,settled_at=now() WHERE id=$1",
           [row.id, payoutMinor, result ? "win" : "lose", result?.label ?? null],
@@ -710,6 +711,8 @@ export class BlackjackHandService {
     roundId: string,
     dealerCards: Card[],
     lightning = false,
+    /** 이번 판 배수판(라이트닝 테이블). 17~21·블랙잭으로 이긴 손이 그 칸의 배수를 다음 판 몫으로 받는다. */
+    lightningBoard: LightningBlackjackBoard | null = null,
   ): Promise<{ balances: Map<string, number>; wins: BlackjackWin[]; lightningAwards: Map<string, number> }> {
     const hands = await this.handsForRound(roundId);
     const behindBets = await this.behindBetsForRound(roundId);
@@ -717,8 +720,8 @@ export class BlackjackHandService {
     const balances = new Map<string, number>();
     const wins: BlackjackWin[] = [];
     const lightningAwards = new Map<string, number>();
-    /** userId → the stake of this round's hands that won and drew an award; it becomes that award's cap. */
-    const lightningWinners = new Map<string, number>();
+    /** userId → 이번 판에 다음 판 배수를 따낸 손 하나(배수가 가장 큰 손, 같으면 판돈이 큰 손): 그 배수와 판돈(=배수의 상한). */
+    const lightningWinners = new Map<string, { multiplier: number; stakeMinor: number }>();
     const targetOutcomes = new Map<string, BlackjackOutcome>();
     const client = await pool.connect();
     try {
@@ -740,13 +743,18 @@ export class BlackjackHandService {
           entries,
           metadata: { outcome, lightningMultiplier: hand.lightningMultiplier },
         });
-
         await client.query("UPDATE blackjack_hands SET payout_minor=$2,outcome=$3,settled_at=now() WHERE id=$1", [hand.id, payoutMinor, outcome]);
         if (payoutMinor > hand.betMinor) {
           wins.push({ userId: hand.userId, outcome, profitMinor: payoutMinor - hand.betMinor, payoutMinor });
-          // Not every win earns a multiplier any more — each winning hand rolls for one
-          // (LIGHTNING_BLACKJACK_AWARD_PERCENT, game-core lightning.ts).
-          if (lightning && rollLightningBlackjackAward()) lightningWinners.set(hand.userId, (lightningWinners.get(hand.userId) ?? 0) + hand.betMinor);
+          // 이긴 점수(17~21·블랙잭)의 배수판 칸이 다음 판 배수가 된다 — 매 판 화면에 떠 있는 바로 그 값.
+          const total = lightning && lightningBoard ? lightningBlackjackTotal(outcome, handValue(hand.cards).total) : null;
+          if (total && lightningBoard) {
+            const multiplier = lightningBoard[total];
+            const best = lightningWinners.get(hand.userId);
+            if (!best || multiplier > best.multiplier || (multiplier === best.multiplier && hand.betMinor > best.stakeMinor)) {
+              lightningWinners.set(hand.userId, { multiplier, stakeMinor: hand.betMinor });
+            }
+          }
         }
       }
       for (const behind of behindBets) {
@@ -763,7 +771,6 @@ export class BlackjackHandService {
           entries,
           metadata: { outcome, targetSeat: behind.targetSeat, targetHandId: behind.targetHandId },
         });
-
         await client.query(
           "UPDATE blackjack_behind_bets SET payout_minor=$2,outcome=$3,settled_at=now() WHERE id=$1",
           [behind.id, payoutMinor, outcome],
@@ -789,12 +796,10 @@ export class BlackjackHandService {
           entries,
           metadata: { outcome },
         });
-
         await client.query("UPDATE blackjack_insurance_bets SET payout_minor=$2,outcome=$3,settled_at=now() WHERE id=$1", [insurance.id, payoutMinor, outcome]);
         if (payoutMinor > insurance.amountMinor) wins.push({ userId: insurance.userId, outcome: "insurance", profitMinor: payoutMinor - insurance.amountMinor, payoutMinor });
       }
-      for (const [userId, wonStakeMinor] of lightningWinners) {
-        const generated = drawLightningBlackjackMultiplier();
+      for (const [userId, { multiplier: generated, stakeMinor: wonStakeMinor }] of lightningWinners) {
         const award = await client.query<{ multiplier: number }>(
           `INSERT INTO blackjack_lightning_awards (user_id,multiplier,source_round_id,expires_at,stake_cap_minor)
            VALUES ($1,$2,$3,now()+interval '180 days',$4)

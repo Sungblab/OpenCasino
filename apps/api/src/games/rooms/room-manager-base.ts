@@ -29,11 +29,22 @@ export interface GameRoomManager {
   /** 관리자 편집(이름·한도·등급·열림)을 메모리의 방 줄에 반영한다. 이 매니저의 방이 아니면 false. */
   applyRoomEdit(roomId: string, patch: AdminRoomPatch): boolean;
   reopenRoom(roomId: string): boolean;
+  /** 사람이 들어 있는 방과 그 안의 사람·봇·앉은 사람(관리자 실시간 현황). */
+  occupancy(): RoomOccupancy[];
   /** 소켓이 붙어 있는 사람 수. 봇은 세지 않는다. 이 매니저의 방이 아니면 0. */
   humanCount(roomId: string): number;
   /** 사람이 없게 된 시각(ms). 사람이 있거나 이 매니저의 방이 아니면 null. */
   idleSince(roomId: string): number | null;
   reapClosedRooms(): number;
+}
+
+export interface RoomOccupancy {
+  room: GameRoom;
+  /** 소켓이 붙어 있는 사람. */
+  humans: string[];
+  bots: number;
+  /** 앉은 사람(봇 포함). 좌석이 없는 게임은 null. */
+  seated: string[] | null;
 }
 
 export abstract class RoomManagerBase<E extends SnapshotEventName, A extends RoomActor<BaseRoomRow, E>> implements GameRoomManager {
@@ -53,6 +64,13 @@ export abstract class RoomManagerBase<E extends SnapshotEventName, A extends Roo
 
   listRooms(): GameRoom[] {
     return [...this.actors.values()].map((actor) => actor.publicRoom());
+  }
+
+  occupancy(): RoomOccupancy[] {
+    return [...this.actors.values()].flatMap((actor) => {
+      const { humans, bots, seated } = actor.occupancy();
+      return humans.length > 0 ? [{ room: actor.publicRoom(), humans, bots, seated }] : [];
+    });
   }
 
   async join(socket: AppSocket, roomId: string): Promise<SnapshotOf<E>> {

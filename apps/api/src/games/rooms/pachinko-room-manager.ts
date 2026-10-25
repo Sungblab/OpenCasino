@@ -188,7 +188,6 @@ async function settleDrop(userId: string, roomId: string, command: PachinkoDropC
       [dropId, command.requestId, roomId, userId, bet, payout, outcome, command.risk, pocket, JSON.stringify(path), RULES_VERSION],
     );
     // 맞베팅이 없어 베팅 전액이 위험을 진 돈이다(슬롯과 같다).
-
     const balance = await client.query<{ balance_minor: string }>("SELECT balance_minor FROM wallet_accounts WHERE kind='user' AND user_id=$1", [userId]);
     await client.query("COMMIT");
     const balanceMinor = toBalance(balance.rows[0]?.balance_minor);

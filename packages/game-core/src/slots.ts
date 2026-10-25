@@ -1,8 +1,7 @@
 import { secureRandomInt, type RandomInt } from "./lightning.js";
 
 /**
- * 5릴 × 3줄 20라인 비디오 슬롯 "골든 세븐". 수학 모델은 docs/research/slots/A-slot-math.md 의 초안
- * 그대로다(A7~A13): 클래식 심볼 8종 + WILD + SCATTER, 릴 길이 34, SCATTER 3개 이상이면 프리스핀
+ * 5릴 × 3줄 20라인 비디오 슬롯 "골든 세븐". 수학 모델: 클래식 심볼 8종 + WILD + SCATTER, 릴 길이 34, SCATTER 3개 이상이면 프리스핀
  * 10회(전용 릴, 모든 당첨 ×3, 재발동 +10), 한 사이클 최대 500배. RTP 96.094%.
  *
  * 돈은 전부 최소 단위(1코인 = 100)다. 베팅은 20의 배수라 라인 베팅(총베팅/20)이 늘 정수이고,

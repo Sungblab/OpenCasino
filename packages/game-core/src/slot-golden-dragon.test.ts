@@ -16,7 +16,7 @@ const special = (symbol: DragonSymbol) => symbol === "SC" || Boolean(DRAGON_WILD
 
 describe("golden dragon slot model", () => {
   it("uses the strips of the math note", () => {
-    // docs/research/slots/D-new-machines.md 표. 옮겨 적다 틀리면 여기서 걸린다.
+    // 옮겨 적다 틀리면 여기서 걸린다.
     const base = [
       { DR: 3, TG: 3, KO: 3, IN: 4, LA: 4, A: 5, K: 5, Q: 6, J: 6, W: 0, SC: 1 },
       { DR: 3, TG: 3, KO: 3, IN: 3, LA: 5, A: 5, K: 5, Q: 5, J: 5, W: 2, SC: 1 },

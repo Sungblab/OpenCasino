@@ -120,7 +120,6 @@ export class CrashService {
         [roundId, wager.user_id, wager.id, stakeMinor, decision.multiplierX100, payoutMinor, decision.auto],
       );
     }
-
     return payoutMinor;
   }
 

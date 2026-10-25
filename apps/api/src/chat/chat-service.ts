@@ -132,7 +132,8 @@ async function getMessage(id: string): Promise<ChatMessage> {
   return mapMessage(row);
 }
 
-async function getOrCreateConversation(userId: string): Promise<string> {
+/** 사용자당 하나뿐인 운영자 대화(1:1 문의). 없으면 만든다 — 회원이 처음 묻거나 관리자가 먼저 말을 걸 때. */
+export async function getOrCreateConversation(userId: string): Promise<string> {
   const result = await pool.query<{ id: string }>(
     `INSERT INTO support_conversations (user_id) VALUES ($1)
      ON CONFLICT (user_id) DO UPDATE SET updated_at=now()

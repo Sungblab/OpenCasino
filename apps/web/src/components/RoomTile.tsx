@@ -36,7 +36,7 @@ export function betLimits(room: Pick<GameRoom, "gameType" | "minBet" | "maxBet">
 export function RoomTile({ room, onEnter, lockReason = null, adminBusy, onTogglePause }: {
   room: GameRoom;
   onEnter: (room: GameRoom) => void;
-  /** 등급 입장 조건이 안 되면 그 이유("Lv10 부터"). 타일은 흐려지고 누르면 이유만 알린다(onEnter 가 판단). */
+  /** 등급 입장 조건이 안 되면 그 이유("Lv5 부터"). 타일은 흐려지고 누르면 이유만 알린다(onEnter 가 판단). */
   lockReason?: string | null;
   /** Admin-only pause control; omitted entirely for players. */
   adminBusy?: boolean;

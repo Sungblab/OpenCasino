@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { chipTier } from "../lib/betting";
-import { chipTopUrl } from "../lib/chipArt";
+import { chipLabel, chipTopUrl } from "../lib/chipArt";
 
 /**
  * 하우스 게임 공통 칩 줄. 바카라·블랙잭·용호가 같은 마크업을 세 벌 복사해 쓰던 것을 한곳으로 모았다.
@@ -57,7 +57,7 @@ export function ChipTray({
           disabled={disabled || value > maxAdditional}
           onClick={() => onChip(value)}
         >
-          {art ? <img src={chipTopUrl(value)} alt="" draggable={false} /> : value}
+          {art ? <img src={chipTopUrl(value)} alt="" draggable={false} /> : chipLabel(value)}
         </button>
       ))}
       {showMax && (
@@ -71,11 +71,11 @@ export function ChipTray({
           onClick={() => onChip(maxAdditional)}
           title={`가능한 최대 금액 ${maxAdditional}코인`}
         >
-          {art ? <img src={chipTopUrl(maxAdditional)} alt="" draggable={false} /> : maxAdditional}
+          {art ? <img src={chipTopUrl(maxAdditional)} alt="" draggable={false} /> : chipLabel(maxAdditional)}
         </button>
       )}
       <button type="button" className={`chip-picker-trigger chip-tier-${chipTier(chip)}`} aria-label="칩 단위 선택" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
-        {art ? <img src={chipTopUrl(chip)} alt="" draggable={false} /> : chip}
+        {art ? <img src={chipTopUrl(chip)} alt="" draggable={false} /> : chipLabel(chip)}
       </button>
       {menuOpen && (
         <div className="chip-picker-menu" role="menu">
@@ -89,7 +89,7 @@ export function ChipTray({
               disabled={value === maxAdditional && showMax ? maxBlocked : value > maxAdditional}
               onClick={() => { onChip(value); setMenuOpen(false); }}
             >
-              {art ? <img src={chipTopUrl(value)} alt="" draggable={false} /> : value}
+              {art ? <img src={chipTopUrl(value)} alt="" draggable={false} /> : chipLabel(value)}
             </button>
           ))}
         </div>

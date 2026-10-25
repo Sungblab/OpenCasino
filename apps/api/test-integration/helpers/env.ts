@@ -17,7 +17,7 @@ export interface IntegrationContext {
 }
 
 /** 파일별 API 포트. 파일끼리 병렬로 돌므로 겹치면 안 된다. */
-export const PORT_OFFSET = { auth: 0, baccarat: 1, dragonTiger: 2, restart: 3, holdem: 4, blackjackSide: 5, holdemShortAllIn: 6, botRosters: 7, noDrop: 8, videoPoker: 9, moneyWheel: 10, crash: 11, adminAudit: 12, sevenPoker: 13, badugi: 14, meta: 15, handLogs: 16, profileHistory: 17, customRooms: 18, legacyMoney: 19, blackjackSurrender: 20, friends: 21, economy: 22, ops: 23, guests: 24, tableGames: 25, bacBo: 26, megaBall: 27, topCard: 28, pachinko: 29 } as const;
+export const PORT_OFFSET = { auth: 0, baccarat: 1, dragonTiger: 2, restart: 3, holdem: 4, blackjackSide: 5, holdemShortAllIn: 6, botRosters: 7, noDrop: 8, videoPoker: 9, moneyWheel: 10, crash: 11, adminAudit: 12, sevenPoker: 13, badugi: 14, meta: 15, handLogs: 16, profileHistory: 17, customRooms: 18, legacyMoney: 19, blackjackSurrender: 20, friends: 21, economy: 22, ops: 23, guests: 24, tableGames: 25, bacBo: 26, megaBall: 27, topCard: 28, pachinko: 29, hilo: 30 } as const;
 
 export function apiPort(name: keyof typeof PORT_OFFSET): number {
   return Number(process.env.INTEGRATION_PORT_BASE ?? 5205) + PORT_OFFSET[name];

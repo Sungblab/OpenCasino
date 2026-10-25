@@ -3,7 +3,7 @@ import type { HwatuCard } from "@opencasino/contracts";
 import { chipTier } from "../../lib/betting";
 import { chipBreakdown, chipLayerUrl } from "../../lib/chipArt";
 import { CardView, KR_FONT, NUM_FONT, createStageCore, easeIn, easeInOut, type CardDeps, type StageControllerBase, type StageSounds } from "../stage/core";
-import { TEX_H, TEX_W, backTexture, deckTexture, faceTexture, loadImage } from "../stage/hwatu";
+import { HWATU_RADIUS, TEX_H, TEX_W, backTexture, deckTexture, faceTexture, loadImage } from "../stage/hwatu";
 import { DOCK_INSET, HWATU, SUTDA_LAYOUT_EVENT, fanOffset, modeOf, sutdaCompactSize, sutdaGeometry, sutdaHeight, sutdaMode, type SutdaGeometry, type SutdaLayoutDetail } from "./stageLayout";
 
 /**
@@ -141,6 +141,7 @@ export async function createSutdaStage(host: HTMLElement, sounds: StageSounds = 
     sounds,
     back,
     size: { w: HWATU.w, h: HWATU.h, texW: TEX_W, texH: TEX_H },
+    radius: HWATU.w * HWATU_RADIUS,
     thickness: 2,
     pullFromShoe: async () => {
       return { x: deck.x, y: deck.y, r: 0, s: DECK_SCALE() };
@@ -186,7 +187,7 @@ export async function createSutdaStage(host: HTMLElement, sounds: StageSounds = 
   const outlineOf = (view: Hwatu) => {
     let g = outlines.get(view);
     if (!g) {
-      g = new Graphics().roundRect(-HWATU.w / 2 - 2, -HWATU.h / 2 - 2, HWATU.w + 4, HWATU.h + 4, 6).stroke({ width: 2.5, color: GOLD });
+      g = new Graphics().roundRect(-HWATU.w / 2 - 2, -HWATU.h / 2 - 2, HWATU.w + 4, HWATU.h + 4, HWATU.w * HWATU_RADIUS + 2).stroke({ width: 2.5, color: GOLD });
       g.visible = false;
       view.addChild(g);
       outlines.set(view, g);

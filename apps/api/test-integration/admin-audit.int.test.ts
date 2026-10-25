@@ -14,7 +14,8 @@ let adminToken: string;
 
 beforeAll(async () => {
   db = await createTestDatabase("admin_audit");
-  api = await startApi({ databaseUrl: db.url, port: apiPort("adminAudit"), label: "admin-audit" });
+  // A stale PLAY_MONEY_MODE=0 must never restore real-money wallet features.
+  api = await startApi({ databaseUrl: db.url, port: apiPort("adminAudit"), label: "admin-audit", env: { PLAY_MONEY_MODE: "0" } });
   admin = await createUser(db.pool, { username: "audit_admin", role: "admin" });
   adminToken = (await login(api, admin.username, admin.password)).token;
 });
@@ -42,6 +43,9 @@ describe("관리자 감사 로그", () => {
     expect((await post(`/api/v1/admin/rooms/${ROOMS.baccaratRookie}/pause`)).status).toBe(200);
     expect((await post(`/api/v1/admin/rooms/${ROOMS.baccaratRookie}/resume`)).status).toBe(200);
     expect((await post(`/api/v1/admin/users/${funded.id}/balance`, { amount: 30 })).status).toBe(200);
+    // 충전·환전은 막아 둔 게 아니라 애초에 없다.
+    expect((await post("/api/v1/wallet/cash-requests", { type: "deposit", amount: 100 })).status).toBe(404);
+    expect((await http<{ playMoney: boolean }>(api, "GET", "/api/v1/features")).body.playMoney).toBe(true);
     expect((await post(`/api/v1/admin/users/${leaver.id}/approval`, { approved: false })).status).toBe(200);
     expect((await http(api, "DELETE", `/api/v1/admin/users/${leaver.id}`, { token: adminToken })).status).toBe(200);
     expect((await post("/api/v1/admin/broadcast", { scope: "all", message: "점검 안내" })).status).toBe(200);

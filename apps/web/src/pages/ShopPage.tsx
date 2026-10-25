@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Crown, Eye, Lock, Sparkles, Ticket } from "lucide-react";
 import {
-  SHOP_ITEMS, shopItem, VIP_LABEL, VIP_THRESHOLDS, VIP_TIERS, vipRank,
+  SHOP_ITEMS, shopItem, VIP_LABEL, VIP_PERKS, VIP_THRESHOLDS, VIP_TIERS, vipRank,
   type EquipSlot, type ShopItem, type ShopState, type VipTier,
 } from "@opencasino/contracts";
 import { buyShopItem, equipShopItem, getProgress, getShop } from "../api";
@@ -23,15 +23,6 @@ type Filter = "all" | "owned" | "buyable";
 const TABS: Array<[Tab, string]> = [
   ["card_back", "카드 뒷면"], ["felt", "펠트"], ["nameplate", "명패"], ["win_effect", "승리 연출"], ["title", "칭호"], ["name_color", "닉네임 색"], ["util", "편의"], ["vip", "VIP"],
 ];
-
-/** VIP 등급마다 열리는 것(스펙 §6). */
-const VIP_PERKS: Record<VipTier, string> = {
-  bronze: "VIP 등급의 시작 — 쓴 코인이 쌓이면 다음 등급이 열립니다.",
-  silver: "닉네임 옆 VIP 왕관(채팅·좌석·랭킹에서 보입니다).",
-  gold: "VIP 시크릿 룸 입장 · 골드 전용 상점(블랙 골드 펠트).",
-  platinum: "VIP 등급 방 만들기 · 플래티넘 전용 상점(다이아몬드 카드 뒷면).",
-  diamond: "최고 등급 — 로비 티커에 입장 알림(💎 닉네임님 입장).",
-};
 
 /**
  * 상점 — 이번 주 한정 칸, 분류 탭, 가격, VIP 잠금, 빌림 남은 일수, 장착. 마지막 탭은 VIP 등급 사다리(/vip 로 바로 열린다).

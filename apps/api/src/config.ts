@@ -1,6 +1,8 @@
 import "dotenv/config";
 
 const webOrigin = process.env.WEB_ORIGIN ?? "http://127.0.0.1:5173";
+// Product invariant: this project only supports free play-money coins. Do not make this configurable.
+const playMoney = true;
 
 if (process.env.NODE_ENV === "production") {
   for (const [name, value] of Object.entries({ DATABASE_URL: process.env.DATABASE_URL, JWT_SECRET: process.env.JWT_SECRET, WEB_ORIGIN: process.env.WEB_ORIGIN })) {
@@ -40,12 +42,16 @@ export const config = {
   devTableRig: process.env.NODE_ENV !== "production" && process.env.DEV_TABLE_RIG === "1",
   /** 데일리 미션(코인 보상). 기본 켜짐 — 운영자가 "0" 으로 끄면 미션 목록이 비고 받기를 거절한다. */
   missionsEnabled: process.env.MISSIONS_ENABLED !== "0",
+  /**
+   * 이 프로젝트는 무료 플레이머니 전용이다. 실제 돈 입금·출금·환전 모드를 제공하지 않는다.
+   */
+  playMoney,
   /** 서버 전체에서 동시에 열려 있을 수 있는 사용자 방(방 만들기·빠른 시작) 수. 방 액터는 API 프로세스 메모리에 산다. */
   customRoomCapacity: Math.max(1, Number(process.env.CUSTOM_ROOM_CAPACITY ?? 200) || 200),
   /** 가입하자마자 로그인할 수 있다. "0" 이면 관리자의 승인을 기다린다. */
-  autoApproveSignups: process.env.AUTO_APPROVE_SIGNUPS ? process.env.AUTO_APPROVE_SIGNUPS === "1" : true,
-  /** 하루 한 번 잔액을 이만큼까지 채워 준다(코인). "0" 이면 끈다. 비어 있으면 1,000. */
-  dailyCoinsTarget: Math.max(0, Math.floor(Number(process.env.DAILY_COINS_TARGET || 1_000)) || 0),
+  autoApproveSignups: process.env.AUTO_APPROVE_SIGNUPS ? process.env.AUTO_APPROVE_SIGNUPS === "1" : playMoney,
+  /** 하루 한 번 잔액을 이만큼까지 채워 준다(코인). 플레이머니 모드에서만, "0" 이면 끈다. 비어 있으면 1,000. */
+  dailyCoinsTarget: playMoney ? Math.max(0, Math.floor(Number(process.env.DAILY_COINS_TARGET || 1_000)) || 0) : 0,
   /**
    * Express 의 "trust proxy". 배포에서는 nginx 가 같은 서버(127.0.0.1)에서 넘겨주므로 기본값은
    * loopback 이다. 이 설정이 없으면 req.ip 가 모든 사용자에게 127.0.0.1 로 같아져서, IP 별

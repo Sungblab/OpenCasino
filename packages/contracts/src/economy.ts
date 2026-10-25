@@ -1,6 +1,5 @@
 /**
  * 퍼블릭 운영의 코인 경제 규칙 — 웹과 API 가 같은 숫자를 보도록 한 곳에 둔다.
- * 근거와 이유: docs/superpowers/specs/2026-10-23-public-operation-design.md, docs/research/social-casino-economy.md.
  *
  * 원칙: 코인은 현금·상품·다른 사람에게 넘어가지 않는다. 아이템은 귀속이고 꾸밈·입장 권한만 준다(확률·배당 무관).
  *
@@ -33,7 +32,8 @@ export interface TierGate {
 export const TIER_GATES: Readonly<Record<TableTier, TierGate>> = {
   rookie: { minBalance: 0, minLevel: 1, minVip: null, pvpMaxBalance: 30_000 },
   standard: { minBalance: 500, minLevel: 1, minVip: null, pvpMaxBalance: null },
-  high: { minBalance: 5_000, minLevel: 10, minVip: null, pvpMaxBalance: null },
+  // Lv10(450판)은 "너무 높다"는 이용자 의견으로 Lv5(100판)로 낮췄다(2026-10-24). 잔액 5,000 은 그대로.
+  high: { minBalance: 5_000, minLevel: 5, minVip: null, pvpMaxBalance: null },
   vip: { minBalance: 30_000, minLevel: 1, minVip: "gold", pvpMaxBalance: null },
 };
 
@@ -153,6 +153,15 @@ export const VIP_LABEL: Readonly<Record<VipTier, string>> = {
   diamond: "다이아",
 };
 
+/** VIP 등급마다 열리는 것(스펙 §6). 상점의 VIP 탭과 이용 가이드가 같은 글을 쓴다. */
+export const VIP_PERKS: Readonly<Record<VipTier, string>> = {
+  bronze: "VIP 등급의 시작 — 쓴 코인이 쌓이면 다음 등급이 열립니다.",
+  silver: "닉네임 옆 VIP 왕관(채팅·좌석·랭킹에서 보입니다).",
+  gold: "VIP 시크릿 룸 입장 · 골드 전용 상점(블랙 골드 펠트).",
+  platinum: "VIP 등급 방 만들기 · 플래티넘 전용 상점(다이아몬드 카드 뒷면).",
+  diamond: "최고 등급 — 로비 티커 입장 알림에 💎 표시(💎 닉네임님 입장).",
+};
+
 /**
  * VIP 포인트 문턱. 포인트 = 쓴 코인(상점·방 개설비·경매 낙찰) + 딜러 게임 베팅의 기대 손실(베팅액 × 하우스 엣지).
  * 기대 손실로 세는 이유: 플레이어·뱅커 양쪽에 걸어 베팅액만 부풀리는 꼼수로 포인트를 사지 못하게.
@@ -193,8 +202,9 @@ export const HOUSE_EDGE: Readonly<Record<string, number>> = {
   super_sic_bo: 0.03,
   money_wheel: 0.06,
   crash: 0.03,
+  // 하이로우: 한 번 맞힐 때 1%(game-core hilo HILO_RTP_PERCENT). 이어 갈수록 겹치지만 어림값이라 한 번 기준.
+  hilo: 0.01,
   // 표 게임(game-core table-games). 정의의 edge 상수와 같다 — 바꾸면 여기도.
-  hilo: 0.03,
   bac_bo: 0.04,
   mega_ball: 0.055,
   top_card: 0.05,
@@ -264,15 +274,15 @@ export interface ShopItem {
 }
 
 export const SHOP_ITEMS: readonly ShopItem[] = [
-  { id: "cardback.oc_red", slot: "card_back", name: "OC 레드", description: "OpenCasino 기본 카드 뒷면", price: 0, rentalDays: null, minVip: null, value: "/cards/gc-back.svg" },
-  { id: "cardback.midnight", slot: "card_back", name: "미드나잇 블루", description: "깊은 남색 바탕에 은빛 OC", price: 3_000, rentalDays: null, minVip: null, value: "/cards/backs/midnight.svg" },
+  { id: "cardback.gc_red", slot: "card_back", name: "GC 레드", description: "골든 카지노 기본 카드 뒷면", price: 0, rentalDays: null, minVip: null, value: "/cards/oc-back.svg" },
+  { id: "cardback.midnight", slot: "card_back", name: "미드나잇 블루", description: "깊은 남색 바탕에 은빛 GC", price: 3_000, rentalDays: null, minVip: null, value: "/cards/backs/midnight.svg" },
   { id: "cardback.emerald", slot: "card_back", name: "에메랄드", description: "녹색 펠트를 닮은 뒷면", price: 3_000, rentalDays: null, minVip: null, value: "/cards/backs/emerald.svg" },
-  { id: "cardback.purple", slot: "card_back", name: "로열 퍼플", description: "보랏빛 바탕에 금빛 OC", price: 8_000, rentalDays: null, minVip: null, value: "/cards/backs/purple.svg" },
+  { id: "cardback.purple", slot: "card_back", name: "로열 퍼플", description: "보랏빛 바탕에 금빛 GC", price: 8_000, rentalDays: null, minVip: null, value: "/cards/backs/purple.svg" },
   { id: "cardback.blackgold", slot: "card_back", name: "블랙 골드", description: "검은 바탕에 금박", price: 25_000, rentalDays: null, minVip: null, value: "/cards/backs/blackgold.svg" },
   { id: "cardback.diamond", slot: "card_back", name: "다이아몬드", description: "푸른 보석 컷 · 플래티넘 VIP 전용", price: 60_000, rentalDays: null, minVip: "platinum", value: "/cards/backs/diamond.svg" },
-  { id: "cardback.rosegold", slot: "card_back", name: "로즈 골드", description: "와인빛 바탕에 분홍금 OC", price: 8_000, rentalDays: null, minVip: null, value: "/cards/backs/rosegold.svg" },
+  { id: "cardback.rosegold", slot: "card_back", name: "로즈 골드", description: "와인빛 바탕에 분홍금 GC", price: 8_000, rentalDays: null, minVip: null, value: "/cards/backs/rosegold.svg" },
   { id: "cardback.cosmic", slot: "card_back", name: "코스믹", description: "별빛과 성운이 흐르는 우주 바탕", price: 15_000, rentalDays: null, minVip: null, value: "/cards/backs/cosmic.svg" },
-  { id: "cardback.dragon", slot: "card_back", name: "드래곤 스케일", description: "붉은 용 비늘 위의 금빛 OC", price: 30_000, rentalDays: null, minVip: null, value: "/cards/backs/dragon.svg" },
+  { id: "cardback.dragon", slot: "card_back", name: "드래곤 스케일", description: "붉은 용 비늘 위의 금빛 GC", price: 30_000, rentalDays: null, minVip: null, value: "/cards/backs/dragon.svg" },
 
   { id: "felt.classic", slot: "felt", name: "클래식 그린", description: "기본 테이블 펠트(게임마다 원래 색)", price: 0, rentalDays: null, minVip: null, value: "classic" },
   { id: "felt.burgundy", slot: "felt", name: "버건디", description: "내 화면의 바카라·용호·블랙잭 펠트", price: 5_000, rentalDays: null, minVip: null, value: "burgundy" },
@@ -376,7 +386,7 @@ export function slotOfItem(itemId: string): EquipSlot | null {
 
 /** 기본 장착(아무것도 안 샀을 때). 칭호·닉네임 색·명패·승리 연출은 없음. */
 export const DEFAULT_EQUIPMENT: Readonly<Record<EquipSlot, string | null>> = {
-  card_back: "cardback.oc_red",
+  card_back: "cardback.gc_red",
   felt: "felt.classic",
   title: null,
   name_color: null,

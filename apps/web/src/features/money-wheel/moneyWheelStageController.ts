@@ -309,7 +309,7 @@ function paintHub(g: CanvasRenderingContext2D, size: number, isOrm: boolean): vo
     g.stroke();
   }
   // 이름(MONEY WHEEL) — PC 는 허브 윗부분만 보이므로 중심보다 위(MEDAL_Y)에. 결과 카드·배수 배너가 이 위에 겹쳐 뜬다
-  // (wheelFraming). 둥근 OC 메달은 쓰지 않는다(사용자: "OC 로고는 별로").
+  // (wheelFraming). 둥근 GC 메달은 쓰지 않는다(사용자: "GC 로고는 별로").
   const my = c - MEDAL_Y * u;
   g.textAlign = "center";
   g.textBaseline = "middle";

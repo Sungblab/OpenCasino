@@ -41,6 +41,15 @@
 }
 .game-guide-tab.is-active { color: var(--gold-light); border-bottom-color: var(--gold-light); }
 .game-guide-body { min-height: 0; overflow-y: auto; padding: 14px 16px 22px; overscroll-behavior: contain; }
+/* 바닥 줄(로비에서 연 가이드의 "바로 시작"). 줄이 있으면 격자에 한 줄 더. */
+.game-guide:has(> .game-guide-foot) { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.game-guide-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--gold-line-soft); background: rgba(0, 0, 0, .25); }
+.game-guide-foot .game-guide-play { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 0 20px; border: 1px solid var(--gold-deep); border-radius: var(--radius-sm); background: var(--gold-btn); color: var(--on-gold); font: 800 14px var(--ui-font); cursor: pointer; }
+.game-guide-foot .game-guide-play:hover:not(:disabled) { background: var(--gold-btn-hover); }
+.game-guide-foot .game-guide-play:disabled { opacity: .6; cursor: wait; }
+.guide-more { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.guide-note a { color: var(--gold-light); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 620px) { .game-guide-foot .game-guide-play { flex: 1 1 auto; } }
 
 /* Phones: a sheet from the bottom that uses most of the height. 화면 끝에 붙이지 않고 좌우·아래를 8px 띄운
    떠 있는 카드로 — 끝에 붙으면 화면 밖으로 넘친 것처럼 보였다. 폭은 100vw 가 아니라 100%(스크롤바 폭을 뺀 화면). */
@@ -116,7 +125,7 @@
 }
 .guide-rank-num { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: rgba(240,180,28,.16); color: var(--gold-light); font-size: 12px; font-weight: 600; }
 .guide-rank-cards { display: flex; align-items: center; gap: 3px; }
-.guide-rank-cards-hwatu .hwatu-card { width: 30px; height: 47px; margin: 0; transform: none; border-radius: 3px; }
+.guide-rank-cards-hwatu .hwatu-card { width: 30px; height: 47px; margin: 0; transform: none; }
 .guide-rank-cards-hwatu .hwatu-month { font-size: 12.5px; padding: 0 .25em; }
 .guide-rank-cards-hwatu .hwatu-card + .hwatu-card { margin-left: 0; transform: none; }
 .guide-poker-card { display: block; width: 26px; height: calc(26px * 1.4); overflow: hidden; border-radius: 3px; box-shadow: 0 2px 5px rgba(0,0,0,.5); }
@@ -254,6 +263,25 @@
   /* PvP 윗줄: [← · 단계] ······ [도구 · ⛶ · ≡] */
   .game-shell.is-landscape-game .pvp-topline { justify-content: flex-start; }
   .game-shell.is-landscape-game .pvp-topline > .pvp-tools { margin-left: auto; }
+  /* 윗줄 상대 자리의 빈자리(앉기·봇 부르기): 누르는 영역을 위가 아니라 아래로 편다 — 위로 펴면 바로 위 도구 줄의
+     누르는 영역과 겹쳐 그만큼 잘렸다(아래는 빈자리라 카드·칩이 없다). */
+  .game-shell.is-landscape-game :is(.holdem-overlay, .sutda-overlay).is-short .holdem-seat-empty::before { inset: -2px 0 -18px; }
+  /* 고스톱 채팅은 도구 줄 맨 오른쪽이라 오른쪽으로 편 영역이 판 끝에 잘려 43px 이었다 — 왼쪽(⋯ 와의 틈)으로 더 편다. */
+  .game-shell.is-landscape-game .gostop-v2 .pvp-tools .room-chat-toggle::before { left: -11px; }
+}
+/* 주소창·툴바가 보이는 가로 폰(보이는 높이 360px 아래, 844×340·780×330 등): 판 캔버스는 설계 높이(300 + 독)보다 작아
+   줄어드는데 윗줄(30px)·이름표·배지는 그대로라, 윗줄 상대 이름표 위 배지(WIN·자동 진행)가 도구 줄을 5px 덮었다(고스톱).
+   윗줄 버튼의 보이는 높이를 26px 로 — 누르는 영역은 아래로 더 펴서 44px 그대로(위는 판 가장자리에 잘린다). */
+@media (orientation: landscape) and (max-height: 359px) and (pointer: coarse) {
+  .game-shell.is-landscape-game .pvp-topline :is(.land-back, .land-menu .fullscreen-suggest, .land-menu .profile-trigger) { height: 26px; min-height: 26px; }
+  .game-shell.is-landscape-game .pvp-topline :is(.land-back, .land-menu .fullscreen-suggest, .land-menu .profile-trigger)::after { inset: -7px -7px -13px; }
+  .game-shell.is-landscape-game :is(.hv6-stage, .sv6-stage, .gv2-stage) .pvp-topline .pvp-tools .room-chat-toggle { height: 26px; min-height: 26px; }
+  .game-shell.is-landscape-game .pvp-topline .pvp-tools .room-chat-toggle::before { top: -8px; right: -8px; bottom: -13px; }
+  .game-shell.is-landscape-game :is(.hv6-stage, .sv6-stage, .gv2-stage) .pvp-topline .pvp-tool { min-height: 24px; }
+  .game-shell.is-landscape-game .pvp-topline .pvp-tools .pvp-tool::before { inset: -10px -1px -14px; }
+  .game-shell.is-landscape-game .pvp-topline :is(.hv6-phase, .sv6-phase, .gv2-phase) { padding-block: 3px; }
+  /* 배지는 12px 글자 그대로, 줄 높이만 줄여 낮게. */
+  .game-shell.is-landscape-game :is(.holdem-overlay, .sutda-overlay, .gostop-overlay):not(.is-wide) .pvp-badge { line-height: 1.25; }
 }
 
 /* ── 고스톱 도구 줄의 "⋯"(PvpTools moreMenu): 봇·자리 비우기·표정 ───────────────────────────

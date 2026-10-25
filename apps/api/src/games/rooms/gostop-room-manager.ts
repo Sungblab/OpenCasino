@@ -123,6 +123,10 @@ export class GostopRoomActor extends RoomActor<RoomRow, "gostop.snapshot"> {
   }
 
   private get seatedCount() { return this.seats.filter(Boolean).length; }
+  override seatedUserIds(): string[] {
+    return this.seats.flatMap((seat) => (seat ? [seat.userId] : []));
+  }
+
   publicRoom(): GameRoom { return { id: this.room.id, gameType: this.room.game_type, code: this.room.code, name: this.room.name, minBet: this.room.min_bet, maxBet: this.room.max_bet, playerCount: this.playerCount, phase: this.phase, enabled: this.room.enabled, paused: this.paused, ...roomTags(this.room), seatCount: this.seatCount, seatsTaken: this.seatedCount }; }
   mySeatNumber(userId: string): number | null { const index = this.seatIndexOf(userId); return index < 0 ? null : index + 1; }
   private seatIndexOf(userId: string) { return this.seats.findIndex((seat) => seat?.userId === userId); }

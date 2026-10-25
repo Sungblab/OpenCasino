@@ -97,8 +97,9 @@ export const LOBBY_GAMES: ReadonlyArray<LobbyGameMeta> = [
     types: ["blackjack", "lightning_blackjack"],
     road: false,
   },
-  // 표 게임(game-core table-games): 판 전체가 같은 결과에 거는 하우스 게임. 방 화면은 모두 TableGameRoomPage.
+  // 하이로우(1인용 연속 도전, HiLoRoomPage).
   { key: "hilo", category: "quick", label: "하이로우", en: "HI-LO", types: ["hilo"], road: false },
+  // 표 게임(game-core table-games): 판 전체가 같은 결과에 거는 하우스 게임. 방 화면은 모두 TableGameRoomPage.
   { key: "bac_bo", category: "quick", label: "박 보", en: "BAC BO", types: ["bac_bo"], road: false },
   { key: "mega_ball", category: "quick", label: "메가볼", en: "MEGA BALL", types: ["mega_ball"], road: false },
   { key: "top_card", category: "quick", label: "탑 카드", en: "TOP CARD", types: ["top_card"], road: false },
@@ -177,7 +178,7 @@ export function joinableFirst(rooms: GameRoom[]): GameRoom[] {
   return [...rooms].sort((a, b) => Number(a.paused) - Number(b.paused));
 }
 
-export function roomHref(room: GameRoom): string {
+export function roomHref(room: Pick<GameRoom, "id" | "gameType">): string {
   switch (room.gameType) {
     case "blackjack":
     case "lightning_blackjack": return `/rooms/blackjack/${room.id}`;
@@ -187,7 +188,6 @@ export function roomHref(room: GameRoom): string {
     case "sic_bo":
     case "super_sic_bo": return `/rooms/sicbo/${room.id}`;
     case "money_wheel": return `/rooms/money-wheel/${room.id}`;
-    case "hilo":
     case "bac_bo":
     case "mega_ball":
     case "top_card": return `/rooms/table/${room.id}`;
@@ -195,6 +195,7 @@ export function roomHref(room: GameRoom): string {
     case "slot": return `/rooms/slot/${room.id}`;
     case "video_poker": return `/rooms/video-poker/${room.id}`;
     case "pachinko": return `/rooms/pachinko/${room.id}`;
+    case "hilo": return `/rooms/hilo/${room.id}`;
     case "holdem": return `/rooms/holdem/${room.id}`;
     case "sutda": return `/rooms/sutda/${room.id}`;
     case "seven_poker": return `/rooms/seven-poker/${room.id}`;

@@ -24,7 +24,7 @@ describe("sic bo bets", () => {
   });
 
   it("matches the published house edges over all 216 rolls", () => {
-    // 216가지 경우로 셈한 값(docs/research/roulette-sicbo/B-evolution-sicbo.md B1·B3 표).
+    // 216가지 경우로 셈한 값.
     expect(baseRtp("small", "super")).toBeCloseTo(210 / 216, 10); // 97.22%
     expect(baseRtp("odd", "classic")).toBeCloseTo(210 / 216, 10);
     expect(baseRtp("t4", "super")).toBeCloseTo(0.7083, 4);

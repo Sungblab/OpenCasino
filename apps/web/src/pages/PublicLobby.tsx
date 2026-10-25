@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CircleHelp } from "lucide-react";
 import type { GameRoom, PublicAuthUser } from "@opencasino/contracts";
 import { Brand } from "../components/Brand";
 import { ResponsiblePlayNotice } from "../components/ResponsiblePlayNotice";
@@ -62,6 +63,7 @@ export function PublicLobby({ onLogin }: { onLogin: (token: string, user: Public
           <Brand />
         </Link>
         <div className="account">
+          <Link className="admin-nav-link header-guide-link" to="/guide" aria-label="이용 가이드"><CircleHelp size={15} aria-hidden="true" /><span>가이드</span></Link>
           <Link className="admin-nav-link public-login" to="/login">로그인</Link>
           <Link className="admin-nav-link" to="/signup">회원가입</Link>
         </div>
@@ -73,6 +75,7 @@ export function PublicLobby({ onLogin }: { onLogin: (token: string, user: Public
               <strong>가입 없이 바로 체험해 보세요.</strong>
               <span>하우스 게임 테이블을 누르면 체험 코인 1,000개로 바로 시작해요. 사람끼리 하는 게임(PvP)은 가입하면 열립니다.</span>
             </p>
+            <Link to="/guide" className="app-secondary-button guest-banner-cta">이용 가이드 보기</Link>
           </aside>
           <div className="lobby-layout is-public">
             <div className="lobby-main">
@@ -91,6 +94,7 @@ export function PublicLobby({ onLogin }: { onLogin: (token: string, user: Public
         <footer className="lobby-footer">
           <strong className="lobby-footer-brand">OPENCASINO</strong>
           <nav className="lobby-footer-links is-public" aria-label="바로가기">
+            <Link to="/guide">이용 가이드</Link>
             <Link to="/login">로그인</Link>
             <Link to="/signup">회원가입</Link>
           </nav>

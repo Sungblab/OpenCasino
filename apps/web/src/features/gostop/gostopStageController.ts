@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite } from "pixi.js";
 import { CardView, createStageCore, easeBack, easeIn, easeInOut, type CardDeps, type StageControllerBase, type StageSounds } from "../stage/core";
-import { TEX_H, TEX_W, backTexture, deckTexture, faceTexture } from "../stage/hwatu";
+import { HWATU_RADIUS, TEX_H, TEX_W, backTexture, deckTexture, faceTexture } from "../stage/hwatu";
 import {
   CAPTURED_KINDS, DOCK_INSET, GOSTOP_LAYOUT_EVENT, HWATU, backSlot, capturedSlots, gostopCompactSize, gostopGeometry, gostopHeight, gostopMode, handSlot, modeOf,
   type CapturedKind, type GostopFrame, type GostopGeometry, type Slot,
@@ -97,6 +97,7 @@ export async function createGostopStage(host: HTMLElement, sounds: StageSounds =
   const deps: CardDeps = {
     tween, wait, sounds, back,
     size: { w: HWATU.w, h: HWATU.h, texW: TEX_W, texH: TEX_H },
+    radius: HWATU.w * HWATU_RADIUS,
     thickness: 2,
     pullFromShoe: async () => ({ x: geo.stock.x, y: geo.stock.y, r: 0, s: geo.stock.s }),
   };
@@ -116,7 +117,7 @@ export async function createGostopStage(host: HTMLElement, sounds: StageSounds =
   const outlineOf = (view: Hwatu) => {
     let g = outlines.get(view);
     if (!g) {
-      g = new Graphics().roundRect(-HWATU.w / 2 - 3, -HWATU.h / 2 - 3, HWATU.w + 6, HWATU.h + 6, 7).stroke({ width: 3.5, color: GOLD });
+      g = new Graphics().roundRect(-HWATU.w / 2 - 3, -HWATU.h / 2 - 3, HWATU.w + 6, HWATU.h + 6, HWATU.w * HWATU_RADIUS + 3).stroke({ width: 3.5, color: GOLD });
       g.visible = false;
       view.addChild(g);
       outlines.set(view, g);

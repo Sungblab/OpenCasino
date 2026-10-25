@@ -10,9 +10,10 @@
 /* The wordmark — header, login card. */
 html .brand strong { font-family: var(--display-font); font-weight: 700; letter-spacing: .16em; }
 
-/* Game names on the lobby rows and on a PvP game's room list (the Korean name next to it is sans). */
-html .game-row-head h2,
+/* Game name on a PvP game's room list (the Korean name next to it is sans). 로비 게임 줄의 영어 이름(BACCARAT…)은
+   2026-10-24 사용자 요청으로 세리프를 빼고 Poppins — 줄마다 게임 색이 들어가 이름이 이미 눈에 띈다. */
 html .game-rooms-head h1 { font-family: var(--display-font); font-weight: 700; letter-spacing: .08em; }
+html .game-row-head h2 { font-family: var(--ui-font); font-weight: 800; letter-spacing: .04em; }
 html .game-rooms-head h1 .game-rooms-ko,
 html .game-rooms-head h1 span { font-family: var(--ui-font); letter-spacing: 0; }
 

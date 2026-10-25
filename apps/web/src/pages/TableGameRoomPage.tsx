@@ -202,9 +202,13 @@ export function TableGameRoomPage({ token, onLogout }: { token: string; onLogout
     const already = optimisticBets.amountFor(choice, snapshot.myBets[choice] ?? 0);
     const limit = spotLimit(choice);
     if (already + amount > limit) {
-      const error = `${def.betLabel(choice)} 칸은 최대 ${limit.toLocaleString()}코인까지 걸 수 있습니다.`;
-      if (!quiet) setMessage(error);
-      return resolve(error);
+      // 칩이 칸에 남은 한도보다 크면 남은 만큼만 건다(한도 50에 4를 걸었다면 46). 반복·2배 같은 묶음 베팅은 그대로 막는다.
+      if (amount === chip && !quiet && limit > already) amount = limit - already;
+      else {
+        const error = `${def.betLabel(choice)} 칸은 최대 ${limit.toLocaleString()}코인까지 걸 수 있습니다.`;
+        if (!quiet) setMessage(error);
+        return resolve(error);
+      }
     }
     const requestId = randomRequestId();
     const ticket = optimisticBets.stage(choice, snapshot.myBets[choice] ?? 0, amount);
@@ -296,7 +300,8 @@ export function TableGameRoomPage({ token, onLogout }: { token: string; onLogout
       loading={{ game: snapshot.room.gameType, roomKey: roomId, ready: tableGate.ready }}
       offline={!connected}
     >
-      <div className="tg-room">
+      {/* 게임 종류 클래스: 보드별 배치 규칙이 이걸 본다(:has(.tg-mball) 로 두면 방 안 DOM 이 바뀔 때마다 방 전체 스타일을 다시 계산했다). */}
+      <div className={`tg-room is-${snapshot.room.gameType}`}>
         <section className="tg-stage" aria-label={def.label}>
           {Board && (
             <Board def={def} setup={snapshot.setup} state={snapshot.state} result={result} phase={phase} roundId={roundId} winners={winners} myBets={displayBets} />

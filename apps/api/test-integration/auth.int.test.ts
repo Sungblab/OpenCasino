@@ -105,6 +105,8 @@ describe("정지된 사용자", () => {
       // 액세스 토큰(12시간)은 아직 유효하지만 계정 상태를 다시 읽어 거절해야 한다.
       const profile = await eventually(() => http(api, "GET", "/api/v1/profile", { token: session.token }), (response) => response.status === 401);
       expect(profile.status).toBe(401);
+      const transfer = await http(api, "POST", "/api/v1/wallet/transfers", { token: session.token, body: { requestId: randomUUID(), recipientNickname: admin.username, amount: 10 } });
+      expect(transfer.status).toBe(401);
 
       // 정지하면 그 사람의 소켓을 서버가 끊고, 같은 토큰으로 다시 붙는 것도 거절한다.
       const dropped = await eventually(async () => socket.connected, (connected) => !connected);

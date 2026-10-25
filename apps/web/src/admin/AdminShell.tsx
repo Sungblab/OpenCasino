@@ -1,10 +1,12 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import type { ChatMessage } from "@opencasino/contracts";
 import { AppShell } from "../components/AppShell";
 import { AdminDataProvider, useAdminData } from "./AdminData";
 import { useGameSocket } from "../lib/gameSocket";
 import { useToast } from "../app/toast";
+import "../styles/admin-console.css";
 
 export function AdminApp({ token, onLogout }: { token: string; onLogout: () => void }) {
   return <AdminDataProvider token={token}><AdminShell token={token} onLogout={onLogout}><Outlet /></AdminShell></AdminDataProvider>;
@@ -33,7 +35,7 @@ function AdminShell({ token, onLogout, children }: { token: string; onLogout: ()
   const socket = useGameSocket();
 
   // 알림은 공용 토스트로 띄운다(app/toast.tsx). 예전에는 이 화면만의 토스트가 한 칸짜리라 가입
-  // 신청과 가입 신청이 연달아 오면 앞의 것이 소리 없이 덮여 사라졌다. 이제는 쌓이고, 같은 신청이
+  // 신청과 문의가 연달아 오면 앞의 것이 소리 없이 덮여 사라졌다. 이제는 쌓이고, 같은 신청이
   // 다시 오면(id 가 같으면) 새로 쌓지 않고 갈아 끼운다.
   useEffect(() => {
     const show = (id: string, title: string, detail: string, href: string) => {
@@ -56,7 +58,7 @@ function AdminShell({ token, onLogout, children }: { token: string; onLogout: ()
   }, [socket, refresh, toast]);
 
   return (
-    <AppShell balance={0} onLogout={onLogout} showAdminLink={false} showBalance={false} showMobileNav={false} headerCenter={
+    <AppShell balance={0} onLogout={onLogout} showAdminLink={false} showBalance={false} showMobileNav={false} showChatDock={false} headerCenter={
       <div className="admin-header-center">
         <Link className="lobby-return-button admin-lobby-link" to="/lobby"><span aria-hidden="true">←</span> 로비로</Link>
       </div>
@@ -71,46 +73,67 @@ function AdminShell({ token, onLogout, children }: { token: string; onLogout: ()
   );
 }
 
+const NAV_GROUPS: { heading: string; items: { to: string; label: string; end?: boolean; support?: boolean }[] }[] = [
+  {
+    heading: "지금",
+    items: [
+      { to: "/admin", label: "통합 현황", end: true },
+      { to: "/admin/live", label: "실시간 현황" },
+    ],
+  },
+  {
+    heading: "처리",
+    items: [
+      { to: "/admin/users", label: "사용자" },
+      { to: "/admin/coins", label: "코인 관리" },
+      { to: "/admin/support", label: "문의·채팅", support: true },
+      { to: "/admin/lobby-chat", label: "로비 채팅" },
+      { to: "/admin/notices", label: "공지" },
+    ],
+  },
+  {
+    heading: "운영",
+    items: [
+      { to: "/admin/games", label: "게임 운영" },
+      { to: "/admin/history", label: "게임 기록" },
+      { to: "/admin/stats", label: "통계" },
+      { to: "/admin/admins", label: "관리자" },
+      { to: "/admin/audit", label: "감사 로그" },
+    ],
+  },
+];
+
 /**
- * The daily work (사용자) sits at the top, above the overview it used to be buried
- * under — those two are where an operator spends most of the day, and in the old header strip
- * they were mid-row items competing with 통계/게임 운영 for a width that was already scrolling.
+ * 넓은 화면은 왼쪽에 붙은 메뉴, 폰은 지금 화면 이름이 적힌 버튼 하나 — 누르면 메뉴 전체가 펼쳐진다. 예전 폰 메뉴는
+ * 가로로 밀어야 하는 띠라 열한 칸 중 서너 칸만 보였고, 어디가 더 있는지 몰랐다.
  */
 function AdminNavigation({ supportCount }: { supportCount: number }) {
-  const groups: { heading: string; items: { to: string; label: string; end?: boolean; badge?: number }[] }[] = [
-    {
-      heading: "처리",
-      items: [
-        { to: "/admin/users", label: "사용자" },
-        { to: "/admin/support", label: "문의·채팅", badge: supportCount },
-        { to: "/admin/messages", label: "DM 열람" },
-        { to: "/admin/lobby-chat", label: "로비 채팅" },
-      ],
-    },
-    {
-      heading: "운영",
-      items: [
-        { to: "/admin", label: "통합 현황", end: true },
-        { to: "/admin/history", label: "게임 기록" },
-        { to: "/admin/games", label: "게임 운영" },
-        { to: "/admin/stats", label: "통계" },
-        { to: "/admin/audit", label: "감사 로그" },
-      ],
-    },
-  ];
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  useEffect(() => { setOpen(false); }, [pathname]);
+  const items = NAV_GROUPS.flatMap((group) => group.items);
+  const current = items.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to))) ?? items[0]!;
+  const badge = (count: number) => (count ? <span className="admin-nav-badge">{count > 99 ? "99+" : count}</span> : null);
   return (
-    <nav className="admin-sidebar" aria-label="관리자 메뉴">
-      {groups.map((group) => (
+    <nav className={`admin-sidebar${open ? " is-open" : ""}`} aria-label="관리자 메뉴">
+      <button type="button" className="admin-nav-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <span>{current.label}</span>
+        {badge(supportCount)}
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      {NAV_GROUPS.map((group) => (
         <div key={group.heading} className="admin-sidebar-group">
           <p className="admin-sidebar-heading">{group.heading}</p>
           {group.items.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}>
               {item.label}
-              {item.badge ? <span className="admin-nav-badge">{item.badge > 99 ? "99+" : item.badge}</span> : null}
+              {item.support && badge(supportCount)}
             </NavLink>
           ))}
         </div>
       ))}
+      {/* 폰에선 위 띠의 "로비로" 를 숨기고 펼친 메뉴 맨 아래에 둔다(로고도 로비로 간다). */}
+      <Link className="admin-nav-lobby" to="/lobby"><span aria-hidden="true">←</span> 로비로</Link>
     </nav>
   );
 }

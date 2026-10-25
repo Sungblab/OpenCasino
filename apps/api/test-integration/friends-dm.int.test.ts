@@ -7,7 +7,7 @@ import { apiPort } from "./helpers/env.js";
 /**
  * 친구·1:1 메시지: 요청 → 수락 → 소켓 메시지가 양쪽에 → 안 읽음·읽음 → 친구 삭제하면 전송 거절 → 다시 친구(서로 요청이면
  * 곧 수락) → 차단하면 상대의 요청·메시지 거절(차단 사실은 안 드러남) → 봇·자기 자신·미승인 거절 → 이전 메시지 페이지 →
- * 관리자 대화 목록·열람과 DM_VIEWED 감사 기록, 일반 사용자는 관리자 API 403.
+ * 관리자도 남의 대화를 열람할 수 없음(열람 API 없음). 끝에 가입 동의 필수와 본인 탈퇴(익명화·DM 삭제).
  */
 let db: TestDatabase;
 let api: ApiServer;
@@ -132,23 +132,11 @@ describe("친구와 1:1 메시지", () => {
     expect(everyone.body.items.map((item: { nickname: string }) => item.nickname).sort()).toEqual(["fdm_admin", "fdm_alice", "fdm_bob"]);
     expect((await call("carol", "GET", `/api/v1/friends/search?q=${encodeURIComponent("고니")}`)).body.items).toEqual([]);
 
-    // 관리자: 대화 목록 → 열람(감사 기록) → 일반 사용자는 403.
-    const conversations = await call("admin", "GET", "/api/v1/admin/dm/conversations");
-    expect(conversations.status).toBe(200);
-    expect(conversations.body.items).toHaveLength(1);
-    expect(conversations.body.items[0].messageCount).toBe(2);
-    expect(conversations.body.items[0].users.map((user: { nickname: string }) => user.nickname).sort()).toEqual(["fdm_alice", "fdm_bob"]);
-    expect(conversations.body.items[0].lastMessage.message).toBe("다시 왔어");
-    expect((await call("admin", "GET", "/api/v1/admin/dm/conversations?q=nobody")).body.items).toEqual([]);
-    const opened = await call("admin", "GET", `/api/v1/admin/dm/conversations/${b.id}/${a.id}/messages`);
-    expect(opened.status).toBe(200);
-    expect(opened.body.items.map((item: { message: string }) => item.message)).toEqual(["안녕 밥", "다시 왔어"]);
-    const audit = await db.pool.query<{ actor_user_id: string; details: { userIds: string[] } }>("SELECT actor_user_id,details FROM audit_logs WHERE action='DM_VIEWED'");
-    expect(audit.rows).toHaveLength(1);
-    expect(audit.rows[0]!.actor_user_id).toBe(users.admin!.id);
-    expect(audit.rows[0]!.details.userIds.sort()).toEqual([a.id, b.id].sort());
-    expect((await call("alice", "GET", "/api/v1/admin/dm/conversations")).status).toBe(403);
-    expect((await call("alice", "GET", `/api/v1/admin/dm/conversations/${b.id}/${a.id}/messages`)).status).toBe(403);
+    // 관리자도 남의 대화를 열람하는 길이 없다 — 예전 열람 API 는 사라졌다(404).
+    expect((await call("admin", "GET", "/api/v1/admin/dm/conversations")).status).toBe(404);
+    expect((await call("admin", "GET", `/api/v1/admin/dm/conversations/${b.id}/${a.id}/messages`)).status).toBe(404);
+    // 당사자가 아닌 관리자는 일반 DM 내역 API 로도 두 사람의 대화를 볼 수 없다(자기 쪽 쌍만 조회된다).
+    expect((await call("admin", "GET", `/api/v1/dm/${b.id}/messages`)).body.items).toEqual([]);
   });
 
   it("이전 메시지는 50개씩, 최신부터", async () => {
@@ -169,5 +157,51 @@ describe("친구와 1:1 메시지", () => {
     expect(older.body.items.map((item: { message: string }) => item.message)).toEqual(["m1", "m2", "m3", "m4", "m5"]);
     expect(older.body.hasMore).toBe(false);
     expect((await call("carol", "GET", `/api/v1/dm/${a.id}/messages?before=yesterday`)).status).toBe(400);
+  });
+});
+
+describe("가입 동의와 회원 탈퇴", () => {
+  it("동의 없이는 가입할 수 없고, 동의하면 기록이 남는다", async () => {
+    const body = { username: "consent_new", nickname: "동의한사람", password: "consent-pass-1" };
+    expect((await http(api, "POST", "/api/v1/auth/register", { body })).status).toBe(400);
+    expect((await http(api, "POST", "/api/v1/auth/register", { body: { ...body, agreements: { age14: false, terms: true, privacy: true } } })).status).toBe(400);
+    expect((await http(api, "POST", "/api/v1/auth/register", { body: { ...body, agreements: { age14: true, terms: true, privacy: true } } })).status).toBe(201);
+    const row = await db.pool.query<{ consented_at: Date | null; consent_version: string | null }>("SELECT consented_at,consent_version FROM users WHERE username='consent_new'");
+    expect(row.rows[0]?.consented_at).not.toBeNull();
+    expect(row.rows[0]?.consent_version).toBeTruthy();
+  });
+
+  it("탈퇴하면 이름이 익명으로 바뀌고 DM·친구가 지워지며 로그인이 막힌다", async () => {
+    const { carol, alice, admin } = users as Record<"carol" | "alice" | "admin", TestUser>;
+    expect((await call("carol", "POST", "/api/v1/profile/withdraw", { password: "wrong-password" })).status).toBe(401);
+    // 관리자가 한 명뿐이면 탈퇴할 수 없다.
+    expect((await call("admin", "POST", "/api/v1/profile/withdraw", { password: admin.password })).status).toBe(400);
+    const before = await db.pool.query("SELECT 1 FROM dm_messages WHERE user_low=$1 OR user_high=$1", [carol.id]);
+    expect(before.rowCount).toBeGreaterThan(0);
+
+    expect((await call("carol", "POST", "/api/v1/profile/withdraw", { password: carol.password })).status).toBe(200);
+
+    expect((await db.pool.query("SELECT 1 FROM dm_messages WHERE user_low=$1 OR user_high=$1", [carol.id])).rowCount).toBe(0);
+    expect((await db.pool.query("SELECT 1 FROM friendships WHERE user_low=$1 OR user_high=$1", [carol.id])).rowCount).toBe(0);
+    const row = await db.pool.query<{ username: string; nickname: string; deleted_at: Date | null; approved: boolean }>("SELECT username,nickname,deleted_at,approved FROM users WHERE id=$1", [carol.id]);
+    expect(row.rows[0]?.username).toMatch(/^withdrawn_/);
+    expect(row.rows[0]?.nickname).toBe(row.rows[0]?.username);
+    expect(row.rows[0]?.deleted_at).not.toBeNull();
+    expect(row.rows[0]?.approved).toBe(false);
+    // 옛 이름·옛 토큰으로 더는 들어오지 못한다. 상대(alice)에겐 지워진 대화가 보이지 않는다.
+    expect((await http(api, "POST", "/api/v1/auth/login", { body: { username: carol.username, password: carol.password } })).status).toBe(401);
+    expect((await call("carol", "GET", "/api/v1/friends")).status).toBe(401);
+    expect((await call("alice", "GET", `/api/v1/dm/${carol.id}/messages`)).body.items).toEqual([]);
+    expect(alice.id).toBeTruthy();
+  });
+
+  it("관리자는 다른 관리자가 있을 때만 탈퇴하고, 탈퇴하면 권한도 내려간다", async () => {
+    const second = await createUser(db.pool, { username: "fdm_admin2", role: "admin" });
+    tokens.admin2 = (await login(api, second.username, second.password)).token;
+    const first = users.admin!;
+    expect((await call("admin", "POST", "/api/v1/profile/withdraw", { password: first.password })).status).toBe(200);
+    expect((await db.pool.query<{ role: string }>("SELECT role FROM users WHERE id=$1", [first.id])).rows[0]?.role).toBe("user");
+    // 이제 admin2 가 마지막 관리자다.
+    expect((await call("admin2", "POST", "/api/v1/profile/withdraw", { password: second.password })).status).toBe(400);
   });
 });

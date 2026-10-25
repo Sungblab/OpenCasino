@@ -128,6 +128,8 @@
 .game-shell .hv6-stage:not([data-mode="wide"]) .pvp-tools .room-chat-toggle { width: 30px; height: 30px; margin-left: 8px; }
 .hv6-stage:not([data-mode="wide"]) .pvp-more { display: block; position: relative; }
 .hv6-stage:not([data-mode="wide"]) .pvp-more-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; font-size: 15px; letter-spacing: .05em; }
+/* 터치 폰: "⋯" 도 보이는 폭을 44px 로(고스톱과 같다) — 30px 이면 옆 도구에 막혀 누르는 영역이 34px 뿐이었다. */
+@media (pointer: coarse) { .hv6-stage:not([data-mode="wide"]) .pvp-more-toggle { min-width: 44px; } }
 .hv6-stage:not([data-mode="wide"]) .pvp-more-menu {
   display: none;
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
@@ -144,7 +146,8 @@
 .hv6-stage:not([data-mode="wide"]) .hv6-seat :is(.holdem-seat-name, .holdem-seat-stack) { font-size: 12px; line-height: 1.25; }
 .holdem-overlay:not(.is-wide) .holdem-seat-empty { display: flex; align-items: center; justify-content: center; gap: 3px; width: 76px; height: 30px; border-radius: 9px; font-size: 12px; }
 .holdem-overlay:not(.is-wide) .holdem-seat-empty::before { content: ""; position: absolute; inset: -8px 0; }
-.holdem-overlay:not(.is-wide) .hv6-badge { transform: translate(-50%, -88%); }
+/* 판이 설계보다 작게 줄어드는 낮은 화면(가로 330px 안팎)에선 이름표와 1px 붙어 겹쳐 보여 1px 더 띄운다. */
+.holdem-overlay:not(.is-wide) .hv6-badge { transform: translate(-50%, calc(-88% - 1px)); }
 .holdem-overlay:not(.is-wide) .pvp-badge { padding: 0 7px; font-size: 12px; line-height: 1.5; max-width: 96px; }
 .holdem-overlay:not(.is-wide) .table-bubble { max-width: 150px; padding: 3px 8px; font-size: 12px; border-radius: 10px; }
 .holdem-v6 .holdem-overlay:not(.is-wide) .hv6-tag { padding: 4px 9px 5px; border-radius: 10px; max-width: 220px; }

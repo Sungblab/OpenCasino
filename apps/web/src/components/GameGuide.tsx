@@ -31,7 +31,11 @@ export interface GameGuideContent {
  * Tab 은 시트 안에서만 돌며, 닫히면 열었던 버튼으로 포커스가 돌아간다. 예전에는 포커스가 시트
  * 뒤의 게임 바에 남아 있어서 키보드로는 시트 안의 탭을 누를 방법이 없었다.
  */
-export function GameGuide({ content, open, initialSection, onClose }: { content: GameGuideContent; open: boolean; initialSection?: string; onClose: () => void }) {
+export function GameGuide({ content, open, initialSection, onClose, footer }: {
+  content: GameGuideContent; open: boolean; initialSection?: string; onClose: () => void;
+  /** 시트 맨 아래 고정 줄 — 로비에서 연 가이드는 여기에 "바로 시작" 버튼을 둔다(읽고 곧장 게임으로). */
+  footer?: ReactNode;
+}) {
   // 사용자가 고른 탭. 고르기 전(null)에는 열 때 요청받은 탭을 쓴다 — effect 로 한 박자 늦게 맞추면
   // 첫 렌더에서는 엉뚱한 탭이 선택된 채 포커스가 그리로 들어가 버린다.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -128,6 +132,7 @@ export function GameGuide({ content, open, initialSection, onClose }: { content:
         <div className="game-guide-body" role="tabpanel" id={panelId} aria-labelledby={section ? tabId(section.id) : undefined} tabIndex={0}>
           {section?.content}
         </div>
+        {footer && <footer className="game-guide-foot">{footer}</footer>}
       </section>
     </div>,
     // 전체화면 중에는 fullscreenElement(.game-shell) 바깥이 그려지지 않는다 — body 로 보내면
@@ -137,6 +142,30 @@ export function GameGuide({ content, open, initialSection, onClose }: { content:
 }
 
 /* ── Small building blocks the per-game guide modules share ─────────────── */
+
+/**
+ * 모든 가이드의 첫 탭 "처음이라면": 규칙 사전(게임 방법·족보·용어)을 읽기 전에 30초 안에 한 판을 시작할 수 있게.
+ * 단계는 세 줄 안팎의 짧은 문장, tip 은 처음 해 보는 사람에게 권하는 시작 방법, odds 는 이 게임의 배당 표기를 읽는 법.
+ */
+export function startSection({ steps, tip, odds }: { steps: Array<{ title: string; body: ReactNode }>; tip?: ReactNode; odds?: ReactNode }): GuideSection {
+  return {
+    id: "start",
+    title: "처음이라면",
+    content: (
+      <>
+        <GuideSteps steps={steps} />
+        {tip && <GuideNote tone="green"><b>이렇게 시작해 보세요</b> · {tip}</GuideNote>}
+        {odds && <GuideNote><b>배당 읽는 법</b> · {odds}</GuideNote>}
+        <p className="guide-more">더 자세한 규칙과 배당은 위의 다른 탭에 있어요.</p>
+      </>
+    ),
+  };
+}
+
+/** "X : 1" 배당 표기를 쓰는 하우스 게임 공통 설명. */
+export const ODDS_TO_ONE = <>"1 : 1" 은 건 만큼 더 받는다는 뜻이에요 — 10코인을 걸어 이기면 원금 10 + 10 = 20코인. "8 : 1" 이면 10코인이 90코인이 돼요.</>;
+/** "×N" 배수 표기를 쓰는 게임 공통 설명. */
+export const ODDS_TIMES = <>"×2" 는 원금을 포함해 2배를 돌려받는다는 뜻이에요 — 10코인이 20코인. "×0.5" 처럼 1보다 작으면 원금보다 적게 돌아와요.</>;
 
 /** Numbered "how a round goes" list. */
 export function GuideSteps({ steps }: { steps: Array<{ title: string; body: ReactNode }> }) {

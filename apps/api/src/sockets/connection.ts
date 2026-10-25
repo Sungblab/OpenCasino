@@ -22,6 +22,7 @@ import { registerSutdaHandlers } from "./handlers/sutda.js";
 import { registerTableHandlers } from "./handlers/table.js";
 import { registerVideoPokerHandlers } from "./handlers/video-poker.js";
 import { registerPachinkoHandlers } from "./handlers/pachinko.js";
+import { registerHiLoHandlers } from "./handlers/hilo.js";
 
 /**
  * 소켓 연결의 입구. 토큰을 확인하고, 연결마다 개인 채널에 넣고, 게임별 명령 핸들러를 단다.
@@ -66,6 +67,7 @@ export function attachSocketHandlers(io: AppServer, rooms: RoomRegistry): void {
     registerSlotHandlers(ctx, rooms);
     registerVideoPokerHandlers(ctx, rooms);
     registerPachinkoHandlers(ctx, rooms);
+    registerHiLoHandlers(ctx, rooms);
     registerBlackjackHandlers(ctx, rooms);
     registerHoldemHandlers(ctx, rooms);
     registerSutdaHandlers(ctx, rooms);

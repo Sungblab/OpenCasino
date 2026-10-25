@@ -206,7 +206,7 @@ export function createPachinkoBoard(canvas: HTMLCanvasElement, hooks: PachinkoBo
       ctx.fillText(label, cx, POCKET_TOP + POCKET_H / 2 + 0.02);
     }
 
-    // 못
+    // 못: 판에 박힌 황동 핀 — 오른쪽 아래로 짧은 그림자, 왼쪽 위에서 빛을 받는 둥근 머리(납작한 점이면 스티커 같았다).
     for (let row = 0; row < ROWS; row += 1) {
       for (let col = 0; col <= row; col += 1) {
         const x = pegX(row, col);
@@ -219,9 +219,18 @@ export function createPachinkoBoard(canvas: HTMLCanvasElement, hooks: PachinkoBo
           ctx.arc(x, y, PEG_R + 0.17 * glow, 0, Math.PI * 2);
           ctx.fill();
         }
-        ctx.fillStyle = glow > 0 ? "#fff6c9" : "#c9b46f";
+        const r = PEG_R * (1 + 0.35 * glow);
+        ctx.fillStyle = "rgba(0,0,0,.4)";
         ctx.beginPath();
-        ctx.arc(x, y, PEG_R * (1 + 0.35 * glow), 0, Math.PI * 2);
+        ctx.arc(x + r * 0.3, y + r * 0.45, r, 0, Math.PI * 2);
+        ctx.fill();
+        const head = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.08, x, y, r);
+        head.addColorStop(0, "#fff6d2");
+        head.addColorStop(0.45, glow > 0 ? "#fff0b0" : "#d6b25a");
+        head.addColorStop(1, glow > 0 ? "#c9a040" : "#76551a");
+        ctx.fillStyle = head;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -230,6 +239,10 @@ export function createPachinkoBoard(canvas: HTMLCanvasElement, hooks: PachinkoBo
     for (const flight of flights) {
       const { x, y, alpha } = place(time, flight);
       ctx.globalAlpha = alpha;
+      ctx.fillStyle = "rgba(0,0,0,.35)";
+      ctx.beginPath();
+      ctx.arc(x + BALL_R * 0.25, y + BALL_R * 0.4, BALL_R, 0, Math.PI * 2);
+      ctx.fill();
       const shine = ctx.createRadialGradient(x - BALL_R * 0.35, y - BALL_R * 0.4, BALL_R * 0.1, x, y, BALL_R);
       shine.addColorStop(0, "#fffbe0");
       shine.addColorStop(0.45, "#f3c230");

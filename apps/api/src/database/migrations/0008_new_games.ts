@@ -2,14 +2,14 @@ import type { Migration } from "../migrator.js";
 
 /**
  * 새 게임 다섯 개(비디오 포커·머니 휠·크래시·7포커·바둑이)의 공용 제약을 한 번에 연다. 게임마다 자기 표는
- * 따로 마이그레이션을 두지만, game_type·베팅 이름 목록은 한 줄씩 통째로 다시 쓰는 제약이라
+ * 따로 마이그레이션을 두지만, game_type·베팅 이름·롤링 출처 목록은 한 줄씩 통째로 다시 쓰는 제약이라
  * 여러 게임이 각자 고치면 서로의 항목을 지운다 — 그래서 여기서 한 번에 늘린다.
  *
  * 베팅 이름: 머니 휠은 "wheel:<칸>", 크래시는 "crash" (둘 다 바카라처럼 game_rounds·wagers 를 쓴다).
  */
 export const migration: Migration = {
   id: "0008_new_games",
-  description: "비디오 포커·머니 휠·크래시·7포커·바둑이 — game_type·베팅 이름 제약",
+  description: "비디오 포커·머니 휠·크래시·7포커·바둑이 — game_type·베팅 이름·롤링 출처 제약",
   sql: `
 ALTER TABLE game_rooms DROP CONSTRAINT IF EXISTS game_rooms_game_type_check;
 ALTER TABLE game_rooms ADD CONSTRAINT game_rooms_game_type_check
@@ -24,5 +24,8 @@ ALTER TABLE wagers ADD CONSTRAINT wagers_choice_check
     OR choice ~ '^(wheel:[a-z0-9]{1,8}|crash)$'
   );
 
+ALTER TABLE wagering_progress_events DROP CONSTRAINT IF EXISTS wagering_progress_events_source_type_check;
+ALTER TABLE wagering_progress_events ADD CONSTRAINT wagering_progress_events_source_type_check
+  CHECK (source_type IN ('cash_deposit','baccarat_wager','dragon_tiger_wager','blackjack_hand','blackjack_behind','blackjack_insurance','blackjack_side','holdem_rake','sutda_rake','gostop_rake','casino_holdem_wager','holdem_stake','sutda_stake','gostop_stake','roulette_wager','sicbo_wager','slot_spin','video_poker_hand','money_wheel_wager','crash_wager','seven_poker_rake','seven_poker_stake','badugi_rake','badugi_stake'));
 `,
 };

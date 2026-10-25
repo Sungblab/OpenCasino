@@ -46,8 +46,11 @@ export function limitPerUser(name: string, limit: number, windowMs: number): Req
 
 /** 라우트별 한도. 한곳에 모아 두어야 운영 중에 "왜 막혔나" 를 찾기 쉽다. */
 export const HTTP_LIMITS = {
+  walletTransfer: () => limitPerUser("wallet.transfer", 10, 60_000),
   supportMessage: () => limitPerUser("support.message", 30, 60_000),
   adminPasswordReset: () => limitPerUser("admin.passwordReset", 10, 60_000),
+  /** 본인 탈퇴(비밀번호 확인). 비밀번호 대입을 막는 값. */
+  accountWithdraw: () => limitPerUser("account.withdraw", 5, 60_000),
   dailyCoins: () => limitPerUser("wallet.dailyCoins", 10, 60_000),
   /** 방 만들기(개설비를 내는 쓰기). 한 사람 한 방이라 실수로 두 번 누르는 정도만 넘기면 된다. */
   roomCreate: () => limitPerUser("rooms.create", 5, 60_000),

@@ -1,5 +1,5 @@
 {
-  "name": "opencasino",
+  "name": "opencasino-platform",
   "private": true,
   "version": "2.0.0-dev",
   "workspaces": [

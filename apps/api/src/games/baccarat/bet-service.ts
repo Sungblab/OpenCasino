@@ -23,6 +23,7 @@ import {
   isSicBoBet,
   isMoneyWheelBet,
   payoutForMoneyWheelBet,
+  MONEY_WHEEL_VALUES,
   type MoneyWheelOutcome,
   sicBoWinningMultiplier,
   splitLightningTotal,
@@ -373,7 +374,7 @@ export class BaccaratBetService {
   }
 
   /**
-   * 표 게임(HiLo·Bac Bo·메가볼·탑 카드, game-core table-games) 정산. 지급은 게임 정의가 칸마다 돌려주는 permille
+   * 표 게임(Bac Bo·메가볼·탑 카드, game-core table-games) 정산. 지급은 게임 정의가 칸마다 돌려주는 permille
    * (1000 = 원금, 0 = 잃음)로 floor(stake × permille / 1000) — 소수 배당도 정수 minor 단위로 떨어진다.
    */
   async settleTableGame(

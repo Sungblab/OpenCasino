@@ -1,4 +1,4 @@
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, ODDS_TO_ONE, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 /** Payout table rows shared by the house games. */
 export function PayoutTable({ rows }: { rows: Array<{ bet: string; pays: string; note?: string }> }) {
@@ -19,6 +19,7 @@ export const baccaratGuide: GameGuideContent = {
   title: "바카라",
   intro: "플레이어와 뱅커 중 카드 합이 9에 더 가까운 쪽을 맞히는 게임. 카드는 자동으로 뽑히고, 나는 어느 쪽이 이길지에만 베팅합니다.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요. 처음엔 가장 작은 칩이면 충분해요." }, { title: "PLAYER 나 BANKER 누르기", body: "이길 것 같은 쪽 칸을 누르면 칩이 올라가요. 베팅 시간은 12초예요." }, { title: "기다리기", body: "카드는 자동으로 나와요. 합이 9에 가까운 쪽이 이기고, 맞히면 잔액에 바로 들어와요." }], tip: "PLAYER 나 BANKER 한쪽에 작은 칩 하나. 둘은 거의 반반이고(뱅커가 아주 조금 더 자주 이겨요), TIE·페어는 배당이 큰 대신 자주 안 나와요.", odds: ODDS_TO_ONE }),
     {
       id: "howto",
       title: "게임 방법",
@@ -81,6 +82,7 @@ export const dragonTigerGuide: GameGuideContent = {
   title: "드래곤 타이거",
   intro: "드래곤과 타이거가 카드를 한 장씩 받아 더 높은 카드가 이깁니다. 가장 단순한 카드 게임이에요.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "DRAGON 이나 TIGER 누르기", body: "카드가 더 높을 것 같은 쪽을 눌러요. 베팅 시간은 12초예요." }, { title: "한 장씩 공개", body: "양쪽이 한 장씩 받고 숫자가 높은 쪽이 이겨요. K 가 가장 높고 A 가 가장 낮아요." }], tip: "DRAGON 이나 TIGER 에 작은 칩 하나. 둘은 반반이고, 숫자가 같은 타이가 나오면 건 돈의 절반만 돌아온다는 것만 기억하세요.", odds: ODDS_TO_ONE }),
     {
       id: "howto",
       title: "게임 방법",
@@ -125,6 +127,7 @@ export const rouletteGuide: GameGuideContent = {
   title: "룰렛",
   intro: "0부터 36까지 37칸이 있는 휠에 공을 굴려, 공이 들어갈 번호나 번호 묶음을 맞히는 게임. 0이 하나뿐인 유럽식이에요.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "칸 누르기", body: "번호 하나를 누르거나, 판 바깥의 RED·BLACK·ODD·EVEN 같은 넓은 칸을 눌러요. 베팅 시간은 15초예요." }, { title: "공이 멈추면 정산", body: "공이 들어간 번호를 덮은 베팅이 모두 이겨요." }], tip: "RED 나 BLACK 같은 바깥 칸부터. 0 만 빼면 반반으로 맞아요. 번호 하나는 37번에 1번꼴이라 드물지만 크게 받아요.", odds: ODDS_TO_ONE }),
     {
       id: "howto",
       title: "게임 방법",
@@ -194,6 +197,7 @@ export const sicBoGuide: GameGuideContent = {
   title: "식보",
   intro: "유리 돔 안에서 주사위 세 개를 흔들어, 나올 눈과 합계를 맞히는 게임. 슈퍼 식보는 흔드는 동안 번개가 칸에 떨어져 배당이 최대 1000배까지 커져요.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "SMALL 이나 BIG 누르기", body: "주사위 세 개 합이 4~10 이면 SMALL, 11~17 이면 BIG 이에요. 베팅 시간은 15초예요." }, { title: "주사위가 멈추면 정산", body: "나온 눈을 맞힌 칸이 모두 이겨요." }], tip: "SMALL 이나 BIG 부터. 거의 반반이에요. 세 눈이 모두 같은 트리플이 나오면 둘 다 진다는 것만 기억하세요.", odds: ODDS_TO_ONE }),
     {
       id: "howto",
       title: "게임 방법",
@@ -249,6 +253,7 @@ export const moneyWheelGuide: GameGuideContent = {
   title: "머니 휠",
   intro: "54칸짜리 큰 휠을 돌려, 포인터 아래 멈출 숫자를 맞히는 게임. 맞힌 숫자만큼 배당을 받고, 2x·7x 칸에 서면 다시 돌려 배당이 곱해져요.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "숫자 칸 누르기", body: "1·2·5·10·20·40 중 휠이 멈출 것 같은 숫자를 눌러요. 베팅 시간은 15초예요." }, { title: "휠이 멈추면 정산", body: "포인터 아래 숫자에 건 칸이 이겨요. 2x·7x 칸에 서면 한 번 더 돌려 배당이 커져요." }], tip: "1 칸이 가장 자주 나와요(54칸 중 23칸). 큰 숫자일수록 드물지만 크게 받아요.", odds: <>칸의 숫자가 곧 배당이에요 — 5 칸에 10코인을 걸어 맞히면 원금 10 + 50 = 60코인.</> }),
     {
       id: "howto",
       title: "게임 방법",
@@ -301,6 +306,7 @@ export const slotGuide: GameGuideContent = {
   title: "슬롯 · 골든 세븐",
   intro: "릴 5개에 줄 3개, 20라인 비디오 슬롯. 같은 그림이 왼쪽 릴부터 3개 이상 이어지면 당첨이에요.",
   sections: [
+    startSection({ steps: [{ title: "총베팅 고르기", body: "− / + 로 한 번 돌릴 금액을 정해요. 0.2코인부터예요." }, { title: "스핀", body: "스핀 버튼이나 스페이스바를 누르면 릴이 돌아요." }, { title: "당첨은 자동", body: "그림이 맞으면 당첨 금액이 바로 잔액에 들어와요." }], tip: "가장 작은 베팅으로 몇 번 돌려 보며 화면 옆 배당표로 어떤 그림이 큰지 익혀 보세요.", odds: <>당첨 금액은 코인으로 바로 떠요. 베팅보다 적게 돌아오면 이긴 게 아니라 "반환"(회색)이에요.</> }),
     {
       id: "howto",
       title: "게임 방법",
@@ -340,6 +346,7 @@ export const luckyCherryGuide: GameGuideContent = {
   title: "슬롯 · 럭키 체리",
   intro: "릴 3개짜리 옛 기계식 슬롯. 5라인 중 한 줄에 같은 그림 3개(체리는 왼쪽 2개)면 당첨이에요.",
   sections: [
+    startSection({ steps: [{ title: "총베팅 고르기", body: "− / + 로 한 번 돌릴 금액을 정해요. 0.2코인부터예요." }, { title: "스핀", body: "스핀 버튼이나 스페이스바를 누르면 릴이 돌아요." }, { title: "당첨은 자동", body: "그림이 맞으면 당첨 금액이 바로 잔액에 들어와요." }], tip: "가장 작은 베팅으로 몇 번 돌려 보며 화면 옆 배당표로 어떤 그림이 큰지 익혀 보세요.", odds: <>당첨 금액은 코인으로 바로 떠요. 베팅보다 적게 돌아오면 이긴 게 아니라 "반환"(회색)이에요.</> }),
     {
       id: "howto",
       title: "게임 방법",
@@ -379,6 +386,7 @@ export const goldenDragonGuide: GameGuideContent = {
   title: "슬롯 · 황금 드래곤",
   intro: "릴 5개 243웨이 슬롯. 줄이 없고, 왼쪽 릴부터 이웃한 릴마다 같은 그림이 어디에든 있으면 당첨이에요.",
   sections: [
+    startSection({ steps: [{ title: "총베팅 고르기", body: "− / + 로 한 번 돌릴 금액을 정해요. 0.2코인부터예요." }, { title: "스핀", body: "스핀 버튼이나 스페이스바를 누르면 릴이 돌아요." }, { title: "당첨은 자동", body: "그림이 맞으면 당첨 금액이 바로 잔액에 들어와요." }], tip: "가장 작은 베팅으로 몇 번 돌려 보며 화면 옆 배당표로 어떤 그림이 큰지 익혀 보세요.", odds: <>당첨 금액은 코인으로 바로 떠요. 베팅보다 적게 돌아오면 이긴 게 아니라 "반환"(회색)이에요.</> }),
     {
       id: "howto",
       title: "게임 방법",
@@ -418,6 +426,7 @@ export const blackjackGuide: GameGuideContent = {
   title: "블랙잭",
   intro: "카드 합을 21에 최대한 가깝게 만들되 넘기지 않으면서 딜러보다 높으면 이기는 게임. 이번엔 내가 직접 카드를 더 받을지 결정해요.",
   sections: [
+    startSection({ steps: [{ title: "자리에 앉기", body: "테이블의 빈 자리(+)를 눌러 앉아요." }, { title: "베팅", body: "칩을 고르고 베팅 버튼을 눌러요. 베팅 시간은 12초예요." }, { title: "히트 또는 스탠드", body: "내 차례에 한 장 더 받거나(히트) 멈춰요(스탠드). 21을 넘으면 바로 져요. 딜러보다 21에 가까우면 이겨요." }], tip: "내 합이 11 이하면 히트, 17 이상이면 스탠드. 12~16 이면 딜러가 보여 준 카드가 7 이상일 때 히트, 6 이하일 때 스탠드 — 이것만 지켜도 크게 손해 보지 않아요.", odds: <>이기면 건 만큼 더 받아요(1 : 1, 10코인이 20코인). 첫 두 장으로 21(블랙잭)이면 1.5배를 더 받아요(3 : 2, 10코인이 25코인).</> }),
     {
       id: "howto",
       title: "게임 방법",
@@ -445,7 +454,7 @@ export const blackjackGuide: GameGuideContent = {
               { label: "보험", tone: "gold", body: "딜러 오픈 카드가 A일 때, 베팅의 절반으로 딜러 블랙잭에 대비합니다 (적중 시 2:1)." },
             ]}
           />
-          <GuideNote tone="red">라이트닝 블랙잭은 칩마다 20% 수수료를 내는 대신, 이긴 손마다 9% 확률로 배수를 받아 다음 라운드 이익에 2~25배가 적용돼요(배수를 따낸 판돈만큼까지).</GuideNote>
+          <GuideNote tone="red">라이트닝 블랙잭은 칩의 절반이 수수료예요. 대신 베팅이 닫힐 때 번개가 쳐서 17·18·19·20·21·블랙잭 점수마다 2~25배가 붙고, 그 점수로 이기면 그 배수가 다음 라운드 이익에 적용돼요(배수를 따낸 판돈만큼까지).</GuideNote>
         </>
       ),
     },

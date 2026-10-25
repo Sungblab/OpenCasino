@@ -1,14 +1,17 @@
 import { Router } from "express";
 import { z } from "zod";
 import {
-  ADMIN_USER_FILTERS, MAX_LEVEL, SHOP_ITEMS, shopItem, TABLE_TIERS, VIP_TIERS,
-  type AdminItemOption, type AdminLobbyChatMessage, type AdminRoomPatch, type AdminUserFilter, type AdminUserProfile, type AdminUserRow,
+  ADMIN_USER_FILTERS, ADMIN_USER_KINDS, ADMIN_USER_SORTS, COIN_SCALE, MAX_LEVEL, SHOP_ITEMS, shopItem, TABLE_TIERS, VIP_TIERS,
+  type AdminItemOption, type AdminLiveResponse, type AdminLobbyChatMessage, type AdminRoomPatch, type AdminUserFilter, type AdminUserKind, type AdminUserLocation,
+  type AdminUserProfile, type AdminUserRow, type AdminUserSort, type GameType,
 } from "@opencasino/contracts";
 import { requireAdmin, requireAuth, type AuthRequest } from "../../auth/auth.js";
 import { inTransaction, writeAuditLog } from "../../database/audit-log.js";
 import { pool } from "../../database/pool.js";
 import { refreshProgress } from "../../economy/progress.js";
 import { forgetBadge } from "../../economy/shop.js";
+import type { RoomOccupancy } from "../../games/rooms/room-manager-base.js";
+import { kstDayStart } from "../../ops/kst-periods.js";
 import { PVP_GAME_TYPES } from "../../rooms/tier-gate.js";
 import { asyncHandler } from "../async-handler.js";
 import { ALL_BETS_CTE } from "../game-history-queries.js";
@@ -20,11 +23,14 @@ const likePattern = (value: string) => `%${value.replace(/[\\%_]/g, (char) => `\
 const searchQuerySchema = z.object({
   q: z.string().trim().max(64).default(""),
   filter: z.enum(ADMIN_USER_FILTERS).default("all"),
+  sort: z.enum(ADMIN_USER_SORTS).default("recent"),
+  kind: z.enum(ADMIN_USER_KINDS).default("all"),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).max(1_000_000).default(0),
 });
 
-const FILTER_SQL: Record<AdminUserFilter, string> = {
+/** online 은 소켓 목록이 필요해 검색 라우트에서 따로 만든다. */
+const FILTER_SQL: Record<Exclude<AdminUserFilter, "online">, string> = {
   all: "TRUE",
   active: "u.approved",
   suspended: "NOT u.approved",
@@ -33,15 +39,42 @@ const FILTER_SQL: Record<AdminUserFilter, string> = {
   admin: "u.role = 'admin'",
 };
 
+const KIND_SQL: Record<AdminUserKind, string> = {
+  all: "TRUE",
+  member: "NOT u.is_guest",
+  guest: "u.is_guest",
+  admin: "u.role = 'admin'",
+};
+
+const SORT_SQL: Record<AdminUserSort, string> = {
+  recent: "u.created_at DESC",
+  oldest: "u.created_at ASC",
+  level: "COALESCE(p.level,1) DESC, u.created_at DESC",
+  name: "lower(u.nickname) ASC",
+  balance: "COALESCE(wa.balance_minor,0) DESC, u.created_at DESC",
+  bets: "COALESCE(stats.total_bets,0) DESC, u.created_at DESC",
+};
+
+/** 남의 판이 안 보이는 1인 게임 — 실시간 현황에서 관전 대신 최근 판을 보여준다. */
+const SOLO_GAMES: ReadonlySet<GameType> = new Set(["slot", "video_poker", "pachinko", "hilo"]);
+
+/** 지금 접속한 사람과 그들이 들어가 있는 방. 봇은 소켓이 없어 online 에 들지 않는다. */
+interface LiveIndex {
+  online: Set<string>;
+  occupancy: RoomOccupancy[];
+  where: Map<string, AdminUserLocation>;
+}
+
 interface UserRowSql {
   id: string; username: string; nickname: string; role: "user" | "admin"; approved: boolean; is_guest: boolean; created_at: string;
   balance_minor: string; total_bets: string; wins: string; losses: string;
   level: number; vip_tier: AdminUserRow["vipTier"]; chat_muted_until: Date | null;
 }
 
-function mapUser(row: UserRowSql): AdminUserRow {
+function mapUser(row: UserRowSql, live: LiveIndex): AdminUserRow {
   const muted = row.chat_muted_until && row.chat_muted_until.getTime() > Date.now();
   return {
+    online: live.online.has(row.id), room: live.where.get(row.id) ?? null,
     id: row.id, username: row.username, nickname: row.nickname, role: row.role, approved: row.approved, isGuest: row.is_guest,
     createdAt: row.created_at, balance: coins(row.balance_minor), totalBets: Number(row.total_bets), wins: Number(row.wins), losses: Number(row.losses),
     level: row.level, vipTier: row.vip_tier,
@@ -50,7 +83,7 @@ function mapUser(row: UserRowSql): AdminUserRow {
 }
 
 /** 사용자 한 줄 조회. where 는 u·wa·p 별칭을 쓰는 고정 문장(사용자 입력은 params 로만). */
-async function queryUsers(where: string, params: unknown[], tail = ""): Promise<AdminUserRow[]> {
+async function queryUsers(live: LiveIndex, where: string, params: unknown[], tail = ""): Promise<AdminUserRow[]> {
   const result = await pool.query<UserRowSql>(
     `${ALL_BETS_CTE}
      SELECT u.id,u.username,u.nickname,u.role,u.approved,u.is_guest,u.created_at,
@@ -68,7 +101,7 @@ async function queryUsers(where: string, params: unknown[], tail = ""): Promise<
      WHERE u.deleted_at IS NULL AND NOT u.is_bot AND ${where} ${tail}`,
     params,
   );
-  return result.rows.map(mapUser);
+  return result.rows.map((row) => mapUser(row, live));
 }
 
 const itemOptions: AdminItemOption[] = SHOP_ITEMS.filter((item) => item.price > 0 || item.notForSale).map((item) => ({ id: item.id, name: item.name, slot: item.slot, rentalDays: item.rentalDays }));
@@ -90,24 +123,98 @@ export function adminToolRoutes({ io, rooms }: RouteDeps): Router {
   const actorOf = (req: unknown) => (req as AuthRequest).user.id;
   const bad = (res: { status: (code: number) => { json: (body: unknown) => void } }, message: string, code = 400) => res.status(code).json({ message });
 
+  async function liveIndex(): Promise<LiveIndex> {
+    const online = new Set<string>();
+    for (const socket of await io.fetchSockets()) if (socket.data.user) online.add(socket.data.user.id);
+    const occupancy = rooms.occupancy();
+    const where = new Map<string, AdminUserLocation>();
+    for (const { room, humans } of occupancy) for (const id of humans) where.set(id, { id: room.id, name: room.name, gameType: room.gameType });
+    return { online, occupancy, where };
+  }
+
   router.get("/api/v1/admin/users/search", ...guard, asyncHandler(async (req, res) => {
     const parsed = searchQuerySchema.safeParse(req.query);
     if (!parsed.success) return void bad(res, "검색 조건을 확인해주세요.");
-    const { q, filter, limit, offset } = parsed.data;
+    const { q, filter, sort, kind, limit, offset } = parsed.data;
+    const live = await liveIndex();
     const params: unknown[] = [];
-    const clauses = [FILTER_SQL[filter]];
+    const clauses: string[] = [];
+    if (filter === "online") {
+      params.push([...live.online]);
+      clauses.push(`u.id = ANY($${params.length}::uuid[])`);
+    } else clauses.push(FILTER_SQL[filter]);
+    clauses.push(KIND_SQL[kind]);
     if (q) {
       params.push(likePattern(q));
       clauses.push(`(u.username ILIKE $${params.length} OR u.nickname ILIKE $${params.length})`);
     }
     const where = clauses.join(" AND ");
     const total = await pool.query<{ count: string }>(`SELECT COUNT(*) AS count FROM users u WHERE u.deleted_at IS NULL AND NOT u.is_bot AND ${where}`, params);
-    const items = await queryUsers(where, params, `ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}`);
+    const items = await queryUsers(live, where, params, `ORDER BY ${SORT_SQL[sort]} LIMIT ${limit} OFFSET ${offset}`);
     res.json({ items, total: Number(total.rows[0]?.count ?? 0) });
   }));
 
+  /** 실시간 현황: 사람이 들어간 방마다 누가 있는지(잔액·오늘 손익·앉음), 그리고 방 밖에 접속한 사람. */
+  router.get("/api/v1/admin/live", ...guard, asyncHandler(async (_req, res) => {
+    const { online, occupancy } = await liveIndex();
+    const inRooms = [...new Set(occupancy.flatMap((entry) => entry.humans))];
+    const soloRooms = occupancy.filter((entry) => SOLO_GAMES.has(entry.room.gameType)).map((entry) => entry.room.id);
+    const [people, today, recent] = await Promise.all([
+      pool.query<{ id: string; username: string; nickname: string; role: "user" | "admin"; is_guest: boolean; balance_minor: string }>(
+        `SELECT u.id,u.username,u.nickname,u.role,u.is_guest,COALESCE(wa.balance_minor,0) AS balance_minor
+         FROM users u LEFT JOIN wallet_accounts wa ON wa.kind='user' AND wa.user_id=u.id
+         WHERE u.id = ANY($1::uuid[]) AND NOT u.is_bot`,
+        [[...new Set([...online, ...inRooms])]],
+      ),
+      pool.query<{ user_id: string; net: string }>(
+        `${ALL_BETS_CTE}
+         SELECT user_id, SUM(COALESCE(payout_minor,0) - amount_minor) AS net FROM raw_bets
+         WHERE user_id = ANY($1::uuid[]) AND settled_at >= $2 GROUP BY user_id`,
+        [inRooms, kstDayStart(new Date())],
+      ),
+      soloRooms.length === 0 ? { rows: [] } : pool.query<{ user_id: string; room_id: string; amount_minor: string; payout_minor: string | null; settled_at: Date }>(
+        `${ALL_BETS_CTE}
+         SELECT user_id, room_id, amount_minor, payout_minor, settled_at FROM (
+           SELECT rb.*, row_number() OVER (PARTITION BY user_id, room_id ORDER BY settled_at DESC) AS n
+           FROM raw_bets rb WHERE user_id = ANY($1::uuid[]) AND room_id = ANY($2::uuid[])
+         ) ranked WHERE n <= 3 ORDER BY settled_at DESC`,
+        [inRooms, soloRooms],
+      ),
+    ]);
+    const byId = new Map(people.rows.map((row) => [row.id, row]));
+    // 슬롯·파친코는 판돈이 1코인보다 작아 coins() 로 반올림하면 전부 0 이 된다 — 이 두 숫자는 그대로 나눈다.
+    const exact = (minor: string | number) => Number(minor) / COIN_SCALE;
+    const netById = new Map(today.rows.map((row) => [row.user_id, exact(row.net)]));
+    const base = (id: string) => {
+      const row = byId.get(id)!;
+      return { userId: row.id, username: row.username, nickname: row.nickname, role: row.role, isGuest: row.is_guest, balance: coins(row.balance_minor) };
+    };
+    const body: AdminLiveResponse = {
+      online: online.size,
+      playing: inRooms.length,
+      rooms: occupancy
+        .map(({ room, humans, bots, seated }) => ({
+          id: room.id, gameType: room.gameType, name: room.name, tier: room.tier ?? "rookie", phase: room.phase, paused: room.paused,
+          custom: room.custom ?? false, private: room.private ?? false, ownerNickname: room.ownerNickname ?? null,
+          solo: SOLO_GAMES.has(room.gameType), bots,
+          people: humans.filter((id) => byId.has(id)).map((id) => ({
+            ...base(id),
+            todayNet: netById.get(id) ?? 0,
+            seated: seated ? seated.includes(id) : null,
+            recent: recent.rows.filter((bet) => bet.user_id === id && bet.room_id === room.id).map((bet) => ({
+              amount: exact(bet.amount_minor), net: exact(Number(bet.payout_minor ?? 0) - Number(bet.amount_minor)), at: bet.settled_at.toISOString(),
+            })),
+          })),
+        }))
+        .filter((room) => room.people.length > 0)
+        .sort((a, b) => b.people.length - a.people.length || a.name.localeCompare(b.name, "ko")),
+      lobby: [...online].filter((id) => byId.has(id) && !inRooms.includes(id)).map(base).sort((a, b) => a.nickname.localeCompare(b.nickname, "ko")),
+    };
+    res.json(body);
+  }));
+
   async function loadProfile(userId: string): Promise<AdminUserProfile | null> {
-    const [row] = await queryUsers("u.id = $1", [userId]);
+    const [row] = await queryUsers(await liveIndex(), "u.id = $1", [userId]);
     if (!row) return null;
     const [progress, items] = await Promise.all([
       pool.query<{ vip_points: string; vip_floor: AdminUserProfile["vipFloor"]; level_floor: number | null }>(

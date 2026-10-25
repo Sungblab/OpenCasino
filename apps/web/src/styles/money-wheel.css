@@ -156,7 +156,7 @@
     linear-gradient(180deg, color-mix(in srgb, var(--tone) 88%, #fff) 0%, var(--tone) 42%, color-mix(in srgb, var(--tone) 70%, #000) 100%);
   color: var(--ink); font-family: var(--ui-font); cursor: pointer;
   box-shadow: var(--bevel);
-  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, box-shadow .2s ease, filter .15s ease;
+  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, filter .15s ease;
 }
 /* 인쇄된 안쪽 테 */
 .mw-spot::before {
@@ -177,8 +177,12 @@
 .mw-board.is-locked .mw-spot { cursor: not-allowed; }
 .mw-board.is-locked .mw-spot:hover { filter: none; }
 .mw-board.has-result .mw-spot:not(.is-win) { opacity: .35; }
-.mw-spot.is-win { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 24px rgba(255, 210, 74, .6); animation: mw-win-pulse 1s ease-in-out 3; }
-@keyframes mw-win-pulse { 50% { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 36px rgba(255, 210, 74, .85); } }
+/* 맥박은 빛을 얹은 가상 요소의 투명도만 움직인다 — box-shadow 를 애니메이션하면 그동안 매 프레임 칸을 다시 칠하고 래스터해
+   결과 순간 GPU 가 밀렸다(바카라 baccarat-table.css 의 is-win 주석). */
+/* 칸이 넘침을 자르므로(overflow: hidden) 맥박은 안쪽 빛으로(::before 는 인쇄 테). */
+.mw-spot.is-win { box-shadow: var(--bevel), 0 0 0 3px var(--gold-light), 0 0 24px rgba(255, 210, 74, .6); }
+.mw-spot.is-win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--gold-light), inset 0 0 20px rgba(255, 220, 120, .7); opacity: 0; pointer-events: none; animation: mw-win-pulse 1s ease-in-out 3; }
+@keyframes mw-win-pulse { 50% { opacity: 1; } }
 
 .mw-pile { --chip-step: 2.5px; position: absolute; left: 5px; bottom: 5px; width: 26px; height: 26px; pointer-events: none; }
 .mw-pile .chip-pile img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .55)); }
@@ -263,5 +267,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mw-spot.is-win, .mw-result, .mw-mult-banner, .mw-spot-mult { animation: none; }
+  .mw-spot.is-win::after, .mw-result, .mw-mult-banner, .mw-spot-mult { animation: none; }
 }

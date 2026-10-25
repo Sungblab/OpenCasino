@@ -3,24 +3,7 @@ node_modules/
 dist/
 .env
 .env.local
-.env.server
-# vite --mode qa 용(목 서버 주소만 들어 있음). .claude/launch.json 의 qa-vite 가 쓰는 로컬 전용 파일.
-.env.qa
 coverage/
 *.log
 .DS_Store
 .vite/
-
-# Local tooling and visual QA artifacts
-/.claude/
-/.playwright-mcp/
-/.playwright-cli/
-/output/
-/design-qa.md
-/*.png
-/*.jpg
-/*.jpeg
-/*.webp
-
-# Git worktrees for isolated feature work (superpowers:using-git-worktrees)
-.worktrees/

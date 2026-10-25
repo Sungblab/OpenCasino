@@ -213,6 +213,7 @@ export function GameRoomsPage({ token, user, onLogout }: { token: string; user: 
       <footer className="lobby-footer">
         <strong className="lobby-footer-brand">OPENCASINO</strong>
         <nav className="lobby-footer-links" aria-label="바로가기">
+          <Link to="/guide">이용 가이드</Link>
           <Link to="/wallet">지갑</Link>
           <Link to="/profile">프로필</Link>
           <Link to="/game-history">게임 기록</Link>

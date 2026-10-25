@@ -9,8 +9,14 @@ import { hwatuFaceUrl } from "../../components/HwatuCard";
 /** 화투 텍스처(그림 원본 크기). DOM 의 .hwatu-card(크림 바탕·테두리·왼쪽 위 월 숫자)와 같게 굽는다. */
 export const TEX_W = 250;
 export const TEX_H = 408;
-/** 앞면 그림(250px 폭)의 모서리 반지름 — 그림 파일의 투명한 모서리와 같게. */
-const FACE_RADIUS = 8.5;
+/**
+ * 화투 모서리 반지름(카드 폭의 비율). 앞면·뒷면·두께·그림자·빛·더미·DOM(.hwatu-card)이 모두 이 값 하나를 쓴다 —
+ * 예전엔 앞면만 그림 파일의 투명 모서리(3.4%)라 거의 직각이고 나머지는 9~14% 라, 뒤집으면 모서리가 바뀌고
+ * 앞면 밑으로 두께 층의 둥근 모서리가 삐져나왔다. 진짜 화투(33×53mm, 반지름 약 3mm)와 같은 9.4%.
+ * 앞면 그림의 붉은 테(폭 약 14px/250)가 넉넉해서 이만큼 잘라도 안쪽 검은 선과 거의 나란하다.
+ */
+export const HWATU_RADIUS = 0.094;
+const R = TEX_W * HWATU_RADIUS;
 
 /** 화투 더미: 몇 장 두께로 보일지와 한 장마다 비켜나는 거리(텍스처 px). */
 const DECK_LAYERS = 9;
@@ -26,6 +32,17 @@ function roundRect(x: CanvasRenderingContext2D, w: number, h: number, r: number)
   x.arcTo(0, h, 0, 0, r);
   x.arcTo(0, 0, w, 0, r);
   x.closePath();
+}
+
+/**
+ * 패 가장자리의 얇은 짙은 선. 앞·뒷면 모두 같게 — 예전 뒷면의 크림색 테는 앞면엔 없는 흰 테두리로 읽혔다.
+ * 붉은 패끼리 겹쳐도 한 장씩 갈라 보이게 하는 정도(판 크기에서 1px 남짓).
+ */
+function rim(x: CanvasRenderingContext2D) {
+  roundRect(x, TEX_W, TEX_H, R);
+  x.lineWidth = 5;
+  x.strokeStyle = "rgba(48,4,6,.6)";
+  x.stroke();
 }
 
 export function loadImage(url: string): Promise<HTMLImageElement | null> {
@@ -48,27 +65,15 @@ function hwatuTexture(key: string, url: string, month: number | null, tag: strin
       canvas.height = TEX_H;
       const x = canvas.getContext("2d")!;
       const k = TEX_W / 53;
-      if (month !== null && image) {
-        // 앞면 그림은 붉은 테두리가 가장자리까지 차 있고 모서리만 둥글게(약 8px) 비어 있다. 예전처럼 크림 바탕을
-        // 깔고 크림 선을 두르면 붉은 테두리 바깥으로 흰 테가 한 줄 남았다 — 그림의 모서리대로 잘라 그대로 쓴다.
-        roundRect(x, TEX_W, TEX_H, FACE_RADIUS);
-        x.save();
-        x.clip();
-        x.drawImage(image, 0, 0, TEX_W, TEX_H);
-        x.restore();
-      } else {
-        roundRect(x, TEX_W, TEX_H, 5 * k);
-        x.save();
-        x.clip();
-        x.fillStyle = month === null ? "#a80f16" : "#f7ecd4";
-        x.fillRect(0, 0, TEX_W, TEX_H);
-        if (image) x.drawImage(image, 0, 0, TEX_W, TEX_H);
-        x.restore();
-        roundRect(x, TEX_W, TEX_H, 5 * k);
-        x.lineWidth = 1.2 * k;
-        x.strokeStyle = "#e8dcbb";
-        x.stroke();
-      }
+      // 앞면 그림은 붉은 테두리가 가장자리까지 차 있다 — 크림 바탕·선을 두르지 않고 카드 모서리대로 잘라 쓴다.
+      roundRect(x, TEX_W, TEX_H, R);
+      x.save();
+      x.clip();
+      x.fillStyle = month === null ? "#a80f16" : "#f7ecd4";
+      x.fillRect(0, 0, TEX_W, TEX_H);
+      if (image) x.drawImage(image, 0, 0, TEX_W, TEX_H);
+      x.restore();
+      rim(x);
       if (month !== null) {
         const label = String(month);
         x.font = `600 ${Math.round(12 * k)}px Poppins, "Noto Sans KR", sans-serif`;
@@ -116,21 +121,19 @@ function hwatuTexture(key: string, url: string, month: number | null, tag: strin
 export const faceTexture = (card: { id: string; month: number }, tag: string | null = null) => hwatuTexture(tag ? `${card.id}:${tag}` : card.id, hwatuFaceUrl(card), card.month, tag);
 export const backTexture = () => hwatuTexture("__back", "/cards/hwatu/back.svg", null);
 
-/** 화투 더미 한 장 그림: 여러 장이 조금씩 비켜 쌓인 옆면(크림색 가장자리 줄)이 보이고 맨 위에 뒷면. */
+/** 화투 더미 한 장 그림: 여러 장이 조금씩 비켜 쌓인 옆면이 보이고 맨 위에 뒷면. */
 export async function deckTexture(): Promise<{ texture: Texture; anchor: { x: number; y: number } }> {
   const image = await loadImage("/cards/hwatu/back.svg");
-  const k = TEX_W / 53;
   const w = TEX_W + DECK_OFFSET.x * DECK_LAYERS + 24;
   const h = TEX_H + DECK_OFFSET.y * DECK_LAYERS + 30;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const x = canvas.getContext("2d")!;
-  const r = 5 * k;
   const card = (ox: number, oy: number) => {
     x.save();
     x.translate(ox, oy);
-    roundRect(x, TEX_W, TEX_H, r);
+    roundRect(x, TEX_W, TEX_H, R);
     x.restore();
   };
   // 바닥 그림자
@@ -142,13 +145,14 @@ export async function deckTexture(): Promise<{ texture: Texture; anchor: { x: nu
   x.fillStyle = "#3a0508";
   x.fill();
   x.restore();
-  // 아래 장들: 짙은 붉은 몸통에 크림색 가장자리 — 겹겹이 두께로 보인다.
+  // 아래 장들: 한 장 두께(CardView 의 옆면)와 같은 짙은 몸통에 옅은 결 — 겹겹이 두께로 보인다.
+  // 예전 크림색 줄은 종이 더미처럼 읽혔고 낱장의 옆면과도 색이 달랐다.
   for (let i = DECK_LAYERS; i >= 1; i -= 1) {
     card(DECK_OFFSET.x * i, DECK_OFFSET.y * i);
-    x.fillStyle = i % 2 ? "#7a0b12" : "#8c1017";
+    x.fillStyle = i % 2 ? "#2a0d0a" : "#3a120d";
     x.fill();
     x.lineWidth = 2.2;
-    x.strokeStyle = "rgba(240,226,190,.85)";
+    x.strokeStyle = "rgba(255,214,170,.22)";
     x.stroke();
   }
   // 맨 위 뒷면
@@ -164,10 +168,7 @@ export async function deckTexture(): Promise<{ texture: Texture; anchor: { x: nu
   x.fillStyle = sheen;
   x.fillRect(0, 0, TEX_W, TEX_H);
   x.restore();
-  card(0, 0);
-  x.lineWidth = 1.2 * k;
-  x.strokeStyle = "#e8dcbb";
-  x.stroke();
+  rim(x);
   // 맨 위 패의 가운데를 원점으로 쓴다.
   return { texture: Texture.from(canvas), anchor: { x: TEX_W / 2 / w, y: TEX_H / 2 / h } };
 }

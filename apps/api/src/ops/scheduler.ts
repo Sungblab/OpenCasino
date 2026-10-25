@@ -43,7 +43,7 @@ export async function runDueJobs(jobs: readonly Job[], now: Date): Promise<strin
     } catch (error) {
       logger.error("scheduled job failed", { job: job.name, period: key, err: error });
       await pool.query("DELETE FROM job_runs WHERE name=$1 AND period_key=$2", [job.name, key]).catch(() => undefined);
-      void sendAlert(`[OpenCasino] 작업 실패: ${job.name} (${key}) — ${errorText(error)}`);
+      void sendAlert(`[골든 카지노] 작업 실패: ${job.name} (${key}) — ${errorText(error)}`);
     }
   }
   return ran;
@@ -123,7 +123,7 @@ export function startScheduler(jobs: readonly Job[], intervalMs = 60_000): () =>
       await runDueJobs(jobs, new Date());
     } catch (error) {
       logger.error("scheduler tick failed", { err: error });
-      void sendAlert(`[OpenCasino] 스케줄러 오류 — ${errorText(error)}`);
+      void sendAlert(`[골든 카지노] 스케줄러 오류 — ${errorText(error)}`);
     } finally {
       running = false;
     }

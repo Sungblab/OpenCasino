@@ -17,6 +17,9 @@
      ============================================================================= */
   :root {
     color-scheme: dark;
+    /* 본문(.app-shell) 최대 폭. 위 헤더(.topbar)도 이 폭에 맞춰 안쪽 여백을 계산해 로고·계정 줄이 본문 가장자리와 맞는다.
+       화면마다 다른 폭은 html:has(...) 로 이 값만 바꾼다(로비 1680px, 관리자 화면은 전체 폭). */
+    --shell-max: 1380px;
     /* The one font stack (defined below). index.html loads Poppins and Noto Sans KR: Poppins
        draws Latin letters and digits, Noto Sans KR the Hangul it lacks. */
     font-family: var(--ui-font);
@@ -41,7 +44,7 @@
     --line-strong: rgba(255, 255, 255, .14);
     --gap: #0a0806;
 
-    /* — Gold: the brand. Evolution's own accent is a muted brass, but this is *OpenCasino*
+    /* — Gold: the brand. Evolution's own accent is a muted brass, but this is *Golden*
          Casino, so the hue stays a true saturated gold. What we take from Evolution is
          where it's spent: the wordmark, the one primary control on a screen, key numerals
          and active-state underlines. Never a panel fill, never a border on ordinary chrome,
@@ -68,6 +71,11 @@
     --dt-felt: #6e1620;
     --dt-felt-mid: #4f1017;
     --dt-felt-dark: #2e0a0e;
+
+    /* — 천 결: 고운 노이즈 한 장(SVG feTurbulence, 한 번 그려 타일로 깐다). 캔버스 없이 CSS 그라데이션으로 그린
+         테이블 판(룰렛·식보 휠 둘레, 표 게임, 하이로우, 비디오 포커, 파친코)의 맨 위 배경 층으로 얹으면 매끈한
+         플라스틱 판이 천처럼 보인다. 3D 카드 테이블은 자체 섬유 노멀맵이 있어 쓰지 않는다. — */
+    --felt-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.6 0 0 0 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E") 0 0 / 180px 180px;
 
     /* — Type: off-white, then two neutral warm greys. Secondary text is grey,
          not tan — tan was what made every label compete with the accent. — */
@@ -198,7 +206,7 @@ h1, h2, h3, .brand strong { text-shadow: 0 2px 6px rgba(0,0,0,.45); }
 @keyframes balance-delta-float { from { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) { .balance-delta { animation: none; } }
 .account button { border: 0; background: none; color: var(--muted); font-size: 12px; font-family: var(--ui-font); cursor: pointer; }
-.app-shell { display: flex; flex-direction: column; width: min(1380px, 100%); min-height: calc(100vh - 72px); margin: auto; --shell-pad-x: 24px; padding: 24px 24px 52px; }
+.app-shell { display: flex; flex-direction: column; width: min(var(--shell-max), 100%); min-height: calc(100vh - 72px); margin: auto; --shell-pad-x: 24px; padding: 24px 24px 52px; }
 /* Everything above the lobby footer; flex:1 absorbs the leftover height so the footer
    never rides up when a filtered room list is short. */
 .lobby-content { flex: 1 0 auto; }
@@ -829,6 +837,7 @@ body, #root { width: 100%; max-width: 100vw; overflow-x: hidden; }
 .profile-action strong { font-family: var(--ui-font); font-weight: 600; }
 .profile-action small { color: var(--muted); font-family: var(--ui-font); }
 .profile-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.profile-form.deposit, .profile-form.withdraw { grid-template-columns: minmax(0, 1fr) auto; }
 .profile-form.password { grid-template-columns: 1fr; }
 .profile-form.password .gold-button { width: 100%; min-width: 0; }
 .profile-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; font-family: var(--ui-font); }
@@ -1687,6 +1696,9 @@ button.seat-avatar.is-bot.is-removable:disabled { opacity: .55; cursor: progress
   }
   .game-shell .game-bar-phase strong { font-size: 12px; }
   .game-shell .game-bar-actions {
+    /* 항상 셋째 칸(오른쪽 끝) — 단계 표시가 없는 게임(바카라 등)은 자식이 둘뿐이라 자동 배치가 둘째 칸에
+       넣어서 잔액·프로필이 ← 바로 옆에 붙고 오른쪽이 비었다. */
+    grid-column: 3;
     justify-self: end;
     min-width: 0;
     gap: 4px;
@@ -1973,7 +1985,9 @@ button.seat-avatar.is-bot.is-removable:disabled { opacity: .55; cursor: progress
    `hidden` makes each one a scroll container, and position:sticky resolves against the nearest
    one — these never scroll (they're as tall as the page), so the rail never stuck. `clip` blocks
    the same overflow without becoming a scroll container. */
-html:has(.admin-layout), html:has(.admin-layout) body, html:has(.admin-layout) #root { overflow-x: clip; }
+/* :has() 는 대상 자신에게만 건다 — "html:has(.x) body" 처럼 뒤에 자손을 붙이면 DOM 이 조금만 바뀌어도(알약 글자 하나) 크롬이 문서 전체 스타일을 다시 계산했다(게임 화면에서 한 번에 25ms, 카드 쓸기 때 프레임 떨어짐). */
+html:has(.admin-layout), body:has(.admin-layout), #root:has(.admin-layout) { overflow-x: clip; }
+html:has(.admin-layout) { --shell-max: 100%; }
 .admin-layout { display: grid; grid-template-columns: 216px minmax(0, 1fr); align-items: start; width: 100%; min-height: calc(100vh - var(--admin-rail-top, 64px)); }
 .admin-layout-main { align-self: stretch; min-width: 0; padding: 30px 30px 70px; border-left: 1px solid var(--line); }
 /* Wider than the old 1380px shell so a 7-column table isn't cramped, but capped — full-bleed on
@@ -2096,6 +2110,10 @@ html:has(.admin-layout), html:has(.admin-layout) body, html:has(.admin-layout) #
 .admin-filter-tabs button.active { border-color: var(--line-strong); background: var(--panel-raised); color: var(--text); }
 .admin-search { width: min(220px, 40vw); height: 29px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); outline: none; background: rgba(0,0,0,.22); color: var(--text); font: 12px var(--ui-font); }
 .admin-search:focus { border-color: var(--muted); }
+.admin-cash-type { display: inline-flex; padding: 4px 7px; border-radius: 999px; font: 700 12.5px var(--ui-font); }
+.admin-cash-type.deposit { color: #4fd191; background: rgba(79,196,127,.12); }
+.admin-cash-type.withdraw { color: var(--warning); background: rgba(245,196,81,.12); }
+.admin-cash-actions { display: flex; gap: 5px; }
 .admin-small-button { min-height: 27px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); background: var(--panel-raised); font: 700 12.5px var(--ui-font); }
 .admin-small-button:hover:not(:disabled) { border-color: var(--muted); background: var(--panel-2); }
 .admin-small-button:disabled { cursor: not-allowed; opacity: .45; }
@@ -2367,12 +2385,15 @@ html:has(.admin-layout), html:has(.admin-layout) body, html:has(.admin-layout) #
 .sutda-cards { display: flex; justify-content: center; height: 88px; }
 /* 앞면 그림은 붉은 테두리가 가장자리까지 차 있다 — 크림 테두리·바탕을 두르면 그 바깥에 흰 테가 남아서, 테두리 없이
    그림 테두리 색(짙은 빨강)을 바탕으로 둔다(그림이 안 불러와졌을 때도 빈 붉은 패로 보인다). */
-.hwatu-card { position: relative; display: inline-block; width: 53px; height: 82px; border-radius: var(--radius-xs); border: 0; background: #b3141a; box-shadow: 0 3px 8px rgba(0,0,0,.45); overflow: hidden; }
+/* 모서리는 캔버스 화투(stage/hwatu.ts HWATU_RADIUS)와 같은 폭의 9.4% — 가로/세로 % 로 적어 크기가 바뀌어도 원형으로 남는다
+   (세로 5.76% = 9.4% × 250/408). 얇은 짙은 테도 캔버스와 같게: 붉은 패끼리 겹쳐도 한 장씩 갈린다. */
+.hwatu-card { position: relative; display: inline-block; width: 53px; height: 82px; border-radius: 9.4% / 5.76%; border: 0; background: #b3141a; box-shadow: 0 3px 8px rgba(0,0,0,.45); overflow: hidden; }
+.hwatu-card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(48,4,6,.6); pointer-events: none; }
 .hwatu-card img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .hwatu-month { position: absolute; top: 2px; left: 2px; z-index: 1; min-width: 1.5em; padding: 0 .3em; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(10,8,4,.75); color: var(--text); font: 600 12px/1.5 var(--ui-font); text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
 /* 이어지는 화투는 살짝 겹쳐 부채꼴로 둔다. 도움말(game-guide.css)과 고스톱 자리는 자기 규칙으로 되돌린다. */
 .hwatu-card + .hwatu-card { margin-left: -10px; transform: rotate(4deg); }
-.hwatu-back { display: inline-block; background: repeating-linear-gradient(45deg, #b51f23 0 5px, #f0c66d 5px 8px, #64121b 8px 13px); }
+.hwatu-back { display: inline-block; background: #a80f16 url("/cards/hwatu/back.svg") center / cover no-repeat; }
 .sutda-seat .holdem-seat-name { margin-top: .2rem; }
 @media (max-width: 620px) {
   .hwatu-card { width: 40px; height: 63px; }
@@ -2448,8 +2469,13 @@ html:has(.admin-layout), html:has(.admin-layout) body, html:has(.admin-layout) #
    가리지 않게 한다. 배경은 이미 어두우므로 흰 띠는 사라진다. */
 @layer base {
   html, body { background: var(--bg); }
+  /* 바탕: 아주 옅은 금빛 카드 무늬(♠♥♦♣) 벽지 — 카드 사이 빈 곳이 휑하지 않게. 그라데이션 없이 단색 + 무늬 한 장. */
+  body { background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27120%27%20height%3D%27120%27%3E%3Cg%20fill%3D%27%23f0b41c%27%20fill-opacity%3D%27.05%27%20font-family%3D%27Arial%27%20font-size%3D%2722%27%3E%3Ctext%20x%3D%2712%27%20y%3D%2734%27%3E%E2%99%A0%3C/text%3E%3Ctext%20x%3D%2772%27%20y%3D%2734%27%3E%E2%99%A5%3C/text%3E%3Ctext%20x%3D%2742%27%20y%3D%2794%27%3E%E2%99%A6%3C/text%3E%3Ctext%20x%3D%27102%27%20y%3D%2794%27%3E%E2%99%A3%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0 / 120px 120px, var(--bg); }
+  /* 게임 화면은 판과 조작 줄에 눈이 가야 해서 무늬 없이 단색(칩 줄 뒤로 무늬가 비쳤다). */
+  body.game-screen-active { background: var(--bg); }
 }
-.topbar { padding-left: max(var(--topbar-pad-x, 28px), env(safe-area-inset-left)); padding-right: max(var(--topbar-pad-x, 28px), env(safe-area-inset-right)); }
+/* 헤더 안쪽은 본문 폭(--shell-max)에 맞춘다: 화면이 본문보다 넓으면 남는 폭의 절반만큼 더 들여 로고·계정 줄이 본문 가장자리와 같은 세로줄에 선다. */
+.topbar { padding-left: max(var(--topbar-pad-x, 28px), env(safe-area-inset-left), calc((100% - var(--shell-max)) / 2 + var(--topbar-pad-x, 28px))); padding-right: max(var(--topbar-pad-x, 28px), env(safe-area-inset-right), calc((100% - var(--shell-max)) / 2 + var(--topbar-pad-x, 28px))); }
 .app-shell { padding-left: max(var(--shell-pad-x, 30px), env(safe-area-inset-left)); padding-right: max(var(--shell-pad-x, 30px), env(safe-area-inset-right)); }
 
 /* ── Touch minimums ──────────────────────────────────────────────────────────

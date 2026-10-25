@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { History, LayoutGrid, MessageSquare, Settings2, Store, UserRound, Wallet } from "lucide-react";
+import { CircleHelp, History, LayoutGrid, MessageSquare, Settings2, Store, UserRound, Wallet } from "lucide-react";
 import { Brand } from "./Brand";
 import { ProfileMenu } from "./ProfileMenu";
 import { useCountUp } from "../lib/useCountUp";
@@ -8,9 +8,9 @@ import { useCurrentUser } from "../app/auth";
 import { HeaderProgress } from "./EconomyBits";
 import { badgeLabel, useFriends } from "../lib/friends";
 import { GuestClaimLink } from "./GuestBanner";
-import { LobbyChat } from "./LobbyChat";
+import { ChatDock } from "./ChatDock";
 
-export function AppShell({ balance, onLogout, children, headerCenter, showAdminLink = true, showBalance = true, showMobileNav = true }: {
+export function AppShell({ balance, onLogout, children, headerCenter, showAdminLink = true, showBalance = true, showMobileNav = true, showChatDock = true }: {
   /** null 이면 아직 모르는 것 — 0코인으로 그렸다가 숫자가 굴러 올라가는 대신 빈 자리를 둔다. */
   balance: number | null;
   onLogout: () => void;
@@ -20,6 +20,8 @@ export function AppShell({ balance, onLogout, children, headerCenter, showAdminL
   showBalance?: boolean;
   /** 관리자 콘솔은 자기 메뉴가 따로 있어서 아래 탭 줄을 끈다. */
   showMobileNav?: boolean;
+  /** 오른쪽 아래 채팅 버튼(전체 채팅·메시지·공지). 관리자 화면은 뺀다. */
+  showChatDock?: boolean;
 }) {
   const isAdmin = useCurrentUser()?.role === "admin";
   const mainRef = useRef<HTMLElement>(null);
@@ -45,6 +47,7 @@ export function AppShell({ balance, onLogout, children, headerCenter, showAdminL
         <div className="account">
           {isAdmin && showAdminLink && <Link className="admin-nav-link" to="/admin">관리</Link>}
           <GuestClaimLink />
+          <Link className="admin-nav-link header-guide-link" to="/guide" aria-label="이용 가이드"><CircleHelp size={15} aria-hidden="true" /><span>가이드</span></Link>
           {showAdminLink && <Link className="admin-nav-link header-shop-link" to="/shop">상점</Link>}
           {showBalance && <HeaderProgress />}
           {showBalance && (
@@ -54,12 +57,12 @@ export function AppShell({ balance, onLogout, children, headerCenter, showAdminL
                 : <BalanceValue balance={balance} />}
             </div>
           )}
-          <LobbyChat />
           <ProfileMenu onLogout={onLogout} />
         </div>
       </header>
       <main className={`app-shell${showMobileNav ? " has-mobile-nav" : ""}`} id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
       {showMobileNav && <MobileNav isAdmin={isAdmin} />}
+      {showChatDock && <ChatDock />}
     </>
   );
 }

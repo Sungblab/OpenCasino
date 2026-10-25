@@ -25,7 +25,7 @@ export function isPvpGame(gameType: GameRoom["gameType"]): boolean {
   return CUSTOM_ROOM_GAMES.some((game) => game.gameType === gameType);
 }
 
-/** 막힌 이유, 짧게("Lv10 부터", "VIP 골드 전용"). */
+/** 막힌 이유, 짧게("Lv5 부터", "VIP 골드 전용"). */
 export function failureText(failure: TierGateFailure): string {
   switch (failure.code) {
     case "TIER_VIP_REQUIRED": return `VIP ${VIP_LABEL[failure.need]} 전용`;
@@ -49,7 +49,7 @@ export function createLockReason(tier: TableTier, fee: number, who: GateWho): st
   return lockReason(tier, true, who, fee);
 }
 
-/** 등급 묶음 머리의 조건 한 줄("잔액 5,000 이상 · Lv10"). */
+/** 등급 묶음 머리의 조건 한 줄("잔액 5,000 이상 · Lv5"). */
 export function gateText(tier: TableTier, pvp: boolean): string {
   const gate = TIER_GATES[tier];
   const parts: string[] = [];

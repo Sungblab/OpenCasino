@@ -41,7 +41,7 @@
     <g fill="url(#gold)" opacity=".9">
       <path d="M0-104l7 11h-14z"/><path d="M0 104l7-11h-14z"/><path d="M-104 0l11 7v-14z"/><path d="M104 0l-11 7v-14z"/>
     </g>
-    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#gold)" stroke="#000000" stroke-width="1.2" paint-order="stroke">OC</text>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#gold)" stroke="#000000" stroke-width="1.2" paint-order="stroke">GC</text>
     <path d="M-46 44H46" stroke="url(#gold)" stroke-width="1.6"/>
     <path d="M-46 -48H46" stroke="url(#gold)" stroke-width="1.6"/>
   </g>

@@ -6,6 +6,8 @@ import { AppShell } from "../components/AppShell";
 import { ResponsiblePlayNotice } from "../components/ResponsiblePlayNotice";
 import { GameRows } from "../components/GameRows";
 import { GuestBanner } from "../components/GuestBanner";
+import { NoticeBanner } from "../components/NoticeBanner";
+import { GuideNudge } from "./GuidePage";
 import { LobbyMeta } from "../components/MetaBits";
 import { BigWinTicker } from "../components/EconomyBits";
 import { LobbyRewards } from "../components/LobbyRewards";
@@ -138,7 +140,9 @@ function MemberLobby({ token, user, onLogout }: { token: string; user: PublicAut
   return (
     <AppShell balance={balance} onLogout={onLogout}>
       <div className="lobby-content">
+        <NoticeBanner />
         <GuestBanner />
+        <GuideNudge />
         <DailyCoinsBar token={token} onClaimed={setBalance} />
         <BigWinTicker token={token} />
         <div className="lobby-layout">
@@ -175,6 +179,7 @@ function MemberLobby({ token, user, onLogout }: { token: string; user: PublicAut
       <footer className="lobby-footer">
         <strong className="lobby-footer-brand">OPENCASINO</strong>
         <nav className="lobby-footer-links" aria-label="바로가기">
+          <Link to="/guide">이용 가이드</Link>
           <Link to="/wallet">지갑</Link>
           <Link to="/profile">프로필</Link>
           <Link to="/game-history">게임 기록</Link>

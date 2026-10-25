@@ -51,7 +51,7 @@
     <rect x="-108" y="-163" width="216" height="326" rx="12" fill="none" stroke="url(#gold)" stroke-width="3"/>
     <circle r="62" fill="#5c0814" stroke="url(#gold)" stroke-width="5"/>
     <circle r="50" fill="none" stroke="url(#gold)" stroke-width="2" stroke-dasharray="3 6"/>
-    <text y="22" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="62" fill="url(#gold)">OC</text>
+    <text y="22" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="62" fill="url(#gold)">GC</text>
   </g>
 
   <!-- 가운데: 위·아래 화살표와 물음표 -->

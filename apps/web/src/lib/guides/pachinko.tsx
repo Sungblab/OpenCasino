@@ -1,5 +1,5 @@
 import { PACHINKO_PAY_PERMILLE, PACHINKO_RISKS, PACHINKO_RISK_LABEL, pachinkoMultiplierText, pachinkoRtpPercent } from "@opencasino/game-core/pachinko";
-import { GuideActions, GuideNote, GuideSteps, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideNote, GuideSteps, ODDS_TIMES, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 /** 위험도마다 맨 끝·가운데 배수를 한 줄로. 숫자는 game-core 표에서 읽는다 — 표를 바꾸면 안내도 같이 바뀐다. */
 const EDGE = (risk: (typeof PACHINKO_RISKS)[number]) => pachinkoMultiplierText(PACHINKO_PAY_PERMILLE[risk][0]!);
@@ -10,6 +10,7 @@ export const pachinkoGuide: GameGuideContent = {
   title: "파친코",
   intro: "구슬을 떨어뜨리면 못에 부딪히며 좌우로 튀다가 아래 칸에 들어가요. 들어간 칸의 배수만큼 돌려받습니다.",
   sections: [
+    startSection({ steps: [{ title: "위험도 고르기", body: "안정 · 보통 · 도전 중 하나. 처음엔 안정이 좋아요." }, { title: "베팅 고르기", body: "− / + 로 구슬 한 알의 금액을 정해요." }, { title: "DROP", body: "누를 때마다 구슬이 하나씩 떨어지고, 들어간 칸의 배수만큼 돌려받아요." }], tip: "안정에 작은 베팅으로 몇 알 떨어뜨려 보세요. 가운데 칸은 1보다 작은 배수라 원금보다 적게 돌아오고, 가장자리로 갈수록 드물지만 커요.", odds: ODDS_TIMES }),
     {
       id: "howto",
       title: "게임 방법",

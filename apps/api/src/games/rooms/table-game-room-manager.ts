@@ -11,7 +11,7 @@ type AnyDef = TableGameDef<any, any>; // eslint-disable-line @typescript-eslint/
 type Obj = Record<string, unknown>;
 
 /**
- * 표 게임(HiLo·Bac Bo·메가볼·탑 카드) 한 방. 판 흐름(베팅 → 마감 → 결과 공개 → 정산 → 결과)은 HouseTableActor 이고,
+ * 표 게임(Bac Bo·메가볼·탑 카드) 한 방. 판 흐름(베팅 → 마감 → 결과 공개 → 정산 → 결과)은 HouseTableActor 이고,
  * 이 클래스는 게임 정의(game-core TableGameDef)를 서버에 물리는 일만 한다:
  *   판이 열릴 때 setup 을 정해 DB 에 적고(beginRound) → 마감 뒤 결과를 뽑아 적고 steps 단계를 stepMs 간격으로 공개하고(deal)
  *   → 칸마다 payoutPermille 로 정산한다(settleRound). 스냅샷에는 def.view 가 돌려준 "공개된 만큼" 만 싣는다.

@@ -78,6 +78,7 @@ export type SnapshotEventName =
   | "slot.snapshot"
   | "videoPoker.snapshot"
   | "pachinko.snapshot"
+  | "hilo.snapshot"
   | "blackjack.snapshot"
   | "holdem.snapshot"
   | "sutda.snapshot"
@@ -208,6 +209,22 @@ export abstract class RoomActor<Row extends BaseRoomRow, E extends SnapshotEvent
 
   hasHumans(): boolean {
     return this.humanCount() > 0;
+  }
+
+  /** 앉아 있는 사람(봇 포함). 좌석이 없는 게임은 null — 좌석이 있는 게임이 덮어쓴다. */
+  seatedUserIds(): string[] | null {
+    return null;
+  }
+
+  /** 관리자 실시간 현황: 소켓이 붙은 사람, 봇 수(봇은 소켓 없이 들어온다), 앉은 사람. */
+  occupancy(): { humans: string[]; bots: number; seated: string[] | null } {
+    const humans: string[] = [];
+    let bots = 0;
+    for (const [userId, sockets] of this.participants) {
+      if (sockets.size > 0) humans.push(userId);
+      else bots += 1;
+    }
+    return { humans, bots, seated: this.seatedUserIds() };
   }
 
   /** 사람이 하나도 없게 된 시각(ms). 사람이 있으면 null. 빈 사용자 방 닫기(CUSTOM_ROOM_IDLE_MS)가 본다. */

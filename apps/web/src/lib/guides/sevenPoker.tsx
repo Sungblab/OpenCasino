@@ -1,6 +1,6 @@
 import { SEVEN_POKER_RANKINGS } from "@opencasino/game-core/seven-poker";
 import { CardFace } from "../../components/CardFace";
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 function SevenPokerRankingList() {
   return (
@@ -26,6 +26,7 @@ export const sevenPokerGuide: GameGuideContent = {
   title: "7포커",
   intro: "카드 7장 중 가장 좋은 5장으로 겨루는 한국식 세븐 카드 스터드. 남의 앞면 카드를 보며 베팅하고, 끝까지 남은 사람 중 족보가 가장 높은 사람이 팟을 모두 가져갑니다.",
   sections: [
+    startSection({ steps: [{ title: "앉고 준비 완료", body: "빈 자리를 눌러 앉고 준비 완료를 눌러요. 기본 베팅(삥)은 자동으로 나가요." }, { title: "카드를 받으며 베팅", body: "처음 4장 중 하나를 버리고 하나를 보여 준 뒤, 한 장씩 더 받을 때마다 베팅해요." }, { title: "7장 중 5장으로 승부", body: "끝까지 남은 사람 중 가장 좋은 5장 족보가 판돈을 가져가요." }], tip: "족보는 홀덤과 같아요(족보표 탭). 입문 테이블에서, 남의 앞면 카드보다 내 패가 약해 보이면 일찍 다이해도 괜찮아요." }),
     {
       id: "rankings",
       title: "족보표",

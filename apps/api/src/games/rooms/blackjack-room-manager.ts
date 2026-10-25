@@ -19,7 +19,10 @@ import {
   type GameRoom,
   type RoomPhase,
 } from "@opencasino/contracts";
-import { BLACKJACK_SIDE_BET_KINDS, blackjackSideBetMax, canSplitPair, dealerShouldHit, handValue, isBlackjack, Shoe } from "@opencasino/game-core";
+import {
+  BLACKJACK_SIDE_BET_KINDS, blackjackSideBetMax, canSplitPair, dealerShouldHit, drawLightningBlackjackBoard, handValue, isBlackjack,
+  LIGHTNING_BLACKJACK_FEE_PERCENT, LIGHTNING_BLACKJACK_TOTALS, Shoe, type LightningBlackjackBoard,
+} from "@opencasino/game-core";
 import { pool } from "../../database/pool.js";
 import { DomainError } from "../../errors/domain-error.js";
 import { logger } from "../../logging/logger.js";
@@ -115,7 +118,10 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
   private cycleToken = 0;
   private playerTurnEarlyResolve: (() => void) | null = null;
   private actionRequests = new Set<string>();
+  /** userId → 아직 안 쓴 다음 판 배수(라이트닝). 판이 바뀌어도 남고, 그 사람이 다음에 걸 때 쓰여 빠진다. */
   private nextLightningAwards = new Map<string, number>();
+  /** 이번 판 배수판 — 베팅이 닫힐 때 뽑아 결과까지 보여 준다. */
+  private lightningBoard: LightningBlackjackBoard | null = null;
   /** Dev table rig only: force the next deal to give every seated hand a splittable pair. */
   private rigPairsNextRound = false;
 
@@ -134,6 +140,10 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
 
   private get participantCount(): number {
     return this.participants.size;
+  }
+
+  override seatedUserIds(): string[] {
+    return this.seats.filter((userId): userId is string => userId !== null);
   }
 
   publicRoom(): GameRoom {
@@ -158,7 +168,21 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
 
   protected override afterJoin(socket: AppSocket): void {
     this.sendWinnerFeed(socket);
+    if (this.isLightning) void this.loadLightningAward(socket.data.user.id);
     if (this.phase === "WAITING" && this.playerCount > 0) this.launchWhenReady(socket);
+  }
+
+  /** 들어오면 아직 안 쓴 배수(지난 판·다른 방에서 따낸 것)를 불러와 "다음 ×N" 으로 보여 준다. */
+  private async loadLightningAward(userId: string): Promise<void> {
+    try {
+      const award = await pool.query<{ multiplier: number }>("SELECT multiplier FROM blackjack_lightning_awards WHERE user_id=$1 AND expires_at>now()", [userId]);
+      if (!award.rows[0] || this.nextLightningAwards.has(userId)) return;
+      this.nextLightningAwards.set(userId, award.rows[0].multiplier);
+      this.sequence += 1;
+      await this.emitSnapshots();
+    } catch (error) {
+      this.log.warn("lightning award load failed", { userId, err: error });
+    }
   }
 
   /** 블랙잭은 건 사람을 wagers 가 아니라 이번 판 패(hands)로 안다. */
@@ -205,6 +229,8 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
     const seatNumber = this.seatOf(userId);
     if (seatNumber === null) throw new DomainError("SEAT_REQUIRED");
     const placed = await blackjackHandService.place(userId, command, seatNumber, this.room.min_bet, this.room.max_bet, this.isLightning);
+    // 남아 있던 다음 판 배수는 이 베팅에 쓰였다(hand.lightningMultiplier).
+    this.nextLightningAwards.delete(userId);
     const existing = this.userHands(userId)[0];
     if (existing) { existing.bet = placed.totalBet; existing.fee = placed.totalFee; }
     else this.hands.set(placed.handId, {
@@ -475,7 +501,8 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
       myInsurance: this.insuranceBets.get(userId) ?? null,
       walletBalance: walletBalance ?? (await walletService.getUserBalance(userId)),
       shoeRemaining: this.shoe.remaining,
-      lightningFeePercent: this.isLightning ? 20 : 0,
+      lightningFeePercent: this.isLightning ? LIGHTNING_BLACKJACK_FEE_PERCENT : 0,
+      ...(this.isLightning ? { lightningBoard: this.lightningBoard ? LIGHTNING_BLACKJACK_TOTALS.map((total) => ({ total, multiplier: this.lightningBoard![total] })) : null } : {}),
       activeLightningMultiplier: myHands[0] ? (this.hands.get(myHands[0].handId)?.lightningMultiplier ?? 1) : null,
       nextLightningMultiplier: this.nextLightningAwards.get(userId) ?? null,
     };
@@ -586,7 +613,7 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
     this.sideBets.clear();
     this.insuranceBets.clear();
     this.actionRequests.clear();
-    this.nextLightningAwards.clear();
+    this.lightningBoard = null;
     this.releaseDisconnectedSeats();
   }
 
@@ -628,6 +655,8 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
     await this.waitBetting(BETTING_MS);
     if (token !== this.cycleToken) return;
 
+    // 라이트닝: 베팅이 닫히는 순간 번개가 쳐서 점수마다 배수가 붙는다(이긴 점수의 배수를 다음 판에 받는다).
+    if (this.isLightning && this.hands.size > 0) this.lightningBoard = drawLightningBlackjackBoard();
     await this.setPhase("LOCKED", 700);
     if (this.hands.size === 0) {
       await pool.query("UPDATE blackjack_rounds SET phase='RESULT',settled_at=now() WHERE id=$1", [this.roundId]);
@@ -741,8 +770,8 @@ class BlackjackRoomActor extends RoomActor<RoomRow, "blackjack.snapshot"> {
 
   /** 정산하고, 결과(패별 승패·연승·따라 베팅·보험)를 라이브 상태에 옮긴 뒤 판을 닫는다. */
   private async settleRound(roundId: string): Promise<void> {
-    const { balances, wins, lightningAwards } = await blackjackHandService.settle(this.room.id, roundId, this.dealerCards, this.isLightning);
-    this.nextLightningAwards = lightningAwards;
+    const { balances, wins, lightningAwards } = await blackjackHandService.settle(this.room.id, roundId, this.dealerCards, this.isLightning, this.lightningBoard);
+    for (const [userId, multiplier] of lightningAwards) this.nextLightningAwards.set(userId, multiplier);
     const finalHands = await blackjackHandService.handsForRound(roundId);
     const userWon = new Map<string, boolean>();
     for (const row of finalHands) {

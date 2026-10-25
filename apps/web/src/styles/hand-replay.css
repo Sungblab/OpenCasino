@@ -34,7 +34,7 @@
 .hand-replay-seat .hand-replay-slot { width: 30px; height: 42px; }
 
 /* 화투: styles.css 의 53×82 고정·겹침 회전을 걷어 낸다. */
-.hand-replay .hwatu-card { width: 26px; height: 40px; margin: 0; transform: none; border-radius: 3px; }
+.hand-replay .hwatu-card { width: 26px; height: 40px; margin: 0; transform: none; }
 .hand-replay .hwatu-card + .hwatu-card { margin-left: 0; transform: none; }
 .hand-replay .hwatu-month { font-size: 12px; line-height: 1.25; padding: 0 .2em; }
 .is-gostop .hand-replay-board .hwatu-card { width: 24px; height: 37px; }

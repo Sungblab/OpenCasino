@@ -5,7 +5,7 @@ const count = (reel: readonly CherrySymbol[], symbol: CherrySymbol) => reel.filt
 
 describe("lucky cherry slot model", () => {
   it("uses the strips of the math note (symbol and blank alternate)", () => {
-    // docs/research/slots/D-new-machines.md 표. 개수만 틀려도 RTP 가 바뀐다.
+    // 개수만 틀려도 RTP 가 바뀐다.
     const counts = { W: 1, R7: 1, B7: 1, B3: 2, B2: 3, B1: 3, CH: 3, BL: 14 };
     CHERRY_REELS.forEach((reel, r) => {
       expect(reel, `reel ${r + 1}`).toHaveLength(28);

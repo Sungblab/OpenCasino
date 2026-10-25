@@ -1,7 +1,7 @@
 import type { Card } from "@opencasino/contracts";
 import { BADUGI_RANKINGS, badugiMeter, evaluateBadugiHand, sameBadugiCard } from "@opencasino/game-core/badugi";
 import { CardFace } from "../../components/CardFace";
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 /** 카드 넉 장 — 묶음에서 빠진 죽은 패는 흐리게. */
 function Hand({ cards }: { cards: Card[] }) {
@@ -45,6 +45,7 @@ export const badugiGuide: GameGuideContent = {
   title: "바둑이",
   intro: "카드 4장을 세 번 바꿔 가며 무늬도 숫자도 서로 다른 '낮은' 패를 만드는 게임. 마지막까지 남은 사람 중 족보가 가장 좋은 사람이 팟을 가져갑니다.",
   sections: [
+    startSection({ steps: [{ title: "앉고 준비 완료", body: "빈 자리를 눌러 앉고 준비 완료를 눌러요. 기본 베팅(삥)은 자동으로 나가요." }, { title: "카드 4장 받고 세 번 바꾸기", body: "아침·점심·저녁에 마음에 안 드는 카드를 0~4장 바꾸고, 그 사이마다 베팅해요." }, { title: "낮은 패가 이겨요", body: "무늬도 숫자도 모두 다르고 숫자가 낮은 4장이 가장 좋아요. 끝까지 남아 패가 가장 좋으면 판돈을 가져가요." }], tip: "A 가 가장 낮은(좋은) 카드예요. 무늬나 숫자가 겹치는 카드, 그리고 높은 카드(J·Q·K)부터 바꾸세요." }),
     {
       id: "rankings",
       title: "족보표",

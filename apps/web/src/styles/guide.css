@@ -1,0 +1,99 @@
+/* ── 이용 가이드(/guide)와 로비의 "처음이라면" 띠 ───────────────────────── */
+
+/* html·body·#root 의 overflow-x: hidden 은 스크롤 상자를 만들어 위 띠·왼쪽 목차의 sticky 를 죽인다(styles.css 의 관리자 화면과 같은 처리). */
+html:has(.guide-page), body:has(.guide-page), #root:has(.guide-page) { overflow-x: clip; } /* :has() 는 대상 자신에게만(styles.css 관리자 화면 주석) */
+
+.guide-page { display: grid; gap: 14px; width: min(860px, 100%); margin: 0 auto; padding: 24px 20px 56px; font-family: var(--ui-font); color: var(--text); }
+.guide-hero h1 { margin: 0 0 6px; font-size: 28px; }
+.guide-hero > p { margin: 0 0 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.guide-toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.guide-toc a { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text); font-size: 13px; font-weight: 600; text-decoration: none; }
+.guide-toc a svg { color: var(--gold); }
+.guide-toc a:hover { border-color: var(--gold-line); background: var(--gold-wash); }
+
+.guide-card { scroll-margin-top: 80px; padding: 22px 24px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); line-height: 1.65; }
+.guide-card h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--gold-light); font-size: 18px; }
+.guide-card > p, .guide-card > ul { margin: 0 0 12px; font-size: 14px; }
+.guide-card > ul { display: grid; gap: 6px; padding-left: 18px; }
+.guide-card b { color: var(--text); font-weight: 700; }
+.guide-card > :last-child { margin-bottom: 0; }
+.guide-aside { color: var(--muted); font-size: 13px !important; }
+
+.guide-go { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.guide-go a { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; margin: 0; padding: 0 18px; font-size: 13px; text-decoration: none; }
+
+/* 게임 묶음 네 칸 */
+.guide-categories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
+.guide-category { display: grid; gap: 3px; align-content: start; padding: 13px 14px; border-radius: var(--radius-sm); background: var(--panel-2); }
+.guide-category strong { color: var(--gold-light); font-size: 14px; }
+.guide-category small { color: var(--muted); font-size: 12px; }
+.guide-category p { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 0; }
+.guide-category p span { padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-xs); font-size: 12px; }
+
+/* 등급·VIP 표 */
+.guide-table { display: grid; margin: 0 0 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; font-size: 13px; }
+.guide-table [role="row"] { display: grid; grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.guide-table [role="row"].is-head { border-top: 0; background: var(--panel-2); color: var(--muted); font-size: 12px; font-weight: 600; }
+.guide-table.is-vip [role="row"] { grid-template-columns: 80px 80px minmax(0, 1fr); }
+.guide-table [role="cell"] small { display: block; color: var(--muted); font-size: 12px; }
+
+/* 무료 코인 네 칸 */
+.guide-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 0 0 12px; }
+.guide-fact { display: grid; gap: 2px; align-content: start; padding: 13px 14px; border-radius: var(--radius-sm); background: var(--panel-2); }
+.guide-fact small { color: var(--muted); font-size: 12px; font-weight: 600; }
+.guide-fact strong { color: var(--gold-light); font-size: 20px; font-variant-numeric: tabular-nums; }
+.guide-fact strong span { margin-left: 3px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.guide-fact p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+
+/* 계급 사다리 */
+.guide-ranks { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; }
+.guide-ranks li { display: grid; padding: 6px 11px; border: 1px solid color-mix(in srgb, var(--rank) 45%, transparent); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--rank) 8%, transparent); }
+.guide-ranks small { color: var(--muted); font-size: 11px; }
+.guide-ranks b { color: var(--rank) !important; font-size: 13px; }
+
+.guide-card .responsible-play-notice { margin-top: 14px; }
+
+/* 넓은 화면: 목차가 왼쪽에 붙어 따라 내려온다. */
+@media (min-width: 1180px) {
+  .guide-page { grid-template-columns: 230px minmax(0, 820px); column-gap: 28px; width: auto; justify-content: center; }
+  .guide-hero { grid-column: 1; grid-row: 1 / span 8; position: sticky; top: 88px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; }
+  .guide-hero h1 { font-size: 26px; }
+  .guide-toc { flex-direction: column; }
+  .guide-toc a { border-radius: var(--radius-sm); }
+  .guide-card { grid-column: 2; }
+}
+
+@media (max-width: 620px) {
+  .guide-page { padding: 18px 12px 40px; }
+  .guide-hero h1 { font-size: 23px; }
+  .guide-card { padding: 18px 16px; }
+  .guide-categories { grid-template-columns: minmax(0, 1fr); }
+  .guide-table [role="row"] { grid-template-columns: 76px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 9px 10px; }
+  .guide-table.is-vip [role="row"] { grid-template-columns: 60px 64px minmax(0, 1fr); }
+  .guide-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .guide-go a { flex: 1 1 auto; }
+}
+
+/* 로비 위 "처음이라면" 띠 */
+.guide-nudge { display: flex; align-items: center; gap: 14px; margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--gold-line); border-radius: var(--radius-md); background: linear-gradient(90deg, var(--gold-wash), transparent 70%), var(--panel); font-family: var(--ui-font); }
+.guide-nudge > svg { flex: none; color: var(--gold); }
+.guide-nudge p { display: grid; gap: 3px; flex: 1; min-width: 0; margin: 0; }
+.guide-nudge strong { color: var(--gold-light); font-size: 14px; }
+.guide-nudge span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.guide-nudge .guide-nudge-go { flex: none; display: inline-flex; align-items: center; min-height: 40px; margin: 0; padding: 0 18px; font-size: 13px; text-decoration: none; }
+.guide-nudge-close { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-xs); background: none; color: var(--muted); cursor: pointer; }
+.guide-nudge-close:hover { background: var(--panel-2); color: var(--text); }
+@media (max-width: 560px) {
+  .guide-nudge { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 12px; }
+  .guide-nudge .guide-nudge-go { grid-row: 2; grid-column: 1 / -1; justify-content: center; }
+}
+
+/* 위 띠의 가이드 링크 — 폰에선 글자를 빼고 물음표만 남긴다(상점 링크는 아예 숨는 폭). */
+.admin-nav-link.header-guide-link { gap: 5px; }
+.admin-nav-link.header-guide-link svg { color: var(--gold); }
+@media (max-width: 720px) {
+  .admin-nav-link.header-guide-link { padding: 0 7px; }
+  .admin-nav-link.header-guide-link span { display: none; }
+}
+/* 320px 폰에선 물음표 자리만큼 로고가 잘린다 — 로비의 띠·아래 링크로 들어간다. */
+@media (max-width: 359px) { .admin-nav-link.header-guide-link { display: none; } }

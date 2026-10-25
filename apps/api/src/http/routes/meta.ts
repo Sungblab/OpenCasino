@@ -140,7 +140,7 @@ export type MissionClaimResult = { ok: true; coins: number } | { ok: false; stat
 
 /**
  * 미션 하나를 받는다. 진행도는 저장하지 않으므로 받는 순간 오늘 기록으로 다시 센다. 보상은 하우스 → 사용자 원장
- * 거래(멱등 키 mission:<사용자>:<날짜>:<미션>)이고.
+ * 거래(멱등 키 mission:<사용자>:<날짜>:<미션>)이다.
  * 같은 미션을 두 번 받으면 409 — 원장 키가 같아 돈도 두 번 나가지 않는다. 미션 화면의 받기와 보상 모두 받기가 같이 쓴다.
  */
 export async function claimMissionReward(userId: string, missionId: string, date = kstDate()): Promise<MissionClaimResult> {
@@ -186,7 +186,6 @@ export async function claimMissionReward(userId: string, missionId: string, date
       "INSERT INTO mission_claims (user_id,mission_date,mission_id,reward_minor,ledger_transaction_id) VALUES ($1,$2,$3,$4,$5)",
       [userId, date, def.id, rewardMinor, transactionId],
     );
-
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");

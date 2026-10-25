@@ -5,13 +5,18 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   USER_APPROVED: "사용자 승인",
   USER_SUSPENDED: "이용 정지",
   USER_DELETED: "탈퇴 처리",
+  USER_WITHDRAWN: "본인 탈퇴",
   USER_ROLE_CHANGED: "권한 변경",
   PASSWORD_RESET: "비밀번호 초기화",
   BALANCE_ADJUSTED: "잔액 조정",
+  CASH_REQUEST_APPROVED: "충·환전 승인",
+  CASH_REQUEST_REJECTED: "충·환전 거절",
   ROOM_PAUSED: "방 일시정지",
   ROOM_RESUMED: "방 재개",
   ROOM_ROAD_RESET: "통계 초기화",
   ANNOUNCEMENT_SENT: "공지 발송",
+  NOTICE_UPDATED: "공지 수정",
+  NOTICE_DELETED: "공지 삭제",
   ROOM_UPDATED: "방 설정 변경",
   USER_VIP_SET: "VIP 지정",
   USER_LEVEL_SET: "레벨 지정",
@@ -75,6 +80,9 @@ export function summarizeAuditLog(log: Pick<AdminAuditLog, "action" | "details">
       return "from" in d ? `${approval(d.from)} → ${approval(d.to)}` : "";
     case "USER_DELETED":
       return d.username ? `원래 아이디 ${d.username}` : "";
+    case "CASH_REQUEST_APPROVED":
+    case "CASH_REQUEST_REJECTED":
+      return `${d.type === "withdraw" ? "환전" : "충전"} ${coins(d.amount)}`;
     case "ANNOUNCEMENT_SENT":
       // 어디로 갔는지(방 이름·전체)는 대상 칸이 이미 보여 준다.
       return d.scope === "room" ? `${d.recipients ?? 0}명에게 · ${d.message ?? ""}` : String(d.message ?? "");

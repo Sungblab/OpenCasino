@@ -112,6 +112,10 @@ export class SutdaRoomActor extends RoomActor<RoomRow, "sutda.snapshot"> {
     return this.seats.filter(Boolean).length;
   }
 
+  override seatedUserIds(): string[] {
+    return this.seats.flatMap((seat) => (seat ? [seat.userId] : []));
+  }
+
   publicRoom(): GameRoom {
     return {
       id: this.room.id,

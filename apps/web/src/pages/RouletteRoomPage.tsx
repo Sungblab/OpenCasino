@@ -243,9 +243,13 @@ export function RouletteRoomPage({ token, onLogout }: { token: string; onLogout:
     const already = optimisticBets.amountFor(choice, snapshot.myBets[choice] ?? 0);
     const limit = spotLimit(choice);
     if (already + amount > limit) {
-      const error = `${rouletteBetLabel(choice)} 칸은 최대 ${limit.toLocaleString()}코인까지 걸 수 있습니다.`;
-      if (!quiet) setMessage(error);
-      return resolve(error);
+      // 칩이 칸에 남은 한도보다 크면 남은 만큼만 건다(한도 50에 4를 걸었다면 46). 반복·2배 같은 묶음 베팅은 그대로 막는다.
+      if (amount === chip && !quiet && limit > already) amount = limit - already;
+      else {
+        const error = `${rouletteBetLabel(choice)} 칸은 최대 ${limit.toLocaleString()}코인까지 걸 수 있습니다.`;
+        if (!quiet) setMessage(error);
+        return resolve(error);
+      }
     }
     const requestId = randomRequestId();
     const ticket = optimisticBets.stage(choice, snapshot.myBets[choice] ?? 0, amount);

@@ -6,7 +6,7 @@ import type { Migration } from "../migrator.js";
  * settled_at 이 빈 행만 환불한다(seven-poker-service.ts).
  *
  * cards 는 받은 순서의 지금 패(초이스에서 버린 한 장은 빠진다), up_cards 는 그중 앞면 — 분쟁 때 판을 다시
- * 그려 볼 수 있게. game_type는 0008 이 이미 열었다.
+ * 그려 볼 수 있게. game_type·롤링 출처(seven_poker_stake)는 0008 이 이미 열었다.
  */
 export const migration: Migration = {
   id: "0011_seven_poker",

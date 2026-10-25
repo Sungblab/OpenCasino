@@ -281,7 +281,12 @@
     position: absolute; top: 0; left: 0; right: 0; justify-content: space-between; gap: 4px;
     height: 38px; padding: 0 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel);
   }
-  .bjt-corner .land-balance { flex: 1 1 auto; min-width: 0; }
+  /* 잔액이 길면 ⛶ 버튼에 겹치지 않고 말줄임. */
+  .game-shell.is-landscape-game .bjt-corner .land-balance { display: block; flex: 1 1 auto; min-width: 0; overflow: hidden; text-align: center; text-overflow: ellipsis; }
+}
+/* 기둥이 190px 보다 좁은 가로 폰(22vw < 190px)에선 "499,908코인" 이 ⛶ 버튼에 겹쳤다 — "코인" 을 뺀다(아래 총 베팅 줄이 단위를 보인다). */
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) and (max-width: 863px) {
+  .bjt-corner .land-balance small { display: none; }
 }
 
 /* ── 터치 기기: 누르는 곳은 44×44 이상 ─────────────────────────────────────

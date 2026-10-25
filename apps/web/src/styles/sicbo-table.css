@@ -23,10 +23,10 @@
 /* ── 셰이커 화면 ──────────────────────────────────────────────────────────── */
 .sb-stage {
   position: relative; min-height: 0; overflow: hidden; border-radius: 14px;
-  background: radial-gradient(ellipse 36% 50% at 50% 50%, rgba(255, 208, 150, .15) 0%, rgba(255, 208, 150, .05) 55%, transparent 100%), radial-gradient(ellipse 55% 75% at 50% 55%, #0f4a30 0%, #073121 55%, #041c13 100%);
+  background: var(--felt-grain), radial-gradient(ellipse 36% 50% at 50% 50%, rgba(255, 208, 150, .15) 0%, rgba(255, 208, 150, .05) 55%, transparent 100%), radial-gradient(ellipse 55% 75% at 50% 55%, #0f4a30 0%, #073121 55%, #041c13 100%);
   box-shadow: 0 0 0 1px rgba(92, 57, 14, .88), 0 0 0 4px rgba(10, 8, 5, .96), 0 22px 44px -24px rgba(0, 0, 0, .9);
 }
-.sb-room.is-super .sb-stage { background: radial-gradient(ellipse 36% 50% at 50% 50%, rgba(255, 208, 150, .15) 0%, rgba(255, 208, 150, .05) 55%, transparent 100%), radial-gradient(ellipse 55% 75% at 50% 55%, #3a1222 0%, #210a13 55%, #0e0409 100%); }
+.sb-room.is-super .sb-stage { background: var(--felt-grain), radial-gradient(ellipse 36% 50% at 50% 50%, rgba(255, 208, 150, .15) 0%, rgba(255, 208, 150, .05) 55%, transparent 100%), radial-gradient(ellipse 55% 75% at 50% 55%, #3a1222 0%, #210a13 55%, #0e0409 100%); }
 
 .sb-status {
   position: absolute; top: 10px; left: 50%; z-index: 3; transform: translateX(-50%);
@@ -122,14 +122,14 @@
 .sb-cell {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   min-width: 0; min-height: 0; margin: 0; padding: 2px; border: 0; border-radius: 6px; overflow: hidden;
-  background: var(--sb-cell); color: var(--gold-light); font-family: var(--ui-font); cursor: pointer;
-  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, box-shadow .2s ease, filter .15s ease;
+  background: var(--felt-grain), var(--sb-cell); color: var(--gold-light); font-family: var(--ui-font); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: opacity .25s ease, filter .15s ease;
 }
 .sb-cell:hover { filter: brightness(1.2); }
 .sb-cell:active { transform: scale(.98); }
-.sb-cell.kind-small, .sb-cell.kind-big { background: linear-gradient(170deg, rgba(163, 19, 27, .75), rgba(90, 8, 14, .9)); }
-.sb-cell.kind-odd, .sb-cell.kind-even { background: linear-gradient(170deg, rgba(30, 60, 120, .7), rgba(12, 28, 60, .9)); }
-.sb-cell.kind-anyTriple { background: linear-gradient(170deg, rgba(200, 150, 40, .35), rgba(90, 60, 10, .6)); }
+.sb-cell.kind-small, .sb-cell.kind-big { background: var(--felt-grain), linear-gradient(170deg, rgba(163, 19, 27, .75), rgba(90, 8, 14, .9)); }
+.sb-cell.kind-odd, .sb-cell.kind-even { background: var(--felt-grain), linear-gradient(170deg, rgba(30, 60, 120, .7), rgba(12, 28, 60, .9)); }
+.sb-cell.kind-anyTriple { background: var(--felt-grain), linear-gradient(170deg, rgba(200, 150, 40, .35), rgba(90, 60, 10, .6)); }
 .sb-word { color: #fff; font: 800 16px Poppins, var(--ui-font); letter-spacing: .03em; line-height: 1; }
 .sb-word.is-small { font-size: 12px; }
 .sb-sub { color: rgba(255, 255, 255, .7); font: 600 11px var(--ui-font); }
@@ -144,8 +144,12 @@
 .sb-board.is-locked .sb-cell { cursor: not-allowed; }
 .sb-board.is-locked .sb-cell:hover { filter: none; }
 .sb-board.has-result .sb-cell:not(.is-win) { opacity: .45; }
-.sb-cell.is-win { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 18px rgba(255, 210, 74, .45); animation: sb-win-pulse 1s ease-in-out 3; }
-@keyframes sb-win-pulse { 50% { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 30px rgba(255, 210, 74, .7); } }
+/* 맥박은 빛을 얹은 가상 요소의 투명도만 움직인다 — box-shadow 를 애니메이션하면 그동안 매 프레임 칸을 다시 칠하고 래스터해
+   결과 순간 GPU 가 밀렸다(바카라 baccarat-table.css 의 is-win 주석). */
+/* 칸이 넘침을 자르므로(overflow: hidden) 맥박은 안쪽 빛으로. */
+.sb-cell.is-win { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 18px rgba(255, 210, 74, .45); }
+.sb-cell.is-win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--gold-light), inset 0 0 16px rgba(255, 210, 74, .6); opacity: 0; pointer-events: none; animation: sb-win-pulse 1s ease-in-out 3; }
+@keyframes sb-win-pulse { 50% { opacity: 1; } }
 
 /* 번개: 금테와 배수 딱지(에볼루션처럼 금색으로 칠한다). */
 .sb-cell.is-struck { box-shadow: inset 0 0 0 2px var(--sb-bolt), 0 0 14px rgba(159, 216, 255, .55); background-image: linear-gradient(170deg, rgba(240, 180, 28, .35), rgba(120, 80, 10, .35)); }
@@ -205,6 +209,10 @@
   .sb-word.is-small { font-size: 10px; }
   .sb-total { font-size: 16px; }
   .sb-odds { font-size: 9.5px; }
+  /* 윗줄(SMALL · ANY TRIPLE · BIG)은 세 줄을 쌓는데, 짧은 폰(667px 이하)에선 줄 높이가 38~44px 라 글자가 칸 위아래로 5~7px 잘렸다 — 줄 간격을 좁힌다. */
+  .sb-board.is-phone .sb-cell:is(.kind-small, .kind-big, .kind-anyTriple) { gap: 0; }
+  .sb-board.is-phone .sb-cell:is(.kind-small, .kind-big, .kind-anyTriple) :is(.sb-sub, .sb-odds) { line-height: 1.1; }
+  .sb-board.is-phone .sb-word.is-small { letter-spacing: 0; white-space: nowrap; }
   .sb-status { top: 6px; padding: 3px 10px; font-size: 12px; }
   .sb-status b { font-size: 13px; }
   .sb-recent { top: auto; left: 6px; right: 6px; bottom: 6px; flex-direction: row; padding: 0; gap: 4px; }
@@ -228,6 +236,21 @@
   .game-shell .sb-room .ot-tray.is-art .chip-picker-menu button.selected { transform: none; outline: 0; box-shadow: 0 0 0 3px var(--gold-light); }
   .game-shell .sb-room .ot-tray.is-art .chip-picker-menu button:disabled { opacity: .32; cursor: default; }
   .sb-acts[data-has-bets="true"] .is-repeat, .sb-acts:not([data-has-bets="true"]) .is-double { display: none; }
+}
+/* 짧은 세로 폰(보이는 높이 620px 이하, 아이폰 SE 사파리 등): 판의 300px 하한 때문에 아홉 줄이 칩 줄에 눌려 칸마다
+   글자가 4px 씩 잘렸다 — 셰이커 화면을 조금 줄여 판에 높이를 준다. */
+@media (max-width: 900px) and (orientation: portrait) and (max-height: 620px) {
+  .sb-stage { height: clamp(110px, 21dvh, 150px); }
+  .sb-board { min-height: 0; }
+  /* 줄이 32px 안팎이라 숫자·배당 사이 틈과 배당 글자의 기본 줄 간격(14px)까지 쓰면 넘친다. */
+  .sb-board.is-phone .sb-cell { gap: 0; }
+  .sb-board.is-phone :is(.sb-odds, .sb-sub) { line-height: 1.1; }
+  .sb-board.is-phone .sb-total { line-height: 1; }
+}
+/* 가장 좁은 폰: ANY TRIPLE 칸엔 이름과 배당만(가로 폰과 같다) — 장식 주사위까지 넣으면 칸 밖으로 나갔다. */
+@media (max-width: 340px) and (orientation: portrait) {
+  .sb-board.is-phone .sb-cell.kind-anyTriple .sb-dice { display: none; }
+  .sb-board.is-phone .sb-cell.kind-single .die-face { width: 20px; height: 20px; }
 }
 @keyframes sb-result-in-phone { from { opacity: 0; transform: scale(.8); } }
 
@@ -260,5 +283,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sb-cell.is-win, .sb-strike, .sb-result { animation: none; }
+  .sb-cell.is-win::after, .sb-strike, .sb-result { animation: none; }
 }

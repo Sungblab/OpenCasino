@@ -1,4 +1,4 @@
-import { GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideHeading, GuideNote, GuideSteps, GuideTerms, ODDS_TIMES, startSection, type GameGuideContent } from "../../components/GameGuide";
 import { PayoutTable } from "./houseGames";
 
 /**
@@ -6,58 +6,12 @@ import { PayoutTable } from "./houseGames";
  * 베팅 방법·배당 같은 숫자는 게임 정의(game-core)와 맞춘다 — 배당이 판마다 다른 게임은 "어떻게 정해지는지" 를 적는다.
  */
 
-export const hiloGuide: GameGuideContent = {
-  gameKey: "hilo",
-  title: "하이로우",
-  intro: "카드 한 장이 먼저 보여요. 다음 카드가 그보다 높을지, 낮을지, 같을지(또는 빨강인지 검정인지)를 맞히는 게임. 카드는 자동으로 뽑히고, 나는 어느 쪽일지에만 베팅합니다.",
-  sections: [
-    {
-      id: "howto",
-      title: "게임 방법",
-      content: (
-        <>
-          <GuideSteps
-            steps={[
-              { title: "기준 카드를 보고 베팅 (15초)", body: "판이 열리면 기준 카드가 앞면으로 보입니다. 아래 칸(하이·같음·로우·레드·블랙) 중 원하는 칸에 칩을 거세요. 여러 칸에 동시에 걸 수 있고, 마감 전에는 되돌리기로 취소할 수 있어요." },
-              { title: "다음 카드 공개", body: "베팅이 끝나면 엎어 둔 다음 카드가 뒤집힙니다. 기준 카드를 뺀 남은 51장 중 한 장이에요." },
-              { title: "정산", body: "맞힌 칸은 칸에 적힌 배당대로 돌려받아요. 같은 숫자가 나오면 하이·로우는 집니다." },
-            ]}
-          />
-          <GuideHeading>숫자 순서</GuideHeading>
-          <GuideNote>에이스(A)가 가장 낮고 K 가 가장 높아요. A &lt; 2 &lt; … &lt; 10 &lt; J &lt; Q &lt; K. 무늬는 숫자 비교에 쓰이지 않고, 레드(♥♦)·블랙(♠♣) 칸에서만 봅니다.</GuideNote>
-          <GuideHeading>배당은 판마다 달라요</GuideHeading>
-          <GuideNote>이길 수 있는 카드가 많은 칸은 배당이 낮고, 적은 칸은 높습니다. 예를 들어 기준이 K 면 "하이"는 이길 카드가 없어 닫히고, "로우"는 거의 다 이기니 배당이 낮아요. 배당 = 51 ÷ (이기는 카드 수) 에서 하우스 몫 3% 를 뺀 값이고, 칸에 항상 표시돼 있어요.</GuideNote>
-          <PayoutTable
-            rows={[
-              { bet: "하이 / 로우", pays: "판마다 다름", note: "기준보다 높은(낮은) 카드가 나오면 적중. 같은 숫자는 집니다" },
-              { bet: "같음", pays: "약 16배", note: "같은 숫자(3장)가 나오면 적중 · 높은 배당 칸 한도가 적용돼요" },
-              { bet: "레드 / 블랙", pays: "약 2배", note: "다음 카드의 색. 기준 카드와 같은 색이 한 장 적게 남아 배당이 조금씩 달라요" },
-            ]}
-          />
-        </>
-      ),
-    },
-    {
-      id: "terms",
-      title: "용어",
-      content: (
-        <GuideTerms
-          terms={[
-            { term: "기준 카드", body: "베팅 전에 먼저 앞면으로 놓이는 카드. 다음 카드와 비교하는 기준이에요." },
-            { term: "같음", body: "다음 카드가 기준과 같은 숫자일 때(무늬는 상관없음)." },
-            { term: "높은 배당 칸", body: "같음처럼 배당이 큰 칸은 방마다 정해진 별도 한도까지만 걸 수 있어요." },
-          ]}
-        />
-      ),
-    },
-  ],
-};
-
 export const topCardGuide: GameGuideContent = {
   gameKey: "top_card",
   title: "탑 카드",
   intro: "네 무늬(♠ ♥ ♦ ♣)가 카드를 한 장씩 받아요. 그중 가장 높은 카드가 나오는 무늬를 맞히는 게임. 카드는 자동으로 뽑히고, 나는 어느 무늬가 이길지(또는 맨 위 카드가 얼마나 높을지)에만 베팅합니다.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "칸 누르기", body: "가장 높은 카드가 나올 것 같은 무늬(♠ ♥ ♦ ♣)나 아래 줄 칸을 눌러요. 베팅 시간은 15초예요." }, { title: "네 장 공개", body: "무늬마다 한 장씩 열리고, 가장 높은 카드가 나온 무늬가 이겨요." }], tip: "탑 J·Q·K·A(×1.24)는 자주 맞고 조금 받아요. 무늬 하나(×4.1)는 네 번에 한 번꼴이에요.", odds: ODDS_TIMES }),
     {
       id: "howto",
       title: "게임 방법",
@@ -108,6 +62,7 @@ export const bacBoGuide: GameGuideContent = {
   title: "박 보",
   intro: "주사위 바카라. 파랑 플레이어와 빨강 뱅커가 주사위를 두 개씩 굴려, 두 개의 합이 더 큰 쪽이 이깁니다. 주사위는 자동으로 굴러가고, 나는 어느 쪽이 이길지(또는 비길지, 네 주사위의 합이 클지 작을지)에만 베팅합니다.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "플레이어나 뱅커 누르기", body: "주사위 두 개 합이 더 클 것 같은 쪽을 눌러요. 베팅 시간은 15초예요." }, { title: "주사위 공개", body: "양쪽이 주사위를 두 개씩 굴려 합이 큰 쪽이 이겨요." }], tip: "플레이어나 뱅커에 작은 칩 하나. 반반이고, 합이 같으면 건 돈을 돌려받아요.", odds: ODDS_TIMES }),
     {
       id: "howto",
       title: "게임 방법",
@@ -159,6 +114,7 @@ export const megaBallGuide: GameGuideContent = {
   title: "메가볼",
   intro: "추첨기에서 1~40번 공 12개가 차례로 나오는 게임. 마지막 12번째 공이 메가볼이에요. 공은 자동으로 뽑히고, 나는 어떤 번호가 나올지, 메가볼이 어느 구간일지, 홀짝·대소가 어느 쪽으로 기울지에 베팅합니다.",
   sections: [
+    startSection({ steps: [{ title: "칩 고르기", body: "화면 아래 칩에서 걸 금액을 눌러요." }, { title: "칸 누르기", body: "나올 것 같은 번호(1~40)나 홀수 많음·짝수 많음 같은 칸을 눌러요. 베팅 시간은 15초예요." }, { title: "공 12개 추첨", body: "공이 차례로 나오고, 맞힌 칸은 바로 정산돼요." }], tip: "번호 하나는 12개 안에 한 번만 나오면 돼서 세 번에 한 번꼴로 맞아요. 몇 개 번호에 작게 나눠 걸어 보세요.", odds: <>배수는 원금을 포함해 돌려받는 값이에요 — 3.15배 칸에 10코인이 맞으면 31.5코인.</> }),
     {
       id: "howto",
       title: "게임 방법",
@@ -205,7 +161,6 @@ export const megaBallGuide: GameGuideContent = {
 };
 
 const GUIDES: Record<string, GameGuideContent> = {
-  hilo: hiloGuide,
   mega_ball: megaBallGuide,
   bac_bo: bacBoGuide,
   top_card: topCardGuide,

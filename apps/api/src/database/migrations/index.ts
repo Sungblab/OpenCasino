@@ -23,6 +23,10 @@ import { migration as m0021 } from "./0021_lobby_chat.js";
 import { migration as m0022 } from "./0022_rewards.js";
 import { migration as m0023 } from "./0023_pachinko.js";
 import { migration as m0024 } from "./0024_admin_tools.js";
+import { migration as m0025 } from "./0025_signup_consent.js";
+import { migration as m0026 } from "./0026_drop_wagering_cash_requests.js";
+import { migration as m0027 } from "./0027_hilo_chain.js";
+import { migration as m0028 } from "./0028_notices_support_read.js";
 
 /**
  * 적용 순서대로 나열한 마이그레이션 목록.
@@ -32,4 +36,4 @@ import { migration as m0024 } from "./0024_admin_tools.js";
  * import 로 적으면 번들에 그대로 들어간다. 파일을 추가하고 여기 적는 것을 잊으면
  * migrations.test.ts 가 실패한다.
  */
-export const migrations: readonly Migration[] = [m0001, m0002, m0003, m0004, m0005, m0006, m0007, m0008, m0009, m0010, m0011, m0012, m0013, m0014, m0015, m0016, m0017, m0018, m0019, m0020, m0021, m0022, m0023, m0024];
+export const migrations: readonly Migration[] = [m0001, m0002, m0003, m0004, m0005, m0006, m0007, m0008, m0009, m0010, m0011, m0012, m0013, m0014, m0015, m0016, m0017, m0018, m0019, m0020, m0021, m0022, m0023, m0024, m0025, m0026, m0027, m0028];

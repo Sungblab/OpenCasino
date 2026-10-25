@@ -1,13 +1,14 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Socket } from "socket.io-client";
-import { MessageCircle, Send, X } from "lucide-react";
-import type { ChatMessage, ClientToServerEvents, ServerToClientEvents } from "@opencasino/contracts";
+import { MessageCircle, Send, Users, X } from "lucide-react";
+import type { ChatMessage, ClientToServerEvents, RoomPerson, ServerToClientEvents } from "@opencasino/contracts";
 import { MAX_CHAT_LENGTH_HINT, useKstMidnight } from "../lib/chat";
-import { getRoomChatMessages } from "../api";
+import { getRoomChatMessages, getRoomPeople } from "../api";
 import { useCurrentUser } from "../app/auth";
 import { useToast } from "../app/toast";
 import { useFocusTrap } from "../app/useFocusTrap";
+import { useFriends } from "../lib/friends";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { UserName } from "./UserName";
 
@@ -54,6 +55,8 @@ export function RoomChat({
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [unread, setUnread] = useState(0);
+  /** 채팅 / 이 방 사람들(친구 요청을 바로 걸 수 있게). */
+  const [view, setView] = useState<"chat" | "people">("chat");
   /**
    * Chat is a button in a corner, so nobody at the table knew it existed — you could type and
    * everyone else would simply never look. Arriving messages now surface themselves for a few
@@ -220,11 +223,21 @@ export function RoomChat({
       aria-modal={fullscreen ? true : undefined}
     >
       <div className="room-chat-head">
-        <h2 className="room-chat-title" id={titleId}>테이블 채팅</h2>
+        <h2 className="room-chat-title" id={titleId}>{view === "people" ? "이 방 사람들" : "테이블 채팅"}</h2>
+        <button
+          type="button"
+          className={`room-chat-people-toggle${view === "people" ? " is-active" : ""}`}
+          onClick={() => setView(view === "people" ? "chat" : "people")}
+          aria-pressed={view === "people"}
+        >
+          {view === "people" ? <MessageCircle size={14} aria-hidden="true" /> : <Users size={14} aria-hidden="true" />}
+          <span>{view === "people" ? "채팅" : "사람들"}</span>
+        </button>
         <button type="button" onClick={() => setOpen(false)} aria-label="채팅 닫기">
           <X size={16} />
         </button>
       </div>
+      {view === "people" ? <RoomPeople socket={socket} roomId={roomId} token={token} /> : (<>
       <div className="room-chat-list" ref={listRef}>
         {messages.length === 0 && <p className="room-chat-empty">아직 대화가 없습니다. 첫 메시지를 남겨보세요!</p>}
         {messages.map((message) => (
@@ -263,6 +276,7 @@ export function RoomChat({
         </button>
       </div>
       {error && <p className="room-chat-error">{error}</p>}
+      </>)}
     </div>
   );
 
@@ -283,5 +297,66 @@ export function RoomChat({
       </button>
       {fullscreen && panel ? createPortal(panel, document.fullscreenElement ?? document.body) : dockTarget && panel ? createPortal(panel, dockTarget) : panel}
     </>
+  );
+}
+
+/**
+ * 이 방에 같이 있는 사람들(봇 제외)과 바로 할 수 있는 일 — 친구가 아니면 [친구 요청], 받은 요청이면 [수락], 친구면 [메시지].
+ * 좌석 이름 글자를 눌러야만 친구 요청이 되던 걸(거의 아무도 몰랐다) 눈에 보이는 목록으로. 누가 들고 나면 다시 받는다.
+ */
+function RoomPeople({ socket, roomId, token }: { socket: Socket<ServerToClientEvents, ClientToServerEvents>; roomId: string; token: string }) {
+  const friends = useFriends();
+  const me = useCurrentUser();
+  const toast = useToast();
+  const [people, setPeople] = useState<RoomPerson[] | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      getRoomPeople(token, roomId).then(
+        (items) => { if (!cancelled) { setPeople(items); setError(""); } },
+        (caught) => { if (!cancelled) setError(caught instanceof Error ? caught.message : "목록을 불러오지 못했습니다."); },
+      );
+    };
+    load();
+    const onPresence = (payload: { roomId: string }) => { if (payload.roomId === roomId) load(); };
+    socket.on("room.presence", onPresence);
+    return () => { cancelled = true; socket.off("room.presence", onPresence); };
+  }, [socket, roomId, token]);
+
+  const request = async (person: RoomPerson) => {
+    try {
+      const result = await friends?.request({ userId: person.userId });
+      toast.success(result?.relation === "friend" ? `${person.nickname}님과 친구가 되었어요.` : `${person.nickname}님에게 친구 요청을 보냈어요.`);
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "친구 요청을 보내지 못했습니다.");
+    }
+  };
+
+  const guest = Boolean(me?.guest);
+  return (
+    <div className="room-chat-list room-people">
+      {error && <p className="room-chat-error">{error}</p>}
+      {people === null && !error && <p className="room-chat-empty">불러오는 중…</p>}
+      {people?.length === 0 && <p className="room-chat-empty">지금은 이 방에 사람이 없어요.</p>}
+      {guest && <p className="room-people-hint">가입하면 같은 방 사람에게 친구 요청을 보낼 수 있어요.</p>}
+      {people?.map((person) => {
+        const mine = person.userId === me?.id;
+        const relation = friends?.lookup({ userId: person.userId, nickname: person.nickname }).relation ?? "none";
+        return (
+          <div key={person.userId} className="room-people-row">
+            <span className="room-people-name">{mine ? <>{person.nickname} <small>나</small></> : <UserName nickname={person.nickname} userId={person.userId} />}</span>
+            {mine || guest ? null
+              : person.isGuest ? <small className="room-people-state">게스트</small>
+              : relation === "friend" ? <button type="button" className="room-people-action" onClick={() => friends?.openFriends(person.userId)}>메시지</button>
+              : relation === "incoming" ? <button type="button" className="room-people-action is-primary" onClick={() => void request(person)}>수락</button>
+              : relation === "outgoing" ? <small className="room-people-state">요청함</small>
+              : relation === "blocked" ? null
+              : <button type="button" className="room-people-action is-primary" onClick={() => void request(person)}>친구 요청</button>}
+          </div>
+        );
+      })}
+    </div>
   );
 }

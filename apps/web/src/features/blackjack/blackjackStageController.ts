@@ -1,13 +1,14 @@
 import { Vector3 } from "three";
 import type { BlackjackHandStatus, BlackjackOutcome, Card, RoomPhase } from "@opencasino/contracts";
 import { handValue } from "@opencasino/game-core/blackjack";
+import { lightningBlackjackTotal } from "@opencasino/game-core/lightning";
 import { COMPACT_W } from "../stage/layout";
 import type { MyResult, StageControllerBase, StageSounds } from "../stage/core";
 import { CARD_W, createCardTable, type Card3D, type TableSlot } from "../stage3d/cardTable3d";
 import { DISPLAY_FONT } from "../stage3d/core3d";
 import {
   DEALER_CARD_SCALE, DEALER_Y, SEAT_CARD_SCALE, SEAT_COUNT,
-  blackjackFit, cascadeSlot, dealOrder, dealerSlot, feltMidY, handAnchor, handBadge, sameCard, scoreLabel, seatSpacing, seatSpot, tableArcY, type BadgeTone,
+  blackjackFit, cascadeSlot, dealOrder, dealerSlot, feltMidY, handAnchor, handBadge, sameCard, scoreLabel, seatSpacing, seatSpot, tableArcY, tableRimY, type BadgeTone,
 } from "./logic";
 import { seatLayoutStore, type SeatScreen } from "./seatLayout";
 
@@ -49,8 +50,8 @@ export interface BlackjackStageState {
   mySeat: number | null;
   /** 지금 내가 선택해야 하는 손. */
   activeHandId: string | null;
-  /** 라이트닝 테이블만: 이번 판에 걸린 배수와 다음 판에 받을 배수. */
-  lightning: { active: number | null; next: number | null } | null;
+  /** 라이트닝 테이블만: 이번 판에 걸린 배수, 다음 판에 받을 배수, 베팅이 닫힐 때 친 점수별 배수판. */
+  lightning: { active: number | null; next: number | null; board: Array<{ total: string; multiplier: number }> | null } | null;
 }
 
 export interface BlackjackStageController extends StageControllerBase<BlackjackStageState> {
@@ -80,6 +81,8 @@ const DESIGN_CW = 76;
 const DESIGN_CH = 106;
 const K = CARD_W / DESIGN_CW;
 const GOLD = "#ffd24a";
+/** 블랙잭은 카드가 작아 카메라가 가깝다 — 슈·버림 패 통·칩 랙·레일·팔걸이를 이만큼 줄인다. */
+const PROP_SCALE = 0.62;
 const BADGE_COLOR: Record<BadgeTone, string> = { bust: "#e63946", blackjack: "#f0b41c", win: "#169f4a", lose: "#3a3a3a", push: "#4a6a8a", info: "#6b398d" };
 
 export async function createBlackjackStage(host: HTMLElement, sounds: StageSounds = {}, vipRoom = false): Promise<BlackjackStageController> {
@@ -105,7 +108,6 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
   let firstUpdate = true;
   let state: BlackjackStageState | null = null;
   let insuranceGlow = false;
-  let printsOn = true;
 
   const seatHandCount = (seatNumber: number) => [...hands.values()].filter((model) => model.hand.seatNumber === seatNumber).length;
   const handPoint = (model: HandModel, index: number) => {
@@ -129,6 +131,17 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
   Object.assign(lightningChip.style, { position: "absolute", right: "12px", top: "56px" });
   table.overlay.appendChild(lightningChip);
   let lightningKey = "";
+  // 점수별 배수판. 내 손이 그 점수로 이기면 결과 때 그 칸이 빛난다. 세로로 긴 폰은 딜러와 규칙 인쇄 사이가 비어 거기
+  // 가운데, 아니면 딜러 카드 왼쪽 — 폰에서 왼쪽에 두면 딜러 카드가 늘며 왼쪽으로 가는 점수 방울과 겹쳤다.
+  const boltBoard = document.createElement("div");
+  boltBoard.className = "ct-anchor ct-bolt-board";
+  boltBoard.hidden = true;
+  table.track(boltBoard, () => {
+    const mid = feltMidY(design.h);
+    return mid - DEALER_Y > 180 ? world(design.w / 2, (DEALER_Y + 60 + mid - 20) / 2) : world(design.w * 0.2, DEALER_Y);
+  });
+  let boardKey = "";
+  let boardHitKey = "";
 
   const makeHud = (): HandHud => {
     const bubble = document.createElement("div");
@@ -235,9 +248,27 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
     const dealerBadge = dealerShown.length >= 2 && dealerTotal > 21 ? { text: "딜러 버스트", tone: "bust" as const }
       : dealerShown.length === 2 && dealerTotal === 21 && dealer.every((entry) => !entry.pending) && dealer.length === 2 ? { text: "블랙잭", tone: "blackjack" as const } : null;
     setBadge(dealerHud, dealerBadge, animate);
+    const hits = showOutcome && state?.lightning?.board
+      ? new Set([...hands.values()].filter((model) => model.hand.mine && model.hand.outcome).map((model) => lightningBlackjackTotal(model.hand.outcome!, handValue(model.hand.cards).total)))
+      : new Set<string | null>();
+    const hitKey = [...hits].join();
+    if (hitKey !== boardHitKey) {
+      boardHitKey = hitKey;
+      for (const cell of boltBoard.querySelectorAll<HTMLElement>("li")) cell.classList.toggle("hit", hits.has(cell.dataset.total ?? ""));
+    }
   };
 
   const drawLightning = (lightning: BlackjackStageState["lightning"]) => {
+    const board = lightning?.board ?? null;
+    const nextBoardKey = board ? board.map((cell) => cell.multiplier).join() : "";
+    if (nextBoardKey !== boardKey) {
+      boardKey = nextBoardKey;
+      boardHitKey = "";
+      boltBoard.hidden = !board;
+      boltBoard.innerHTML = board
+        ? `<b>LIGHTNING</b><ol>${board.map((cell, i) => `<li data-total="${cell.total}" style="--i:${i}"><span>${cell.total}</span><em>×${cell.multiplier}</em></li>`).join("")}</ol>`
+        : "";
+    }
     const key = lightning ? `${lightning.active ?? ""}|${lightning.next ?? ""}` : "";
     if (key === lightningKey) return;
     const previousNext = lightningKey.split("|")[1] ?? "";
@@ -255,9 +286,17 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
   };
 
   /* ───────── 배치 ───────── */
-  /** 펠트 인쇄: 좌석 호를 따라가는 금색 선, 좌석 베팅 동그라미, 배당·보험 규칙 두 줄(보험 순간엔 밝게). */
-  const paint = (g: CanvasRenderingContext2D, px: (x: number) => number, pz: (z: number) => number, unit: number) => {
-    const at = (x: number, y: number) => { const w = world(x, y); return [px(w.x), pz(w.z)] as const; };
+  /**
+   * 펠트 인쇄. 늘 같은 것(좌석 호를 따라가는 금색 선)만 펠트에 굽고, 판 상태에 따라 바뀌는 것 — 좌석 베팅 동그라미(내 좌석·
+   * 앉은 좌석), 규칙 문구(결과 배너 동안 걷고 보험 순간엔 밝게) — 은 그 자리만 덮는 작은 판(decal)에 따로 그린다.
+   * 펠트를 다시 그리면 큰 그림 전체를 GPU 로 다시 올려 결과·쓸기 순간 프레임이 떨어졌다.
+   */
+  type Painter = (g: CanvasRenderingContext2D, px: (x: number) => number, pz: (z: number) => number, unit: number) => void;
+  const atOf = (px: (x: number) => number, pz: (z: number) => number) => (x: number, y: number) => { const w = world(x, y); return [px(w.x), pz(w.z)] as const; };
+  /** 설계 좌표 사각형 → 월드 사각형(decal 자리). */
+  const rectOf = (x0: number, y0: number, x1: number, y1: number) => { const a = world(x0, y0), b = world(x1, y1); return { x0: a.x, z0: a.z, w: b.x - a.x, d: b.z - a.z }; };
+  const paint: Painter = (g, px, pz) => {
+    const at = atOf(px, pz);
     g.beginPath();
     for (let x = 0; x <= design.w; x += 8) {
       const [cx, cz] = at(x, tableArcY(x, design.w, design.h));
@@ -266,6 +305,14 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
     g.strokeStyle = "rgba(240,180,28,.4)";
     g.lineWidth = 2.5;
     g.stroke();
+  };
+  const seatPrint = table.decal();
+  const paintSeats = () => {
+    const spots = Array.from({ length: SEAT_COUNT }, (_, i) => seatSpot(i + 1, design.w, design.h).y);
+    seatPrint.paint(rectOf(0, Math.min(...spots) - 30, design.w, Math.max(...spots) + 30), drawSeats);
+  };
+  const drawSeats: Painter = (g, px, pz, unit) => {
+    const at = atOf(px, pz);
     for (let seat = 1; seat <= SEAT_COUNT; seat += 1) {
       const p = seatSpot(seat, design.w, design.h);
       const [cx, cz] = at(p.x, p.y);
@@ -282,18 +329,55 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
       g.strokeStyle = "rgba(240,180,28,.18)";
       g.stroke();
     }
-    if (!printsOn) return;
+  };
+  const rulePrint = table.decal();
+  // 규칙 문구 판: 가운데 ±190, 위로는 호 끝이 올라가는 만큼(폰 설계에서 50 남짓)까지.
+  const paintRules = () => rulePrint.paint(rectOf(design.w / 2 - 190, feltMidY(design.h) - 80, design.w / 2 + 190, feltMidY(design.h) + 56), drawRules);
+  const drawRules: Painter = (g, px, pz, unit) => {
+    const at = atOf(px, pz);
+    // 규칙 인쇄는 실제 테이블처럼 좌석 호와 같은 쪽으로 휜 호 위에: 배당 한 줄, 딜러 규칙 한 줄, 테두리 친 보험 띠.
+    // 세 줄이 한 중심(딜러 쪽 위)을 공유하는 동심원이고, 그 반지름은 좌석 호의 굽은 정도를 따른다.
+    // 딜러 카드 아랫단(DEALER_Y + 42)에 붙지 않게 가운데보다 조금 아래부터.
     const insurance = state?.phase === "INSURANCE";
-    const [mx, my] = at(design.w / 2, feltMidY(design.h));
+    const s = K * unit;
+    const cx = design.w / 2;
+    const top = feltMidY(design.h) - 7;
+    const spacing = seatSpacing(design.w);
+    const centerY = top - Math.max(260, ((9 * spacing * spacing) / 120) * 0.85);
+    const [ccx, ccy] = at(cx, centerY);
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.fillStyle = "rgba(240,180,28,.45)";
-    g.font = `700 ${12 * K * unit}px ${DISPLAY_FONT}`;
-    // 딜러 카드 아랫단(DEALER_Y + 42)에 붙지 않게 가운데보다 조금 아래 — 3장 쌓인 가운데 좌석 패와도 떨어진다.
-    g.fillText("BLACKJACK PAYS 3 TO 2", mx, my - 1 * K * unit);
-    g.fillStyle = insurance ? "rgba(255,210,74,.95)" : "rgba(240,180,28,.5)";
-    g.font = `600 ${10 * K * unit}px ${DISPLAY_FONT}`;
-    g.fillText("DEALER STANDS ON ALL 17 · INSURANCE PAYS 2 TO 1", mx, my + 18 * K * unit);
+    const arcText = (text: string, y: number, size: number, weight: number, color: string) => {
+      const r = y - centerY;
+      const gap = size * 0.12;
+      g.font = `${weight} ${size * s}px ${DISPLAY_FONT}`;
+      g.fillStyle = color;
+      const widths = [...text].map((ch) => g.measureText(ch).width / s + gap);
+      let along = -widths.reduce((a, b) => a + b, 0) / 2;
+      [...text].forEach((ch, i) => {
+        const a = (along + widths[i]! / 2) / r;
+        along += widths[i]!;
+        g.save();
+        g.translate(ccx + r * Math.sin(a) * s, ccy + r * Math.cos(a) * s);
+        g.rotate(-a);
+        g.fillText(ch, 0, 0);
+        g.restore();
+      });
+      return widths.reduce((a, b) => a + b, 0);
+    };
+    arcText("BLACKJACK PAYS 3 TO 2", top, 13, 700, "rgba(240,180,28,.5)");
+    arcText("DEALER STANDS ON ALL 17", top + 17, 9.5, 600, "rgba(240,180,28,.48)");
+    const bandY = top + 36;
+    const bandColor = insurance ? "rgba(255,210,74,.95)" : "rgba(240,180,28,.48)";
+    const textW = arcText("INSURANCE PAYS 2 TO 1", bandY, 9.5, 700, bandColor);
+    const half = (textW / 2 + 14) / (bandY - centerY);
+    g.beginPath();
+    g.arc(ccx, ccy, (bandY - centerY - 10) * s, Math.PI / 2 + half, Math.PI / 2 - half, true);
+    g.arc(ccx, ccy, (bandY - centerY + 10) * s, Math.PI / 2 - half, Math.PI / 2 + half);
+    g.closePath();
+    g.lineWidth = 1.6;
+    g.strokeStyle = bandColor;
+    g.stroke();
   };
 
   /** 좌석 버튼(DOM)이 앉을 화면 자리 — 베팅 동그라미를 투영하고, 그 자리의 원근 크기로 지름·이름표 폭을 잰다. */
@@ -321,10 +405,17 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
     const center = world(design.w / 2, design.h / 2);
     const yawTo = (from: Vector3) => Math.atan2(center.x - from.x, center.z - from.z);
     const top = world(0, 44).z;
+    // 플레이어 쪽 가죽 팔걸이: 좌석 호와 나란히, 화면 옆 밖까지.
+    const rimEdge = compact ? null : Array.from({ length: 41 }, (_, i) => {
+      const x = (-0.25 + (i / 40) * 1.5) * design.w;
+      return world(x, tableRimY(x, design.w, design.h));
+    });
     table.layout({
       rig: {
         pitch: compact ? 1.24 : 1.08,
-        frame: { x0: -design.w / 2 * K, x1: design.w / 2 * K, z0: top, z1: design.h / 2 * K },
+        // 팔걸이 윗면까지만 틀에 넣는다 — 더 넣으면 높이가 빠듯한 가로 폰에서 판이 줄어 칩 랙이 상태 알약 밑으로 갔다.
+        // 넓은 화면은 남는 세로가 아래에도 가서 팔걸이와 나무 테두리가 다 보인다.
+        frame: { x0: -design.w / 2 * K, x1: design.w / 2 * K, z0: top, z1: world(0, design.h + (compact ? 0 : 8)).z },
         topPx: compact ? 30 : 44,
         bottomPx: 2,
         sidePx: 2,
@@ -337,13 +428,18 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
         shoe: { x: shoe.x, z: shoe.z, yaw: yawTo(shoe) },
         tray: { x: tray.x, z: tray.z, yaw: yawTo(tray) },
         railZ: compact ? null : world(0, -6).z,
+        // 딜러 칩 랙: 레일만 있으면 화면 위가 민짜 띠였다. 레일 바로 앞 가운데, DEALER 글자보다 위.
+        chipTray: { x: 0, z: world(0, 22).z, yaw: 0 },
         visible: !compact,
-        scale: 0.62,
+        scale: PROP_SCALE,
       },
       bannerAt: () => world(design.w / 2, feltMidY(design.h) + 19),
       compactBanner: compact,
       mineOnly: true,
+      rim: rimEdge && { edge: rimEdge, scale: PROP_SCALE },
     });
+    paintSeats();
+    paintRules();
     reflow(false);
     syncHuds(false);
     publishSeats();
@@ -392,14 +488,10 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
     if (!insuranceGlow) return;
     insuranceGlow = false;
     void table.clearGlows(true);
-    table.repaint();
+    paintRules();
   };
 
-  const setPrints = (on: boolean) => {
-    if (printsOn === on) return;
-    printsOn = on;
-    table.repaint();
-  };
+  const setPrints = (on: boolean) => rulePrint.setVisible(on);
 
   const showResult = async (next: BlackjackStageState, requested: boolean) => {
     const animate = table.live(requested);
@@ -489,8 +581,9 @@ export async function createBlackjackStage(host: HTMLElement, sounds: StageSound
       firstUpdate = false;
       table.setCountdown(countdownFor(next));
       drawLightning(next.lightning);
-      // 좌석 표시(내 좌석 금색·앉은 좌석)와 보험 줄은 펠트 인쇄라, 바뀐 때만 다시 그린다.
-      if (!previous || previous.mySeat !== next.mySeat || previous.occupied.join() !== next.occupied.join() || (previous.phase === "INSURANCE") !== (next.phase === "INSURANCE")) table.repaint();
+      // 좌석 표시(내 좌석 금색·앉은 좌석)와 보험 줄은 바뀐 때만 다시 그린다(작은 판만).
+      if (!previous || previous.mySeat !== next.mySeat || previous.occupied.join() !== next.occupied.join()) paintSeats();
+      if (!previous || (previous.phase === "INSURANCE") !== (next.phase === "INSURANCE")) paintRules();
 
       // 새 판(또는 판이 끝남): 이전 판 카드를 버림 패로 쓸어 낸다.
       if (next.roundId !== currentRound) {

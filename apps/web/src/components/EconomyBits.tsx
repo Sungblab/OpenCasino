@@ -1,9 +1,9 @@
-import { useEffect, useState, useSyncExternalStore, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Crown, ShoppingBag, Trophy } from "lucide-react";
 import {
   DEFAULT_EQUIPMENT, EQUIP_SLOTS, shopItem, titleText, VIP_LABEL,
-  type BigWin, type VipEntry, type EquipSlot, type GameType, type ProgressResponse, type ShopState,
+  type BigWin, type LobbyEntry, type EquipSlot, type GameType, type ProgressResponse, type ShopState,
 } from "@opencasino/contracts";
 import { changeNickname, getBigWins, getProgress, getShop, refreshAccessToken } from "../api";
 import { useAccessToken } from "../app/auth";
@@ -76,22 +76,37 @@ const minutesAgo = (iso: string) => {
   return `${Math.floor(minutes / 1440)}일 전`;
 };
 
-/** 최근 7일 한 판 큰 승리. 없으면 칸을 비우지 않고 아예 뺀다. 1분마다 다시 묻는다(서버 30초 캐시). */
+/** 지금 접속한 사람("OO님 입장")과 최근 7일 한 판 큰 승리. 둘 다 없으면 칸을 아예 뺀다. 1분마다 다시 묻는다(서버 캐시 10·30초). */
 export function BigWinTicker({ token }: { token: string }) {
   const [items, setItems] = useState<BigWin[]>([]);
-  const [vips, setVips] = useState<VipEntry[]>([]);
+  const [entries, setEntries] = useState<LobbyEntry[]>([]);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [loop, setLoop] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    const load = () => { if (!document.hidden) getBigWins(token).then((result) => { if (!cancelled) { setItems(result.items); setVips(result.vipEntries); } }, () => undefined); };
+    const load = () => { if (!document.hidden) getBigWins(token).then((result) => { if (!cancelled) { setItems(result.items); setEntries(result.entries); } }, () => undefined); };
     load();
     const id = setInterval(load, 60_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [token]);
-  if (items.length === 0 && vips.length === 0) return null;
+  // 한 벌이 띠보다 짧은데 두 벌을 이어 붙이면 같은 이름이 나란히 두 번 보인다 — 넘칠 때만 두 벌로 흘린다.
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const measure = () => {
+      const rail = track.firstElementChild as HTMLElement;
+      setLoop((loop ? rail.scrollWidth / 2 : rail.scrollWidth) > track.clientWidth);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [items, entries, loop]);
+  if (items.length === 0 && entries.length === 0) return null;
   // 같은 줄을 두 번 이어 붙여 -50% 까지 흘리면 끊김 없이 돈다.
-  const row = (copy: number) => [...vips.map((vip) => (
-    <span key={`${copy}-vip-${vip.userId}`} className="big-win-item" aria-hidden={copy > 0}>
-      <span aria-hidden="true">💎</span><UserName userId={vip.userId} nickname={vip.nickname} menu={false} compact /><span>님 입장</span>
+  const row = (copy: number) => [...entries.map((entry) => (
+    <span key={`${copy}-in-${entry.userId}`} className="big-win-item" aria-hidden={copy > 0}>
+      {entry.diamond && <span aria-hidden="true">💎</span>}<UserName userId={entry.userId} nickname={entry.nickname} menu={false} compact /><span>님 입장</span>
     </span>
   )), ...items.map((item, index) => (
     <span key={`${copy}-${index}`} className="big-win-item" aria-hidden={copy > 0}>
@@ -104,8 +119,8 @@ export function BigWinTicker({ token }: { token: string }) {
   return (
     <section className="big-win-ticker" aria-label="최근 큰 승리">
       <Trophy size={16} aria-hidden="true" />
-      <div className="big-win-track">
-        <div className="big-win-rail" style={{ "--ticker-s": `${Math.max(20, (items.length + vips.length) * 6)}s` } as CSSProperties}>{row(0)}{row(1)}</div>
+      <div className="big-win-track" ref={trackRef}>
+        <div className={`big-win-rail${loop ? " is-looping" : ""}`} style={{ "--ticker-s": `${Math.max(20, (items.length + entries.length) * 6)}s` } as CSSProperties}>{row(0)}{loop && row(1)}</div>
       </div>
     </section>
   );

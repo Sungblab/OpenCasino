@@ -8,14 +8,14 @@ import { buildBlackjackSettlementEntries, LIGHTNING_FEE_PERCENT } from "./hand-s
 
 const accounts = { room: "room", user: "user", house: "house" };
 
-// 라이트닝 블랙잭이 한때 100% 로 잘못 설정돼 있었다 — 200 코인을 걸면 100만 스테이크로 잡히고
-// (나머지 100은 "수수료"), 배수 없는 승리는 순손익 0(=화면엔 "푸시"로 보임)이 됐다. 바카라와
-// 같은 20% 로 고정됐는지 여기서 잡는다.
+// 라이트닝 블랙잭은 에볼루션처럼 수수료가 판돈만큼(100%)이다 — 200 코인 칩이면 판돈 100·수수료 100.
+// 그래서 배수 없는 1:1 승리는 순손익 0 이다(화면은 손익이 아니라 결과로 "승리"를 띄운다 — blackjackRoundNet.won).
+// 배수판(평균 ×7.1)이 이 수수료에 맞춰 RTP 99% 근처로 잡혀 있어, 한쪽만 바꾸면 안 된다.
 describe("lightning blackjack fee percent", () => {
-  it("matches baccarat's 20%, not the old 100%", () => {
-    expect(LIGHTNING_FEE_PERCENT).toBe(20);
+  it("is 100%, the fee the multiplier board was tuned against", () => {
+    expect(LIGHTNING_FEE_PERCENT).toBe(100);
     const { stake, fee } = splitLightningTotal(200 * COIN_SCALE, LIGHTNING_FEE_PERCENT, COIN_SCALE);
-    expect(stake).toBeGreaterThan(fee);
+    expect(stake).toBe(fee);
     expect((stake + fee) / COIN_SCALE).toBe(200);
   });
 });

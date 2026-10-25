@@ -140,10 +140,10 @@ export const bigWinSchema = z.object({
   settledAt: z.string(),
 });
 export type BigWin = z.infer<typeof bigWinSchema>;
-/** 다이아 VIP 가 로비에 들어온 알림(한 사람 한국 날짜 하루 한 번, 최근 30분). */
-export const vipEntrySchema = z.object({ userId: z.string().uuid(), nickname: z.string(), at: z.string() });
-export type VipEntry = z.infer<typeof vipEntrySchema>;
-export const bigWinsResponseSchema = z.object({ items: z.array(bigWinSchema), vipEntries: z.array(vipEntrySchema) });
+/** 지금 접속해 있는 사람("OO님 입장"), 최근에 들어온 순. 다이아 VIP 는 💎 를 붙인다. */
+export const lobbyEntrySchema = z.object({ userId: z.string().uuid(), nickname: z.string(), diamond: z.boolean() });
+export type LobbyEntry = z.infer<typeof lobbyEntrySchema>;
+export const bigWinsResponseSchema = z.object({ items: z.array(bigWinSchema), entries: z.array(lobbyEntrySchema) });
 export type BigWinsResponse = z.infer<typeof bigWinsResponseSchema>;
 
 /** 이번 주 경매 물건. 금액은 코인. */

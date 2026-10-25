@@ -6,8 +6,8 @@ import {
   type CustomRoomCreate, type DailyCoinsClaimResponse, type DailyCoinsStatus, type Features, type GameRoom, type QuickMatchRequest,
 } from "@opencasino/contracts";
 import {
-  adminDmConversationListSchema, adminDmHistoryResponseSchema, dmHistoryResponseSchema, friendRequestResultSchema, friendSearchResponseSchema, friendsResponseSchema,
-  type AdminDmConversation, type AdminDmHistoryResponse, type DmHistoryResponse, type FriendRequestCreate, type FriendRequestResult, type FriendSearchResponse, type FriendsResponse,
+  dmHistoryResponseSchema, friendRequestResultSchema, friendSearchResponseSchema, friendsResponseSchema,
+  type DmHistoryResponse, type FriendRequestCreate, type FriendRequestResult, type FriendSearchResponse, type FriendsResponse,
 } from "@opencasino/contracts";
 import {
   bigWinsResponseSchema, dailyWheelSpinResponseSchema, levelRewardClaimResponseSchema, progressResponseSchema, rewardsClaimResponseSchema, rewardsStatusSchema,
@@ -16,6 +16,7 @@ import {
   type ShopState, type UserBadgesResponse,
 } from "@opencasino/contracts";
 import { auctionStateSchema, type AuctionState } from "@opencasino/contracts";
+import type { Notice, RoomPerson } from "@opencasino/contracts";
 import { randomRequestId } from "./lib/requestId";
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "";
@@ -108,14 +109,22 @@ export async function startGuest(): Promise<LoginResponse> {
   return loginResponseSchema.parse(await request("/api/v1/auth/guest", { method: "POST" }));
 }
 
+/** 가입 화면의 필수 동의 셋을 모두 체크했을 때만 보낼 수 있다(서버도 같은 값을 요구한다). */
+const AGREEMENTS = { age14: true, terms: true, privacy: true } as const;
+
 /** 게스트를 정식 계정으로(같은 계정 — 코인·기록이 이어진다). 새 액세스 토큰을 돌려준다. */
 export async function claimGuest(token: string, username: string, nickname: string, password: string): Promise<LoginResponse> {
-  return loginResponseSchema.parse(await request("/api/v1/auth/claim", { method: "POST", body: JSON.stringify({ username, nickname, password }) }, token));
+  return loginResponseSchema.parse(await request("/api/v1/auth/claim", { method: "POST", body: JSON.stringify({ username, nickname, password, agreements: AGREEMENTS }) }, token));
 }
 
 /** approved 면 바로 로그인할 수 있고, pending 이면 관리자 승인을 기다린다. */
 export async function register(username: string, nickname: string, password: string): Promise<"pending" | "approved"> {
-  return registerResponseSchema.parse(await request("/api/v1/auth/register", { method: "POST", body: JSON.stringify({ username, nickname, password }) })).status;
+  return registerResponseSchema.parse(await request("/api/v1/auth/register", { method: "POST", body: JSON.stringify({ username, nickname, password, agreements: AGREEMENTS }) })).status;
+}
+
+/** 본인 탈퇴 — 비밀번호를 한 번 더 확인한다. */
+export async function withdrawAccount(token: string, password: string): Promise<void> {
+  await request("/api/v1/profile/withdraw", { method: "POST", body: JSON.stringify({ password }) }, token);
 }
 
 let refreshInFlight: Promise<LoginResponse> | null = null;
@@ -186,10 +195,10 @@ export async function adminResetPassword(token: string, userId: string): Promise
   return await request(`/api/v1/admin/users/${userId}/reset-password`, { method: "POST" }, token) as { tempPassword: string };
 }
 
-export async function adminAdjustBalance(token: string, userId: string, amount: number): Promise<{ balance: number }> {
+export async function adminAdjustBalance(token: string, userId: string, amount: number, reason?: string): Promise<{ balance: number }> {
   return await request(
     `/api/v1/admin/users/${userId}/balance`,
-    { method: "POST", body: JSON.stringify({ amount, requestId: randomRequestId() }) },
+    { method: "POST", body: JSON.stringify({ amount, requestId: randomRequestId(), reason }) },
     token,
   ) as { balance: number };
 }
@@ -267,6 +276,14 @@ export async function getAdminUserHistory(token: string, userId: string, page: {
   return adminUserHistoryResponseSchema.parse(await request(`/api/v1/admin/users/${userId}/history${query ? `?${query}` : ""}`, {}, token));
 }
 
+export async function createTransfer(token: string, recipientNickname: string, amount: number): Promise<{ walletBalance: number; duplicate: boolean }> {
+  const body = await request("/api/v1/wallet/transfers", {
+    method: "POST",
+    body: JSON.stringify({ requestId: randomRequestId(), recipientNickname, amount }),
+  }, token) as { walletBalance: number; duplicate: boolean };
+  return body;
+}
+
 export async function getRoomChatMessages(token: string, roomId: string): Promise<ChatHistoryResponse> {
   return chatHistoryResponseSchema.parse(await request(`/api/v1/chat/rooms/${roomId}/messages`, {}, token));
 }
@@ -277,6 +294,21 @@ export async function getLobbyChatMessages(token: string): Promise<ChatHistoryRe
 
 export async function getSupportMessages(token: string): Promise<ChatHistoryResponse> {
   return chatHistoryResponseSchema.parse(await request("/api/v1/support/messages", {}, token));
+}
+
+/** 운영자 대화를 봤다고 알린다(친구·메시지 목록의 "운영자" 줄 안 읽음을 지운다). */
+export async function markSupportRead(token: string): Promise<void> {
+  await request("/api/v1/support/read", { method: "POST" }, token);
+}
+
+/** 공지 목록 — 로그인 없이도 읽는다(로비 띠). */
+export async function getNotices(): Promise<Notice[]> {
+  return (await request("/api/v1/notices") as { items: Notice[] }).items;
+}
+
+/** 같은 방 사람들(봇 제외) — 테이블 채팅의 "이 방 사람들". */
+export async function getRoomPeople(token: string, roomId: string): Promise<RoomPerson[]> {
+  return (await request(`/api/v1/rooms/${roomId}/people`, {}, token) as { items: RoomPerson[] }).items;
 }
 
 export async function getAdminSupportConversations(token: string): Promise<SupportConversationList> {
@@ -359,14 +391,6 @@ export async function getDmMessages(token: string, userId: string, before?: stri
 
 export async function markDmRead(token: string, userId: string): Promise<void> {
   await request(`/api/v1/dm/${userId}/read`, { method: "POST" }, token);
-}
-
-export async function getAdminDmConversations(token: string, query = ""): Promise<AdminDmConversation[]> {
-  return adminDmConversationListSchema.parse(await request(`/api/v1/admin/dm/conversations${query ? `?q=${encodeURIComponent(query)}` : ""}`, {}, token)).items;
-}
-
-export async function getAdminDmMessages(token: string, userA: string, userB: string, before?: string): Promise<AdminDmHistoryResponse> {
-  return adminDmHistoryResponseSchema.parse(await request(`/api/v1/admin/dm/conversations/${userA}/${userB}/messages${before ? `?before=${encodeURIComponent(before)}` : ""}`, {}, token));
 }
 
 // ── 코인 경제(레벨·VIP·보상·상점·배지·큰 승리) ─────────────────────────

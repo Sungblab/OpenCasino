@@ -1,10 +1,11 @@
-import { GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideHeading, GuideNote, GuideSteps, GuideTerms, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 export const crashGuide: GameGuideContent = {
   gameKey: "crash",
   title: "크래시",
   intro: "배율이 1.00x 부터 점점 빨리 오르다 어느 순간 터져요. 터지기 전에 캐시아웃하면 건 금액 × 그 배율을 받고, 못 빼면 건 금액을 잃어요.",
   sections: [
+    startSection({ steps: [{ title: "금액 정하고 베팅", body: "칩이나 −/+ 로 금액을 고르고 베팅을 눌러요. 베팅 시간은 8초예요." }, { title: "배율이 오르는 걸 보기", body: "1.00x 부터 배율이 점점 빨리 올라가요." }, { title: "터지기 전에 캐시아웃", body: "큰 버튼을 누르면 그 배율로 바로 받아요. 못 빼고 터지면 건 금액을 잃어요." }], tip: "자동 캐시아웃을 1.5x~2x 로 정해 두고 시작해 보세요. 욕심내다 터지면 다 잃어요.", odds: <>받는 돈 = 건 금액 × 캐시아웃한 배율. 10코인을 2.5x 에 빼면 25코인이에요.</> }),
     {
       id: "howto",
       title: "게임 방법",

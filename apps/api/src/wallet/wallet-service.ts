@@ -89,6 +89,62 @@ export class WalletService {
     return { user, room, house };
   }
 
+  async transfer(senderId: string, recipientNickname: string, amountMinor: number, requestId: string): Promise<{ duplicate: boolean; recipientId?: string }> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`transfer:${requestId}`]);
+      const existing = await client.query<{ sender_id: string; recipient_id: string; amount_minor: string }>(
+        "SELECT sender_id,recipient_id,amount_minor FROM wallet_transfers WHERE request_id=$1",
+        [requestId],
+      );
+      if (existing.rows[0]) {
+        const recipient = await client.query<{ id: string }>("SELECT id FROM users WHERE nickname=$1", [recipientNickname]);
+        if (existing.rows[0].sender_id !== senderId || existing.rows[0].recipient_id !== recipient.rows[0]?.id || Number(existing.rows[0].amount_minor) !== amountMinor) {
+          throw new DomainError("IDEMPOTENCY_CONFLICT");
+        }
+        await client.query("COMMIT");
+        return { duplicate: true };
+      }
+      const recipient = await client.query<{ id: string }>(
+        "SELECT id FROM users WHERE nickname=$1 AND approved=true",
+        [recipientNickname],
+      );
+      const recipientId = recipient.rows[0]?.id;
+      if (!recipientId) throw new DomainError("RECIPIENT_NOT_FOUND");
+      if (recipientId === senderId) throw new DomainError("RECIPIENT_SELF");
+      const accounts = await client.query<{ id: string; user_id: string }>(
+        "SELECT id,user_id FROM wallet_accounts WHERE kind='user' AND user_id=ANY($1::uuid[])",
+        [[senderId, recipientId]],
+      );
+      const senderAccount = accounts.rows.find((row) => row.user_id === senderId)?.id;
+      const recipientAccount = accounts.rows.find((row) => row.user_id === recipientId)?.id;
+      if (!senderAccount || !recipientAccount) throw new Error("Wallet account configuration is incomplete");
+      await this.postTransaction(client, {
+        type: "USER_TRANSFER",
+        idempotencyKey: `transfer:${requestId}`,
+        referenceType: "transfer",
+        referenceId: requestId,
+        entries: [
+          { accountId: senderAccount, amountMinor: -amountMinor },
+          { accountId: recipientAccount, amountMinor },
+        ],
+        metadata: { senderId, recipientId },
+      });
+      await client.query(
+        "INSERT INTO wallet_transfers (id,request_id,sender_id,recipient_id,amount_minor) VALUES ($1,$1,$2,$3,$4)",
+        [requestId, senderId, recipientId, amountMinor],
+      );
+      await client.query("COMMIT");
+      return { duplicate: false, recipientId };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   /**
    * A direct admin correction to a user's balance — positive credits, negative debits.
    * A manual fix/grant.
@@ -103,7 +159,7 @@ export class WalletService {
    * adminAdjustBalance 와 같고, 이번 호출이 같은 idempotencyKey 의 재시도였는지(duplicate)도 알려 준다.
    * 재시도면 원장은 그대로이고, 호출자는 감사 로그·알림을 다시 남기지 않는다.
    */
-  async adminAdjustBalanceWithOutcome(adminId: string, userId: string, amountMinor: number, idempotencyKey: string): Promise<{ balanceMinor: number; duplicate: boolean }> {
+  async adminAdjustBalanceWithOutcome(adminId: string, userId: string, amountMinor: number, idempotencyKey: string, reason?: string): Promise<{ balanceMinor: number; duplicate: boolean }> {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -138,7 +194,7 @@ export class WalletService {
           action: "BALANCE_ADJUSTED",
           targetType: "user",
           targetId: userId,
-          details: { amount: amountMinor / COIN_SCALE, from: (balanceMinor - amountMinor) / COIN_SCALE, to: balanceMinor / COIN_SCALE },
+          details: { amount: amountMinor / COIN_SCALE, from: (balanceMinor - amountMinor) / COIN_SCALE, to: balanceMinor / COIN_SCALE, ...(reason ? { reason } : {}) },
         });
       }
       await client.query("COMMIT");

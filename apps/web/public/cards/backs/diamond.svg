@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700">
   <defs>
-    <!-- 진한 사파이어 바탕: 옅은 하늘색이던 예전 판은 OC 와 무늬가 바탕에 묻혀 작게 보면 흐릿했다. 어둡게 깔고 얼음빛은 선과 면에만 쓴다. -->
+    <!-- 진한 사파이어 바탕: 옅은 하늘색이던 예전 판은 GC 와 무늬가 바탕에 묻혀 작게 보면 흐릿했다. 어둡게 깔고 얼음빛은 선과 면에만 쓴다. -->
     <radialGradient id="felt" cx="50%" cy="46%" r="72%">
       <stop offset="0" stop-color="#1d8fd0"/>
       <stop offset=".45" stop-color="#0b4d86"/>
@@ -74,8 +74,8 @@
     <g fill="url(#gem)" stroke="#ffffff" stroke-width=".8">
       <path d="M0-104l8 12h-16z"/><path d="M0 104l8-12h-16z"/><path d="M-104 0l12 8v-16z"/><path d="M104 0l-12 8v-16z"/>
     </g>
-    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="#7fd6ff" opacity=".55" stroke="#7fd6ff" stroke-width="7" stroke-linejoin="round">OC</text>
-    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#ice)" stroke="#021226" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">OC</text>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="#7fd6ff" opacity=".55" stroke="#7fd6ff" stroke-width="7" stroke-linejoin="round">GC</text>
+    <text y="27" text-anchor="middle" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="74" font-weight="900" letter-spacing="-2" fill="url(#ice)" stroke="#021226" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">GC</text>
     <path d="M-46 44H46" stroke="url(#ice)" stroke-width="1.8"/>
     <path d="M-46 -48H46" stroke="url(#ice)" stroke-width="1.8"/>
   </g>

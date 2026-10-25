@@ -48,13 +48,14 @@
 }
 .big-win-ticker > svg { flex: none; color: var(--gold); }
 .big-win-track { flex: 1; min-width: 0; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent); }
-.big-win-rail { display: inline-flex; gap: 28px; padding-left: 16px; white-space: nowrap; animation: big-win-scroll var(--ticker-s, 30s) linear infinite; }
+.big-win-rail { display: inline-flex; gap: 28px; padding-left: 16px; white-space: nowrap; }
+.big-win-rail.is-looping { animation: big-win-scroll var(--ticker-s, 30s) linear infinite; }
 .big-win-ticker:hover .big-win-rail { animation-play-state: paused; }
 .big-win-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .big-win-item b { color: var(--positive); font-weight: 700; font-variant-numeric: tabular-nums; }
 .big-win-item .user-name { color: var(--text); font-weight: 600; }
 @keyframes big-win-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .big-win-rail { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .big-win-rail.is-looping { animation: none; } }
 
 /* ── 로비 카드 틀(보상함·데일리 휠 — rewards.css) ───────────────────────────────── */
 .eco-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px 16px; border: 1px solid var(--gold-deep); border-radius: 12px; background: var(--panel); }

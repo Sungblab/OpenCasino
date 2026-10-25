@@ -30,6 +30,7 @@
     ,"./crash": "./src/crash.ts"
     ,"./video-poker": "./src/video-poker.ts"
     ,"./pachinko": "./src/pachinko.ts"
+    ,"./hilo": "./src/hilo.ts"
     ,"./table-games": "./src/table-games/index.ts"
   },
   "scripts": {

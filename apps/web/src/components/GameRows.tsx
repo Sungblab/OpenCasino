@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, LayoutList } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, LayoutList } from "lucide-react";
 import type { GameRoom } from "@opencasino/contracts";
 import { GameGlyph } from "./GameGlyph";
+import { GameGuide, type GameGuideContent } from "./GameGuide";
+import { hasLobbyGuide, loadLobbyGuide } from "../lib/guides/lobby";
 import { RoomTile } from "./RoomTile";
 import { LOBBY_CATEGORIES, LOBBY_GAMES, joinableFirst, roomsForGame, type LobbyCategory, type LobbyGameMeta } from "../lib/lobbyGames";
 import { lockReason, type GateWho } from "../lib/tiers";
@@ -43,6 +45,16 @@ export function GameRows({ rooms, who, busyKey = null, startLabel, onEnter, onSt
   const [category, setCategory] = useState<LobbyCategory | "all">("all");
   const { hash } = useLocation();
   const loaded = rooms !== null;
+  // 줄 머리 "가이드": 그 게임의 안내를 모달로 읽고, 맨 아래 버튼으로 곧장 시작한다. 본문은 누를 때 받는다(lib/guides/lobby).
+  const [guide, setGuide] = useState<{ game: LobbyGameMeta; content: GameGuideContent } | null>(null);
+  const [guideLoading, setGuideLoading] = useState<string | null>(null);
+  const roomsOf = (game: LobbyGameMeta) => rooms ? joinableFirst(roomsForGame(game, rooms)).filter((room) => !hideSecret(room, game.category === "pvp", who)) : [];
+  const openGuide = (game: LobbyGameMeta) => {
+    const pending = loadLobbyGuide(game.key);
+    if (!pending) return;
+    setGuideLoading(game.key);
+    pending.then((content) => setGuide({ game, content }), () => undefined).finally(() => setGuideLoading(null));
+  };
 
   // /lobby#roulette(방에서 뒤로, 옛 /lobby/roulette 주소) → 그 줄로. 방 목록이 그려진 뒤에 내려가야 위치가 맞다.
   useEffect(() => {
@@ -67,14 +79,23 @@ export function GameRows({ rooms, who, busyKey = null, startLabel, onEnter, onSt
       </div>
       {shown.map((game) => {
         const pvp = game.category === "pvp";
-        const all = rooms ? joinableFirst(roomsForGame(game, rooms)).filter((room) => !hideSecret(room, pvp, who)) : [];
+        const all = roomsOf(game);
         const list = pvp ? all.slice(0, PVP_ROOMS_SHOWN) : all;
         return (
           <GameRow
             key={game.key}
             game={game}
             count={loaded ? all.length : null}
-            action={<button type="button" className="game-row-start" disabled={busyKey !== null || !loaded} onClick={() => onStart(game, all)}>{busyKey === game.key ? "준비 중…" : startLabel(game)}<ChevronRight size={15} aria-hidden="true" /></button>}
+            action={(
+              <>
+                {hasLobbyGuide(game.key) && (
+                  <button type="button" className="game-row-guide" disabled={guideLoading === game.key} onClick={() => openGuide(game)} aria-label={`${game.label} 가이드`}>
+                    <BookOpen size={15} aria-hidden="true" /><span>가이드</span>
+                  </button>
+                )}
+                <button type="button" className="game-row-start" disabled={busyKey !== null || !loaded} onClick={() => onStart(game, all)}>{busyKey === game.key ? "준비 중…" : startLabel(game)}<ChevronRight size={15} aria-hidden="true" /></button>
+              </>
+            )}
           >
             {!loaded && Array.from({ length: 3 }, (_, n) => <div className="room-tile is-skeleton" key={`s${n}`} aria-hidden="true" />)}
             {list.map((room) => (
@@ -98,6 +119,23 @@ export function GameRows({ rooms, who, busyKey = null, startLabel, onEnter, onSt
           </GameRow>
         );
       })}
+      {guide && (
+        <GameGuide
+          content={guide.content}
+          open
+          onClose={() => setGuide(null)}
+          footer={(
+            <button
+              type="button"
+              className="game-guide-play"
+              disabled={busyKey !== null || !loaded}
+              onClick={() => { const { game } = guide; setGuide(null); onStart(game, roomsOf(game)); }}
+            >
+              {busyKey === guide.game.key ? "준비 중…" : startLabel(guide.game)}<ChevronRight size={16} aria-hidden="true" />
+            </button>
+          )}
+        />
+      )}
     </>
   );
 }

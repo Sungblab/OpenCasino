@@ -156,10 +156,15 @@ export const loginResponseSchema = z.object({
 });
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
+/** 약관·개인정보처리방침을 고치면 올린다 — 가입 때 동의한 버전이 users.consent_version 에 남는다. */
+export const LEGAL_VERSION = "2026-10-24";
+
 export const registerRequestSchema = z.object({
   username: z.string().min(2).max(40),
   nickname: z.string().min(2).max(20),
   password: z.string().min(8).max(100),
+  /** 필수 동의 셋 — 만 14세 이상, 이용약관, 개인정보 수집·이용. 하나라도 빠지면 가입할 수 없다. */
+  agreements: z.object({ age14: z.literal(true), terms: z.literal(true), privacy: z.literal(true) }),
 });
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
@@ -173,20 +178,6 @@ export const lobbyResponseSchema = z.object({
 });
 export type LobbyResponse = z.infer<typeof lobbyResponseSchema>;
 
-export const adminUserSchema = z.object({
-  id: z.string().uuid(),
-  username: z.string(),
-  role: z.enum(["user", "admin"]),
-  approved: z.boolean(),
-  createdAt: z.string(),
-  balance: z.number().int(),
-  totalBets: z.number().int().nonnegative(),
-  totalWagered: z.number().int().nonnegative(),
-  wins: z.number().int().nonnegative(),
-  losses: z.number().int().nonnegative(),
-});
-export type AdminUser = z.infer<typeof adminUserSchema>;
-
 export const adminHouseStatsSchema = z.object({
   totalWagered: z.number().int().nonnegative(),
   houseProfit: z.number().int(),
@@ -199,22 +190,17 @@ export const adminHouseStatsSchema = z.object({
 });
 export type AdminHouseStats = z.infer<typeof adminHouseStatsSchema>;
 
-export const adminHouseByGameSchema = z.object({
-  game: gameTypeSchema,
-  totalWagered: z.number().int().nonnegative(),
-  houseProfit: z.number().int(),
-  settledBets: z.number().int().nonnegative(),
-});
-export type AdminHouseByGame = z.infer<typeof adminHouseByGameSchema>;
-
-export const adminTrendDaySchema = z.object({
-  date: z.string(),
-  bets: z.number().int().nonnegative(),
+/** 오늘(한국 시간) 숫자 — 통합 현황의 맨 윗줄. 봇은 뺀다. */
+export const adminTodayStatsSchema = z.object({
   wagered: z.number().int().nonnegative(),
   houseProfit: z.number().int(),
+  bets: z.number().int().nonnegative(),
+  /** 오늘 한 판이라도 정산된 사람 수. */
+  players: z.number().int().nonnegative(),
+  /** 오늘 가입한 사람(게스트·봇 제외). */
+  signups: z.number().int().nonnegative(),
 });
-export type AdminTrendDay = z.infer<typeof adminTrendDaySchema>;
-
+export type AdminTodayStats = z.infer<typeof adminTodayStatsSchema>;
 
 /**
  * AI 봇 수지. 봇은 하우스 돈으로 치므로, 이 줄이 곳 "봇에 쓴 돈"이다.
@@ -237,11 +223,9 @@ export type AdminBotStats = z.infer<typeof adminBotStatsSchema>;
 
 export const adminOverviewSchema = z.object({
   rooms: z.array(gameRoomSchema),
-  users: z.array(adminUserSchema),
   house: adminHouseStatsSchema,
   bots: adminBotStatsSchema,
-  houseByGame: z.array(adminHouseByGameSchema),
-  recentTrend: z.array(adminTrendDaySchema),
+  today: adminTodayStatsSchema,
   openSupportConversations: z.number().int().nonnegative(),
 });
 export type AdminOverview = z.infer<typeof adminOverviewSchema>;
@@ -562,9 +546,9 @@ export const moneyWheelCancelCommandSchema = z.object({
 export type MoneyWheelCancelCommand = z.infer<typeof moneyWheelCancelCommandSchema>;
 
 // ---------------------------------------------------------------------------
-// 표 게임(HiLo·Bac Bo·메가볼·탑 카드). 게임마다 소켓 이벤트를 따로 두지 않고 한 벌(tableGame.*)을 같이 쓴다.
+// 표 게임(Bac Bo·메가볼·탑 카드). 게임마다 소켓 이벤트를 따로 두지 않고 한 벌(tableGame.*)을 같이 쓴다.
 // 게임별 값(setup·state·result.outcome)은 JSON 이고 모양은 game-core 의 table-games/<게임>.ts 가 정한다 —
-// 서버와 화면이 같은 정의(TableGameDef)로 읽는다. 베팅 이름은 "<접두사>:<토큰>"(예: "hilo:higher").
+// 서버와 화면이 같은 정의(TableGameDef)로 읽는다. 베팅 이름은 "<접두사>:<토큰>"(예: "bacbo:player").
 // ---------------------------------------------------------------------------
 
 export const tableGameBetChoiceSchema = z.string().regex(/^[a-z]{2,8}:[a-z0-9_-]{1,16}$/);
@@ -849,6 +833,96 @@ export const videoPokerResultSchema = z.object({
 export type VideoPokerResult = z.infer<typeof videoPokerResultSchema>;
 
 // ---------------------------------------------------------------------------
+// HiLo (1인용, 연속 도전). 기준 카드를 보고 "높거나 같음 / 낮거나 같음"을 고른다. 맞히면 캐시아웃하거나 나온 카드로 이어 간다.
+// 한 판 = 여러 요청: start(베팅 + 첫 선택) → guess(이어 가기)* → cashout. 틀리면 그 자리에서 끝난다.
+// 다음 카드는 고르는 순간 서버가 뽑는다(미리 뽑아 두지 않는다). 돈은 최소 단위(1코인 = 100).
+// ---------------------------------------------------------------------------
+
+export const hiloChoiceSchema = z.enum(["higher_or_same", "lower_or_same", "higher", "lower", "same"]);
+
+export const hiloGameSchema = z.object({
+  gameId: z.string().uuid(),
+  bet: z.number().int().positive(),
+  status: z.enum(["playing", "settled"]),
+  /** 나온 카드 순서대로. 첫 장이 시작 기준 카드, 마지막 장이 지금 기준(끝난 판이면 마지막에 나온 카드). */
+  cards: z.array(cardSchema).min(1),
+  /** 고른 갈래 순서대로(cards 보다 한 개 적다). */
+  choices: z.array(hiloChoiceSchema),
+  /** 지금 캐시아웃하면 받는 금액. 진 판이면 0. */
+  potential: z.number().int().nonnegative(),
+  /** 끝난 판의 지급. 진행 중이면 0. */
+  payout: z.number().int().nonnegative(),
+  outcome: z.enum(["cashout", "lose", "cap"]).nullable(),
+});
+export type HiLoGame = z.infer<typeof hiloGameSchema>;
+
+export const hiloRecentSchema = z.object({
+  bet: z.number().int().positive(),
+  win: z.number().int().nonnegative(),
+  /** 맞힌 횟수. */
+  streak: z.number().int().nonnegative(),
+  at: z.string(),
+});
+export type HiLoRecent = z.infer<typeof hiloRecentSchema>;
+
+export const hiloRoomSnapshotSchema = z.object({
+  room: gameRoomSchema,
+  sequence: z.number().int().nonnegative(),
+  ...snapshotMetaShape,
+  balanceMinor: z.number().int().nonnegative(),
+  walletBalance: z.number().int().nonnegative(),
+  /** 고를 수 있는 베팅(최소 단위). */
+  betSteps: z.array(z.number().int().positive()),
+  /** 새 판을 시작할 때의 기준 카드. 진행 중인 판이 있으면 그 판의 마지막 카드와 같다. */
+  base: cardSchema,
+  /** 끊기기 전에 이어 가던 판. 다시 들어오면 여기서 이어서 고른다. */
+  open: hiloGameSchema.nullable(),
+  /** 내 최근 판(최신이 먼저). */
+  recent: z.array(hiloRecentSchema),
+});
+export type HiLoRoomSnapshot = z.infer<typeof hiloRoomSnapshotSchema>;
+
+/** 판 밖에서만: 시작 기준 카드를 새로 뽑는다(공짜). */
+export const hiloRefreshCommandSchema = z.object({ roomId: z.string().uuid() });
+export type HiLoRefreshCommand = z.infer<typeof hiloRefreshCommandSchema>;
+
+export const hiloStartCommandSchema = z.object({
+  requestId: z.string().uuid(),
+  roomId: z.string().uuid(),
+  /** 베팅(최소 단위). betSteps 중 하나. */
+  bet: z.number().int().positive(),
+  /** 화면에 보이던 기준 카드. 서버의 것과 다르면(서버 재시작 등) 거절하고, 화면은 다시 들어와 새 기준을 받는다. */
+  base: cardSchema,
+  choice: hiloChoiceSchema,
+});
+export type HiLoStartCommand = z.infer<typeof hiloStartCommandSchema>;
+
+export const hiloGuessCommandSchema = z.object({
+  roomId: z.string().uuid(),
+  gameId: z.string().uuid(),
+  /** 이번이 몇 번째 선택인가(1부터, 시작 선택이 1). 이미 처리한 번호면(재시도) 지금 상태를 그대로 돌려준다. */
+  step: z.number().int().min(2),
+  choice: hiloChoiceSchema,
+});
+export type HiLoGuessCommand = z.infer<typeof hiloGuessCommandSchema>;
+
+/** 판 하나에 한 번만 정산된다 — 다시 오면 정산된 결과를 그대로 돌려준다. */
+export const hiloCashoutCommandSchema = z.object({
+  roomId: z.string().uuid(),
+  gameId: z.string().uuid(),
+});
+export type HiLoCashoutCommand = z.infer<typeof hiloCashoutCommandSchema>;
+
+export const hiloResultSchema = z.object({
+  game: hiloGameSchema,
+  /** 다음 판의 시작 기준 카드(진행 중이면 이 판의 마지막 카드). */
+  base: cardSchema,
+  balanceMinor: z.number().int().nonnegative(),
+  walletBalance: z.number().int().nonnegative(),
+});
+export type HiLoResult = z.infer<typeof hiloResultSchema>;
+
+// ---------------------------------------------------------------------------
 // Pachinko (1인용, 구슬 하나 = 요청 하나). 서버가 12줄 못판의 좌우 경로를 뽑고 지급까지 한 트랜잭션에서 정산한다.
 // 화면은 돌려받은 path 를 그대로 따라 굴릴 뿐이다. 돈은 최소 단위(1코인 = 100).
 // ---------------------------------------------------------------------------
@@ -1009,7 +1083,12 @@ export const blackjackRoomSnapshotSchema = z.object({
   myInsurance: blackjackInsuranceSnapshotSchema.nullable(),
   walletBalance: z.number().int().nonnegative(),
   shoeRemaining: z.number().int().nonnegative(),
-  lightningFeePercent: z.union([z.literal(0), z.literal(20)]).optional(),
+  lightningFeePercent: z.union([z.literal(0), z.literal(20), z.literal(100)]).optional(),
+  /** Lightning table: this round's multiplier per winning total, struck when betting closes (null before that). */
+  lightningBoard: z.array(z.object({
+    total: z.enum(["17", "18", "19", "20", "21", "BJ"]),
+    multiplier: z.number().int().min(2).max(25),
+  })).length(6).nullable().optional(),
   activeLightningMultiplier: z.number().int().min(1).max(25).nullable().optional(),
   nextLightningMultiplier: z.number().int().min(2).max(25).nullable().optional(),
 });
@@ -1719,6 +1798,7 @@ export const walletTransactionsResponseSchema = z.object({
 });
 export type WalletTransactionsResponse = z.infer<typeof walletTransactionsResponseSchema>;
 
+
 export const profileStatsSchema = z.object({
   totalWagered: z.number().int().nonnegative(),
   settledWagered: z.number().int().nonnegative(),
@@ -1734,6 +1814,7 @@ export const profileResponseSchema = z.object({
   walletBalance: z.number().int().nonnegative(),
   stats: profileStatsSchema,
   transactions: z.array(walletTransactionItemSchema),
+  recipients: z.array(z.object({ nickname: z.string() })),
 });
 export type ProfileResponse = z.infer<typeof profileResponseSchema>;
 
@@ -1845,6 +1926,14 @@ export const adminUserHistoryResponseSchema = z.object({
   hasMore: z.boolean(),
 });
 export type AdminUserHistoryResponse = z.infer<typeof adminUserHistoryResponseSchema>;
+
+
+export const transferCreateSchema = z.object({
+  requestId: z.string().uuid(),
+  recipientNickname: z.string().min(2).max(20),
+  amount: z.number().int().positive(),
+});
+export type TransferCreate = z.infer<typeof transferCreateSchema>;
 
 export const chatMessageSchema = z.object({
   id: z.string().uuid(),
@@ -1976,6 +2065,16 @@ export const adminBroadcastSchema = z.object({
 });
 export type AdminBroadcast = z.infer<typeof adminBroadcastSchema>;
 
+/** 공지 — 로비 맨 위 띠와 채팅 창의 공지 탭. endsAt 이 지나면 공개 목록에서 빠진다. */
+export const NOTICE_MAX_LENGTH = 500;
+export interface Notice {
+  id: string;
+  message: string;
+  pinned: boolean;
+  endsAt: string | null;
+  createdAt: string;
+}
+
 export type SocketAck<T = undefined> =
   | { ok: true; data: T }
   | { ok: false; error: string; code: string };
@@ -2004,6 +2103,7 @@ export interface ServerToClientEvents {
   "slot.snapshot": (snapshot: SlotRoomSnapshot) => void;
   "videoPoker.snapshot": (snapshot: VideoPokerRoomSnapshot) => void;
   "pachinko.snapshot": (snapshot: PachinkoRoomSnapshot) => void;
+  "hilo.snapshot": (snapshot: HiLoRoomSnapshot) => void;
   "holdem.snapshot": (snapshot: HoldemRoomSnapshot) => void;
   "sutda.snapshot": (snapshot: SutdaRoomSnapshot) => void;
   "gostop.snapshot": (snapshot: GostopRoomSnapshot) => void;
@@ -2014,6 +2114,8 @@ export interface ServerToClientEvents {
   "dm.message": (message: DmMessage) => void;
   /** 친구 요청·수락·삭제·차단으로 내 친구 목록이 바뀌었다. 목록을 다시 불러오라는 신호일 뿐 내용은 없다. */
   "friends.changed": () => void;
+  /** 공지가 올라오거나 바뀌었다. 목록을 다시 받으라는 신호. */
+  "notices.changed": () => void;
 }
 
 export interface ClientToServerEvents {
@@ -2078,6 +2180,12 @@ export interface ClientToServerEvents {
   "pachinko.join": (payload: { roomId: string }, ack: (response: SocketAck<PachinkoRoomSnapshot>) => void) => void;
   "pachinko.leave": (payload: { roomId: string }, ack: (response: SocketAck) => void) => void;
   "pachinko.drop": (payload: PachinkoDropCommand, ack: (response: SocketAck<PachinkoDropResult>) => void) => void;
+  "hilo.join": (payload: { roomId: string }, ack: (response: SocketAck<HiLoRoomSnapshot>) => void) => void;
+  "hilo.leave": (payload: { roomId: string }, ack: (response: SocketAck) => void) => void;
+  "hilo.refresh": (payload: HiLoRefreshCommand, ack: (response: SocketAck<{ base: Card }>) => void) => void;
+  "hilo.start": (payload: HiLoStartCommand, ack: (response: SocketAck<HiLoResult>) => void) => void;
+  "hilo.guess": (payload: HiLoGuessCommand, ack: (response: SocketAck<HiLoResult>) => void) => void;
+  "hilo.cashout": (payload: HiLoCashoutCommand, ack: (response: SocketAck<HiLoResult>) => void) => void;
   "holdem.join": (payload: { roomId: string }, ack: (response: SocketAck<HoldemRoomSnapshot>) => void) => void;
   "holdem.leave": (payload: { roomId: string }, ack: (response: SocketAck) => void) => void;
   "holdem.addBot": (payload: BotAddCommand, ack: (response: SocketAck<HoldemRoomSnapshot>) => void) => void;

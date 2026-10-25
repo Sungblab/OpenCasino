@@ -2,7 +2,7 @@ import type { SlotRoundResult, SlotSpinOutcome } from "@opencasino/contracts";
 import { secureRandomInt, type RandomInt } from "./lightning.js";
 
 /**
- * 클래식 3릴 × 3줄 5라인 "럭키 체리". 수학은 docs/research/slots/D-new-machines.md.
+ * 클래식 3릴 × 3줄 5라인 "럭키 체리". 수학은 packages/game-core 의 테스트가 고정한다.
  *
  * 실물 기계처럼 릴마다 심볼과 빈칸(BL)이 번갈아 있어, 창에는 위·아래 두 칸이나 가운데 한 칸만 심볼이
  * 보인다. WILD 는 모든 심볼을 대신하고 대신한 라인 당첨을 ×2(두 개면 ×4) 한다. "아무 7"·"아무 BAR"

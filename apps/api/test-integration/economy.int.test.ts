@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DAILY_WHEEL_SEGMENTS, SHOP_ITEMS, weeklyShopItem } from "@opencasino/contracts";
-import { http, login, startApi, type ApiServer } from "./helpers/api.js";
+import { connectSocket, http, login, startApi, type ApiServer } from "./helpers/api.js";
 import { balanceMinor, COIN, createTestDatabase, createUser, fundUser, HEALTHY_LEDGER, ledgerInvariants, type TestDatabase, type TestUser } from "./helpers/db.js";
 import { apiPort } from "./helpers/env.js";
 
@@ -58,7 +58,7 @@ describe("레벨·레벨 보상", () => {
     const progress = await http(api, "GET", "/api/v1/me/progress", { token: tokens.lv });
     expect(progress.status).toBe(200);
     // 레벨 보상 L×10: 2~8 합 350, Lv5 마일스톤 브론즈 명패.
-    expect(progress.body).toMatchObject({ level: 8, xp: 320, levelXp: 280, nextLevelXp: 360, levelReward: 350, levelItems: ["nameplate.bronze"], cardBack: "/cards/gc-back.svg", felt: "classic", winEffect: null });
+    expect(progress.body).toMatchObject({ level: 8, xp: 320, levelXp: 280, nextLevelXp: 360, levelReward: 350, levelItems: ["nameplate.bronze"], cardBack: "/cards/oc-back.svg", felt: "classic", winEffect: null });
     // 슬롯 엣지 4%: 325코인 × 0.04 = 13점.
     expect(progress.body).toMatchObject({ vipPoints: 13, vipTier: null, nextVip: { tier: "bronze", points: 500 } });
 
@@ -141,7 +141,7 @@ describe("상점", () => {
     const equip = (slot: string, itemId: string | null) => http(api, "POST", "/api/v1/shop/equip", { token: tokens.shop, body: { slot, itemId } });
 
     expect((await buy("cardback.diamond")).body.code).toBe("SHOP_VIP_REQUIRED");
-    expect((await buy("cardback.oc_red")).status).toBe(404);
+    expect((await buy("cardback.gc_red")).status).toBe(404);
     expect((await buy("nope")).status).toBe(404);
 
     const lucky = await buy("title.lucky");
@@ -152,7 +152,7 @@ describe("상점", () => {
     // 장착: 없는 것·다른 칸은 거절, 기본 아이템은 늘 된다.
     expect((await equip("card_back", "cardback.midnight")).status).toBe(403);
     expect((await equip("card_back", "title.lucky")).status).toBe(400);
-    expect((await equip("card_back", "cardback.oc_red")).status).toBe(200);
+    expect((await equip("card_back", "cardback.gc_red")).status).toBe(200);
     expect((await equip("title", "title.lucky")).body.equipped.title).toBe("title.lucky");
 
     // 빌림: 두 번 사면 30일 + 30일.
@@ -225,8 +225,15 @@ describe("순위·티커", () => {
 
     await spins(rich.id, 1, { bet: 10, payout: 5_010 });
     await spins(rich.id, 1, { bet: 10, payout: 5_009 });
+    // 입장 알림은 지금 소켓이 붙은 사람 전원 — 탭 둘이어도 한 번, 소켓 없는 사람은 없다.
+    const sockets = [await connectSocket(api, tokens.rich!), await connectSocket(api, tokens.rich!)];
     const feed = await http(api, "GET", "/api/v1/feed/big-wins", { token: tokens.rich });
+    for (const socket of sockets) socket.disconnect();
     expect(feed.status).toBe(200);
     expect(feed.body.items).toEqual([expect.objectContaining({ userId: rich.id, nickname: "econ_rich", gameType: "slot", amount: 5_000 })]);
+    expect(feed.body.entries).toEqual([{ userId: rich.id, nickname: "econ_rich", diamond: false }]);
+    // 소켓이 붙기 전에 티커부터 부른 사람도 자기 자신은 맨 앞에 보인다.
+    const early = await http(api, "GET", "/api/v1/feed/big-wins", { token: tokens.lv });
+    expect(early.body.entries[0]).toEqual({ userId: users.lv!.id, nickname: "econ_lv", diamond: false });
   });
 });

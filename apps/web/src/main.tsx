@@ -25,6 +25,8 @@ import { App } from "./App";
 import { installChunkReloadGuard, RootErrorBoundary } from "./app/ErrorBoundary";
 import { COMMON_SOUNDS, installAudioUnlock, preloadSounds } from "./lib/sound";
 import "./styles.css";
+import "./styles/legal.css";
+import "./styles/admin-polish.css";
 import "./styles/table-holdem.css";
 import "./styles/table-sutda.css";
 // PvP 세 게임 공통(좌석 기하·위 띠·독·내 줄·좌석) — 게임별 파일 사이에 둔다: 섯다의 장판 규칙을

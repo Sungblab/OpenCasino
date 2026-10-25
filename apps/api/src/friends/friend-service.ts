@@ -1,7 +1,5 @@
 import type { PoolClient } from "pg";
 import type {
-  AdminDmConversation,
-  AdminDmHistoryResponse,
   DmHistoryResponse,
   DmMessage,
   Friend,
@@ -10,9 +8,10 @@ import type {
   FriendSearchResponse,
   FriendsResponse,
   FriendUser,
+  SupportSummary,
 } from "@opencasino/contracts";
 import { assertChatAllowed, normalizedMessage } from "../chat/chat-service.js";
-import { inTransaction, writeAuditLog } from "../database/audit-log.js";
+import { inTransaction } from "../database/audit-log.js";
 import { pool } from "../database/pool.js";
 import { DomainError } from "../errors/domain-error.js";
 import { blockOutcome, canApply, friendPair, relationFor, requestOutcome, type FriendAction, type FriendshipRow } from "./friend-rules.js";
@@ -102,6 +101,27 @@ async function messagePage(low: string, high: string, before: string | undefined
   return { items: rows.map(mapMessage), hasMore: result.rows.length > PAGE_SIZE };
 }
 
+/** 운영자 대화(1:1 문의) 요약. 게스트는 문의를 쓸 수 없어 null. 안 읽음 = 내가 마지막으로 본 뒤 운영자가 보낸 것. */
+async function supportSummary(me: string): Promise<SupportSummary | null> {
+  const result = await pool.query<{ is_guest: boolean; unread: number | null; message: string | null; created_at: Date | null; sender: string | null }>(
+    `SELECT u.is_guest,
+            (SELECT count(*)::int FROM chat_messages cm
+              WHERE cm.conversation_id=sc.id AND cm.user_id<>$1 AND (sc.user_read_at IS NULL OR cm.created_at > sc.user_read_at)) AS unread,
+            lm.message, lm.created_at, lm.user_id AS sender
+     FROM users u
+     LEFT JOIN support_conversations sc ON sc.user_id=u.id
+     LEFT JOIN LATERAL (SELECT message,created_at,user_id FROM chat_messages WHERE conversation_id=sc.id ORDER BY created_at DESC LIMIT 1) lm ON true
+     WHERE u.id=$1`,
+    [me],
+  );
+  const row = result.rows[0];
+  if (!row || row.is_guest) return null;
+  return {
+    unread: row.unread ?? 0,
+    lastMessage: row.message && row.created_at ? { message: row.message, createdAt: row.created_at.toISOString(), fromAdmin: row.sender !== me } : null,
+  };
+}
+
 export const friendService = {
   async list(me: string): Promise<FriendsResponse> {
     const result = await pool.query<RawRow & {
@@ -136,6 +156,7 @@ export const friendService = {
       else if (relation === "outgoing") response.outgoing.push(user);
       else if (relation === "blocked") response.blocked.push(user);
     }
+    response.support = await supportSummary(me);
     return response;
   },
 
@@ -239,53 +260,5 @@ export const friendService = {
     );
     if (!result.rows[0]) throw new DomainError("DM_NOT_FRIEND");
     return mapMessage(result.rows[0]);
-  },
-
-  /**
-   * 관리자: 메시지가 있는 대화 전체, 최근순. 닉네임 부분 일치로 거른다.
-   * ponytail: 부를 때마다 dm_messages 전체를 묶는다. 대화가 수만 개가 되면 대화 요약 표(쌍별 개수·마지막 시각)를 두는 자리.
-   */
-  async adminConversations(query: string | undefined): Promise<AdminDmConversation[]> {
-    const result = await pool.query<{
-      user_low: string; user_high: string; n: number; low_nick: string; high_nick: string;
-      id: string; sender_id: string; message: string; created_at: Date;
-    }>(
-      `SELECT c.user_low,c.user_high,c.n,ul.nickname AS low_nick,uh.nickname AS high_nick,lm.id,lm.sender_id,lm.message,lm.created_at
-       FROM (SELECT user_low,user_high,count(*)::int AS n,max(created_at) AS last_at FROM dm_messages GROUP BY user_low,user_high) c
-       JOIN users ul ON ul.id=c.user_low
-       JOIN users uh ON uh.id=c.user_high
-       JOIN LATERAL (
-         SELECT id,sender_id,message,created_at FROM dm_messages m
-         WHERE m.user_low=c.user_low AND m.user_high=c.user_high ORDER BY created_at DESC LIMIT 1
-       ) lm ON true
-       WHERE $1::text IS NULL OR ul.nickname ILIKE $1 OR uh.nickname ILIKE $1
-       ORDER BY c.last_at DESC LIMIT 100`,
-      [query ? likePattern(query) : null],
-    );
-    return result.rows.map((row) => ({
-      users: [{ userId: row.user_low, nickname: row.low_nick }, { userId: row.user_high, nickname: row.high_nick }],
-      messageCount: row.n,
-      lastMessage: mapMessage(row),
-    }));
-  },
-
-  /** 관리자: 대화 하나. 처음 열 때(before 없이) DM_VIEWED 를 감사 로그에 남긴다 — 위로 더 불러오는 건 같은 열람이다. */
-  async adminMessages(adminId: string, a: string, b: string, before?: string): Promise<AdminDmHistoryResponse | null> {
-    const [low, high] = friendPair(a, b);
-    if (low === high) return null;
-    const users = await pool.query<{ id: string; nickname: string }>("SELECT id,nickname FROM users WHERE id IN ($1,$2)", [low, high]);
-    const byId = new Map(users.rows.map((row) => [row.id, row.nickname]));
-    if (byId.size < 2) return null;
-    const pair: [FriendUser, FriendUser] = [{ userId: low, nickname: byId.get(low)! }, { userId: high, nickname: byId.get(high)! }];
-    if (!before) {
-      await writeAuditLog(pool, {
-        actorId: adminId,
-        action: "DM_VIEWED",
-        targetType: "user",
-        targetId: low,
-        details: { userIds: [low, high], nicknames: [pair[0].nickname, pair[1].nickname] },
-      });
-    }
-    return { ...(await messagePage(low, high, before)), users: pair };
   },
 };

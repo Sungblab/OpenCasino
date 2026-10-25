@@ -7,6 +7,8 @@ import { z } from "zod";
  */
 
 export const featuresSchema = z.object({
+  /** 충전·환전·송금이 꺼져 있다. 코인은 무료 코인·미션·관리자 지급으로만 생긴다. */
+  playMoney: z.boolean(),
   /** 가입 뒤 관리자 승인이 필요하다. */
   signupApproval: z.boolean(),
   /** 하루 한 번 잔액을 target 코인까지 채워 준다. 꺼져 있으면 null. */

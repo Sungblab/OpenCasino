@@ -7,6 +7,7 @@ describe("summarizeAuditLog", () => {
     expect(summarizeAuditLog({ action: "BALANCE_ADJUSTED", details: { amount: -1500, from: 2000, to: 500 } })).toBe("잔액 2,000코인 → 500코인 (-1,500)");
     expect(summarizeAuditLog({ action: "USER_ROLE_CHANGED", details: { from: "user", to: "admin" } })).toBe("권한 사용자 → 관리자");
     expect(summarizeAuditLog({ action: "USER_SUSPENDED", details: { from: true, to: false } })).toBe("이용 중 → 정지");
+    expect(summarizeAuditLog({ action: "CASH_REQUEST_REJECTED", details: { type: "withdraw", amount: 1000 } })).toBe("환전 1,000코인");
     expect(summarizeAuditLog({ action: "ANNOUNCEMENT_SENT", details: { scope: "room", recipients: 3, message: "점검" } })).toBe("3명에게 · 점검");
   });
 

@@ -7,7 +7,7 @@ import type { Migration } from "../migrator.js";
  *   정산·재시작 복구(중단된 판 환불)가 이 표를 본다. cards 는 지금 손패(교체할 때마다 덮어쓴다).
  * - badugi_draws: 교체 한 번마다 버린 패·받은 패. 분쟁이 나면 판 전체를 다시 그릴 수 있게.
  *
- * game_type CHECK 는 0008_new_games 가 이미 열어 두었다 — 여기서 다시 쓰지 않는다.
+ * game_type·롤링 출처(badugi_rake/stake) CHECK 는 0008_new_games 가 이미 열어 두었다 — 여기서 다시 쓰지 않는다.
  */
 export const migration: Migration = {
   id: "0012_badugi",

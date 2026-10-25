@@ -7,7 +7,7 @@ import type { Migration } from "../migrator.js";
  */
 export const migration: Migration = {
   id: "0004_slots",
-  description: "슬롯 — game_type·slot_spins 표",
+  description: "슬롯 — game_type·slot_spins 표·롤링 출처",
   sql: `
 ALTER TABLE game_rooms DROP CONSTRAINT IF EXISTS game_rooms_game_type_check;
 ALTER TABLE game_rooms ADD CONSTRAINT game_rooms_game_type_check
@@ -29,5 +29,8 @@ CREATE TABLE IF NOT EXISTS slot_spins (
 CREATE INDEX IF NOT EXISTS slot_spins_user_idx ON slot_spins(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS slot_spins_room_idx ON slot_spins(room_id, created_at DESC);
 
+ALTER TABLE wagering_progress_events DROP CONSTRAINT IF EXISTS wagering_progress_events_source_type_check;
+ALTER TABLE wagering_progress_events ADD CONSTRAINT wagering_progress_events_source_type_check
+  CHECK (source_type IN ('cash_deposit','baccarat_wager','dragon_tiger_wager','blackjack_hand','blackjack_behind','blackjack_insurance','holdem_rake','sutda_rake','gostop_rake','casino_holdem_wager','holdem_stake','sutda_stake','gostop_stake','roulette_wager','sicbo_wager','slot_spin'));
 `,
 };

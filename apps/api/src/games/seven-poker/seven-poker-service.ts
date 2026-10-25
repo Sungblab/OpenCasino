@@ -75,7 +75,6 @@ export class SevenPokerService {
         const payout = plan.potPayouts.get(item.userId) ?? 0;
         await client.query("UPDATE seven_poker_contributions SET payout_minor=$2,outcome=$3,settled_at=now() WHERE id=$1", [item.id, payout, plan.outcomes.get(item.userId) ?? "lose"]);
       }
-
       await client.query("COMMIT");
       for (const id of touched) balances.set(id, await walletService.getUserBalance(id));
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }

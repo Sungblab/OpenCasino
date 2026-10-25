@@ -4,4 +4,3 @@
 비율 16:9, 권장 1200x675, 장당 150KB 이하.
 
 여기가 비어 있으면 로비 카드는 자리표시자를 렌더링한다(apps/web/src/components/GameArt.tsx).
-아트 디렉션과 게임별 AI 프롬프트: docs/game-art-spec.md

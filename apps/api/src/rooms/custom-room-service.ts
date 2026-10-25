@@ -153,7 +153,11 @@ export async function quickMatch(user: AuthUser, input: QuickMatchRequest, rooms
     .filter((entry) => entry.humans > 0)
     .sort((a, b) => b.humans - a.humans);
   if (waiting[0]) return waiting[0].room;
-  const unowned = open.find((room) => !room.ownerNickname);
+  // 빈 방이 여럿이면(등급마다 시드 방이 여러 개) 늘 같은 방부터 — 시드 방이 먼저, 그다음 code 순. 그래야 혼자 온 사람들이
+  // 빈 방 여기저기로 흩어지지 않고 먼저 온 사람이 있는 방(위 ①)으로 모인다.
+  const unowned = open
+    .filter((room) => !room.ownerNickname)
+    .sort((a, b) => Number(Boolean(a.custom)) - Number(Boolean(b.custom)) || a.code.localeCompare(b.code))[0];
   if (unowned) return unowned;
   assertCapacity(rooms);
   const row = await inTransaction((client) => insertRoom(client, {

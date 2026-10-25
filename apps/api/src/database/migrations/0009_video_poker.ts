@@ -6,7 +6,7 @@ import type { Migration } from "../migrator.js";
  * 그 사이에 끊기거나 서버가 재시작해도 손은 여기 그대로 남아, 다시 들어오면 이어서 바꿀 수 있다.
  *
  * cards 는 deal 때 뽑은 10장(앞 5장 = 처음 받은 카드, 뒤 5장 = 바꿀 때 순서대로 나오는 카드)이다.
- * 뒤 5장은 서버만 본다. game_type 제약은 0008_new_games 가 이미 열어 두었다.
+ * 뒤 5장은 서버만 본다. game_type·롤링 출처(video_poker_hand) 제약은 0008_new_games 가 이미 열어 두었다.
  */
 export const migration: Migration = {
   id: "0009_video_poker",

@@ -2,7 +2,7 @@ import { WHEEL_ORDER } from "@opencasino/game-core/roulette";
 
 /**
  * 레이스트랙(이웃·프렌치 베팅)의 순수 데이터. 칩 배치는 에볼루션 룰 PDF 그대로
- * (docs/research/roulette-sicbo/A-evolution-roulette.md 4.2). 한 줄 = 칩 하나, 같은 칸이 두 번이면 2칩.
+ * 한 줄 = 칩 하나, 같은 칸이 두 번이면 2칩.
  */
 export const FRENCH_BETS = {
   tiers: ["in:5-8", "in:10-11", "in:13-16", "in:23-24", "in:27-30", "in:33-36"],

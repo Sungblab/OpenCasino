@@ -14,7 +14,7 @@ const count = (reel: readonly SlotSymbol[], symbol: SlotSymbol) => reel.filter((
 
 describe("golden seven slot model", () => {
   it("uses the reel strips of the math report", () => {
-    // docs/research/slots/A-slot-math.md A9 표: 심볼 개수만이 RTP 를 정한다. 옮겨 적다 틀리면 여기서 걸린다.
+    // 심볼 개수만이 RTP 를 정한다. 옮겨 적다 틀리면 여기서 걸린다.
     const base = { W: 2, "7": 2, CR: 3, DI: 3, BAR: 4, BE: 4, ST: 5, CH: 5, LE: 5, SC: 1 };
     SLOT_REELS.base.forEach((reel, r) => {
       expect(reel, `base reel ${r + 1}`).toHaveLength(34);

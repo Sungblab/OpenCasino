@@ -3,7 +3,7 @@ import { DomainError } from "../../errors/domain-error.js";
 import type { RoomRegistry } from "../../games/rooms/room-registry.js";
 import { reject, type CommandContext } from "../command-context.js";
 
-/** 표 게임(HiLo·Bac Bo·메가볼·탑 카드) 한 벌의 소켓 명령. 게임 구분은 방이 한다. */
+/** 표 게임(Bac Bo·메가볼·탑 카드) 한 벌의 소켓 명령. 게임 구분은 방이 한다. */
 export function registerTableGameHandlers(ctx: CommandContext, rooms: RoomRegistry): void {
   const { socket, userId } = ctx;
 

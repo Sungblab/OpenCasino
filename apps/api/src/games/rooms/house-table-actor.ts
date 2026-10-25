@@ -53,7 +53,7 @@ export abstract class HouseTableActor<E extends HouseSnapshotEvent> extends Room
   protected abstract settleRound(roundId: string): Promise<{ balances: Map<string, number>; wins: AutomaticTableWin[] }>;
   /** 이번 판의 게임 상태를 비운다. */
   protected abstract clearGame(): void;
-  /** 판이 열린 직후, 베팅 단계 방송 전에 부른다 — 베팅 전에 보이는 값(HiLo 기준 카드)을 정할 자리. 기본은 아무것도 안 한다. */
+  /** 판이 열린 직후, 베팅 단계 방송 전에 부른다 — 베팅 전에 보이는 값을 정할 자리. 기본은 아무것도 안 한다. */
   protected async beginRound(_roundId: string): Promise<void> {}
   /** 로비 타일에 보이는 최근 결과(오래된 것부터, 끝 14개). 기록이 없는 게임은 비운다. */
   protected previewChips(): RoomPreviewChip[] { return []; }

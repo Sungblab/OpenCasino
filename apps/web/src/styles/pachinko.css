@@ -59,7 +59,7 @@
 /* ── 못판: 캔버스가 칸 크기를 스스로 맞춘다 ─────────────────────────────────── */
 .pk-board {
   position: relative; flex: 1 1 0; min-height: 0; overflow: hidden;
-  border: 1px solid var(--pk-line); border-radius: 14px; background: radial-gradient(ellipse 80% 90% at 50% 40%, #142a72 0%, #0b1640 78%);
+  border: 1px solid var(--pk-line); border-radius: 14px; background: var(--felt-grain), radial-gradient(ellipse 80% 90% at 50% 40%, #142a72 0%, #0b1640 78%);
 }
 .pk-board canvas { position: absolute; inset: 0; display: block; }
 
@@ -166,13 +166,16 @@
 @media (max-width: 900px) and (orientation: portrait) {
   .pk-room { display: flex; flex-direction: column; gap: 8px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
   .pk-left { display: none; }
-  .pk-machine { flex: 0 0 auto; gap: 6px; }
+  /* 화면은 스크롤되지 않는다 — 판 높이를 폭(비율)으로만 정하면 주소창·툴바가 높이를 먹는 실제 폰에서 조작 줄이
+     화면 아래로 잘렸다. 판은 비율 높이까지만 쓰고 모자라면 줄어든다(캔버스는 칸 안에 맞춰 가운데 그린다). */
+  .pk-machine { flex: 0 1 auto; gap: 6px; min-height: 0; }
   .pk-message { height: 32px; }
   .pk-banner { padding: 0 10px; font-size: 13px; }
   .pk-banner.is-win b, .pk-banner.is-win em { font-size: 16px; }
-  .pk-board { flex: 0 0 auto; aspect-ratio: 13.9 / 12.82; }
+  .pk-board { flex: 0 1 auto; min-height: 150px; aspect-ratio: 13.9 / 12.82; }
+  /* DROP 이 남는 폭을 가진다 — 고정 폭이면 320px 폰에서 AUTO 가 화면 오른쪽 밖으로 밀렸다. */
   .pk-controls {
-    display: grid; grid-template-columns: 1fr auto auto; gap: 8px 10px; justify-items: stretch;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 10px; justify-items: stretch;
     grid-template-areas: "money money tools" "risk risk risk" "bet primary auto";
   }
   .pk-money { grid-area: money; justify-content: flex-start; gap: 16px; }
@@ -183,11 +186,19 @@
   .pk-bet small { display: none; }
   .pk-stepper { gap: 4px; }
   .pk-stepper strong { min-width: clamp(44px, 12vw, 60px); font-size: clamp(16px, 4.8vw, 20px); }
-  .pk-primary { grid-area: primary; width: clamp(96px, 30vw, 170px); height: 52px; font-size: 20px; }
-  .pk-auto { grid-area: auto; min-width: 0; height: 52px; padding: 0 12px; }
+  .pk-primary { grid-area: primary; width: 100%; min-width: 0; height: 52px; font-size: clamp(17px, 5.4vw, 20px); }
+  .pk-auto { grid-area: auto; min-width: 0; height: 52px; padding: 0 clamp(8px, 3vw, 12px); }
   .pk-tools { grid-area: tools; justify-content: flex-end; }
-  .pk-side { flex: 1 1 0; min-height: 96px; }
+  .pk-side { flex: 1 1 0; min-height: 0; }
   .pk-side .winner-feed { display: none; }
+}
+/* 짧은 세로 폰(보이는 높이 760px 이하): 최근 구슬 목록까지 두면 판이 줄어들 자리를 목록이 먹는다 — 목록은 빼고
+   판과 조작 줄만(지난 판은 프로필 메뉴의 게임 기록에 있다). */
+@media (max-width: 900px) and (orientation: portrait) and (max-height: 760px) {
+  .pk-side { display: none; }
+  /* 목록이 빠진 자리는 판이 받는다(캔버스는 가운데 그린다) — 조작 줄 아래가 비지 않게. */
+  .pk-machine { flex: 1 1 auto; }
+  .pk-board { flex: 1 1 auto; aspect-ratio: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

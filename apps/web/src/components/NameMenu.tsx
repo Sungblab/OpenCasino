@@ -1,8 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
-import { MessageCircle, UserPlus } from "lucide-react";
-import { useCurrentUser } from "../app/auth";
+import { Headset, MessageCircle, UserPlus } from "lucide-react";
+import { useAuth, useCurrentUser } from "../app/auth";
+import { sendAdminMessage } from "../adminToolsApi";
 import { useFriends } from "../lib/friends";
 
 /**
@@ -20,8 +20,12 @@ export function NameMenu({ nickname, userId, isBot = false }: { nickname: string
   const user = useCurrentUser();
   const friends = useFriends();
   const [open, setOpen] = useState(false);
+  const { token } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminDraft, setAdminDraft] = useState("");
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -80,8 +84,24 @@ export function NameMenu({ nickname, userId, isBot = false }: { nickname: string
     event.preventDefault();
     event.stopPropagation();
     setNote("");
+    setAdminOpen(false);
     setPosition(null);
     setOpen((current) => !current);
+  };
+
+  const sendAsAdmin = async () => {
+    const text = adminDraft.trim();
+    if (!text || !resolvedId || !token) return;
+    setBusy(true);
+    try {
+      await sendAdminMessage(token, resolvedId, text);
+      setAdminDraft("");
+      setNote("운영자 메시지를 보냈어요. 답장은 관리자 화면의 문의·채팅으로 와요.");
+    } catch (caught) {
+      setNote(caught instanceof Error ? caught.message : "메시지를 보내지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const request = async () => {
@@ -111,9 +131,9 @@ export function NameMenu({ nickname, userId, isBot = false }: { nickname: string
       {note ? <p className="name-menu-note" role="status">{note}</p> : (
         <>
           {relation === "friend" && resolvedId && (
-            <Link className="name-menu-action" to={`/friends?with=${resolvedId}`} onClick={() => setOpen(false)}>
+            <button type="button" className="name-menu-action" onClick={() => { setOpen(false); friends.openFriends(resolvedId); }}>
               <MessageCircle size={15} aria-hidden="true" /> 메시지
-            </Link>
+            </button>
           )}
           {(relation === "none" || relation === "incoming") && (
             <button type="button" className="name-menu-action" onClick={() => void request()} disabled={busy}>
@@ -122,6 +142,17 @@ export function NameMenu({ nickname, userId, isBot = false }: { nickname: string
           )}
           {relation === "outgoing" && <p className="name-menu-note">친구 요청을 보냈어요. 상대가 수락하면 친구가 됩니다.</p>}
           {relation === "blocked" && <p className="name-menu-note">차단한 사용자예요. 친구 화면에서 풀 수 있어요.</p>}
+          {/* 관리자는 친구가 아니어도 회원에게 말을 건다 — 그 사람의 1:1 문의 대화로 간다(게스트는 서버가 거절). */}
+          {isAdmin && resolvedId && (adminOpen ? (
+            <form className="name-menu-admin" onSubmit={(event) => { event.preventDefault(); void sendAsAdmin(); }}>
+              <textarea value={adminDraft} maxLength={500} rows={3} autoFocus placeholder={`${nickname}님에게 운영자로`} onChange={(event) => setAdminDraft(event.target.value)} aria-label="운영자 메시지" />
+              <button type="submit" className="name-menu-action" disabled={busy || !adminDraft.trim()}>{busy ? "보내는 중…" : "보내기"}</button>
+            </form>
+          ) : (
+            <button type="button" className="name-menu-action" onClick={() => setAdminOpen(true)}>
+              <Headset size={15} aria-hidden="true" /> 운영자 메시지
+            </button>
+          ))}
         </>
       )}
     </div>
@@ -131,7 +162,7 @@ export function NameMenu({ nickname, userId, isBot = false }: { nickname: string
     <>
       <span
         ref={triggerRef}
-        className="name-menu-trigger"
+        className={`name-menu-trigger${relation === "none" && !user.guest ? " is-addable" : ""}`}
         role="button"
         tabIndex={0}
         aria-haspopup="dialog"

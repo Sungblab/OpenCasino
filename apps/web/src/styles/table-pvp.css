@@ -286,8 +286,10 @@
   20% { opacity: 1; }
   to { opacity: 0; transform: translate(-50%, -22px); }
 }
-/* 모서리 마커 — 이름 줄에 끼우지 않는다. 줄 높이를 안 흔들고 긴 이름의 칸도 안 뺏는다. */
-.pvp-markers { position: absolute; top: -8px; left: -8px; z-index: 3; display: flex; gap: 2px; }
+/* 모서리 마커 — 이름 줄에 끼우지 않는다. 줄 높이를 안 흔들고 긴 이름의 칸도 안 뺏는다.
+   이름표 왼쪽 아래 모서리 밖에 2px 만 걸친다. 위 모서리(top:-8px)에 두었을 땐 12px 를 파고들어 긴 이름의
+   앞 글자를 덮었고, 위로 빼면 패 아랫단의 WIN·족보 배지와 부딪힌다 — 이름표 아래가 비어 있는 자리다. */
+.pvp-markers { position: absolute; top: calc(100% - 2px); left: -8px; z-index: 3; display: flex; gap: 2px; }
 .pvp-marker {
   display: grid;
   place-items: center;
@@ -733,7 +735,7 @@
   .game-shell .pvp-seat .holdem-seat-plate { margin-top: -7px; padding: 4px 10px 4px; border-radius: 10px; }
   .game-shell .pvp-seat .holdem-seat-name { font-size: 12px; }
   .game-shell .pvp-seat .holdem-seat-stack { font-size: 12px; }
-  .pvp-markers { top: -7px; left: -7px; }
+  .pvp-markers { left: -7px; }
   .pvp-marker { min-width: 18px; height: 18px; padding: 0 3px; font-size: 12px; }
   .game-shell .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet { right: -9px; bottom: -8px; width: 22px; height: 26px; }
   .game-shell .pvp-seat .holdem-seat-plate .chip-stack.pvp-bet .chip-stack-layer,

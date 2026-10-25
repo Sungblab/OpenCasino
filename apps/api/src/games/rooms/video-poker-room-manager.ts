@@ -271,7 +271,6 @@ async function drawHand(userId: string, command: VideoPokerDrawCommand): Promise
       [row.id, JSON.stringify(command.held), JSON.stringify(final), rank, payout],
     );
     // 맞베팅이 없어 베팅 전액이 위험을 진 돈이다(슬롯과 같다).
-
     return { result: { hand: handView(updated.rows[0]!), ...(await balanceOf(client, userId)) }, fresh: true };
   });
 }

@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { Router, type Response } from "express";
 import type { Server } from "socket.io";
 import { z } from "zod";
-import { registerRequestSchema, type ClientToServerEvents, type ServerToClientEvents } from "@opencasino/contracts";
+import { LEGAL_VERSION, registerRequestSchema, type ClientToServerEvents, type ServerToClientEvents } from "@opencasino/contracts";
 import { config } from "../config.js";
 import { pool } from "../database/pool.js";
 import { asyncHandler } from "../http/async-handler.js";
@@ -64,13 +64,19 @@ function allow(key: string, limit: number, windowMs = 60_000): boolean {
   return current.count <= limit;
 }
 
+/** 동의 항목이 빠졌으면 그걸 알려 주고, 나머지는 입력 확인 안내. */
+const registerError = (error: z.ZodError): string =>
+  error.issues.some((issue) => issue.path[0] === "agreements")
+    ? "만 14세 이상 확인과 이용약관·개인정보 수집 동의가 필요합니다."
+    : "아이디, 닉네임, 비밀번호를 확인해주세요.";
+
 authRouter.post("/register", asyncHandler(async (req, res) => {
   // Before the parse and, crucially, before bcrypt: hashing is pure JS on the event loop, so an
   // unthrottled signup flood does not just fill the approval queue, it stalls every live table's
   // snapshot broadcast while it hashes.
   if (!allow(`register:${req.ip}`, 5)) return res.status(429).json({ message: "가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요." });
   const parsed = registerRequestSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "아이디, 닉네임, 비밀번호를 확인해주세요." });
+  if (!parsed.success) return res.status(400).json({ message: registerError(parsed.error) });
   const { username, nickname, password } = parsed.data;
   const passwordHash = await bcrypt.hash(password, 10);
   const client = await pool.connect();
@@ -78,8 +84,8 @@ authRouter.post("/register", asyncHandler(async (req, res) => {
   try {
     await client.query("BEGIN");
     const inserted = await client.query<{ id: string; created_at: string }>(
-      "INSERT INTO users (username,nickname,password_hash,approved) VALUES ($1,$2,$3,$4) RETURNING id,created_at",
-      [username, nickname, passwordHash, config.autoApproveSignups],
+      "INSERT INTO users (username,nickname,password_hash,approved,consented_at,consent_version) VALUES ($1,$2,$3,$4,now(),$5) RETURNING id,created_at",
+      [username, nickname, passwordHash, config.autoApproveSignups, LEGAL_VERSION],
     );
     created = inserted.rows[0]!;
     await client.query("INSERT INTO wallet_accounts (kind,user_id) VALUES ('user',$1)", [created.id]);
@@ -170,14 +176,14 @@ authRouter.post("/guest", asyncHandler(async (req, res) => {
 authRouter.post("/claim", requireAuth, asyncHandler(async (req, res) => {
   if (!allow(`register:${req.ip}`, 5)) return res.status(429).json({ message: "가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요." });
   const parsed = registerRequestSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "아이디, 닉네임, 비밀번호를 확인해주세요." });
+  if (!parsed.success) return res.status(400).json({ message: registerError(parsed.error) });
   const { username, nickname, password } = parsed.data;
   const passwordHash = await bcrypt.hash(password, 10);
   let row: { id: string; role: "user" | "admin" } | undefined;
   try {
     const updated = await pool.query<{ id: string; role: "user" | "admin" }>(
-      "UPDATE users SET username=$2,nickname=$3,password_hash=$4,is_guest=false WHERE id=$1 AND is_guest RETURNING id,role",
-      [(req as AuthRequest).user.id, username, nickname, passwordHash],
+      "UPDATE users SET username=$2,nickname=$3,password_hash=$4,is_guest=false,consented_at=now(),consent_version=$5 WHERE id=$1 AND is_guest RETURNING id,role",
+      [(req as AuthRequest).user.id, username, nickname, passwordHash, LEGAL_VERSION],
     );
     row = updated.rows[0];
   } catch (error) {

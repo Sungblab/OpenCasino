@@ -6,7 +6,7 @@ describe("RoomRegistry", () => {
   it("broadcasts room chat to exactly the fourteen game channels (one per room manager)", () => {
     const registry = new RoomRegistry({} as AppServer);
     // 선 위의 이름이다 — 바꾸면 해당 게임의 방 채팅이 조용히 끊긴다.
-    expect(registry.chatChannels("r1")).toEqual(["room:r1", "dt-room:r1", "roulette-room:r1", "sicbo-room:r1", "mw-room:r1", "tg-room:r1", "crash-room:r1", "slot-room:r1", "video-poker-room:r1", "pachinko-room:r1", "bj-room:r1", "holdem-room:r1", "sutda-room:r1", "seven_poker-room:r1", "badugi-room:r1", "gostop-room:r1"]);
+    expect(registry.chatChannels("r1")).toEqual(["room:r1", "dt-room:r1", "roulette-room:r1", "sicbo-room:r1", "mw-room:r1", "tg-room:r1", "crash-room:r1", "slot-room:r1", "video-poker-room:r1", "pachinko-room:r1", "hilo-room:r1", "bj-room:r1", "holdem-room:r1", "sutda-room:r1", "seven_poker-room:r1", "badugi-room:r1", "gostop-room:r1"]);
   });
 
   it("answers 'not mine' for an unknown room everywhere the old || / ?? chains did", async () => {

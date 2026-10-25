@@ -142,10 +142,9 @@ export async function createBaccaratStage(host: HTMLElement, sounds: StageSounds
           g.lineWidth = width;
           g.stroke();
         }
-        // 카드 자리(점선)
-        g.setLineDash([0.07 * unit, 0.05 * unit]);
-        g.lineWidth = 2.5;
-        g.strokeStyle = "rgba(233,196,106,.34)";
+        // 카드 자리: 가는 실선(점선은 화면 UI 테두리처럼 보였다 — 실제 테이블 인쇄는 실선이다)
+        g.lineWidth = 2;
+        g.strokeStyle = "rgba(233,196,106,.3)";
         for (const side of ["player", "banker"] as Side[]) {
           for (let index = 0; index < 3; index += 1) {
             const s = slotPos(side, index);
@@ -156,7 +155,6 @@ export async function createBaccaratStage(host: HTMLElement, sounds: StageSounds
             g.stroke();
           }
         }
-        g.setLineDash([]);
         // 두 손 사이 가운데 엠블럼(폰은 세 번째 카드가 가운데 아래로 눕고 자리가 좁아 뺀다).
         if (!layout.compact) paintEmblem(g, px, pz, unit, 0, -0.02, 0.44);
       },

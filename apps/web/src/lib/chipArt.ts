@@ -90,9 +90,9 @@ function drawTop(tier: number, label: string | null, size = 168): HTMLCanvasElem
   return canvas;
 }
 
-/** 칩에 찍는 글자. 1000 단위로 딱 떨어질 때만 K 로 줄인다(1124 는 1.124K 가 아니라 1124). */
-function chipLabel(value: number): string {
-  if (value >= 1000 && value % 1000 === 0) return `${value / 1000}K`;
+/** 칩에 찍는 글자. 100 단위로 딱 떨어질 때만 K 로 줄인다(2500 은 2.5K, 1124 는 1.124K 가 아니라 1124). */
+export function chipLabel(value: number): string {
+  if (value >= 1000 && value % 100 === 0) return `${value / 1000}K`;
   return String(value);
 }
 

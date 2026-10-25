@@ -164,7 +164,8 @@ export function BlackjackRoomPage({ token, onLogout }: { token: string; onLogout
     const phaseKey = `${snapshot.roundId}:${snapshot.room.phase}`;
     if (lastPhaseSoundRef.current === phaseKey) return;
     lastPhaseSoundRef.current = phaseKey;
-    playSound(snapshot.room.phase === "BETTING" ? "chip" : "deal");
+    // 라이트닝 테이블은 베팅이 닫히는 순간 배수판에 번개가 친다.
+    playSound(snapshot.room.phase === "BETTING" ? "chip" : snapshot.lightningBoard ? "lightning" : "deal");
   }, [snapshot?.roundId, snapshot?.room.phase]);
 
   // 버스트는 결과 배너보다 먼저 일어나는 순간이라 따로 알린다 — 내 패가 21을 넘을 때,
@@ -191,12 +192,14 @@ export function BlackjackRoomPage({ token, onLogout }: { token: string; onLogout
     const roundId = snapshot.roundId;
     setSettledRound(roundId);
     // 사이드 베팅은 넣지 않는다 — 딜 직후 안내 줄·PP/21+3 칸이 따로 알렸고, 여기 합치면 이긴 핸드에 "패배"가 떴다.
-    const { net, staked, settled, blackjack } = blackjackRoundNet(snapshot);
+    const { net, staked, settled, blackjack, won, pushed } = blackjackRoundNet(snapshot);
     if (!settled) return;
+    const winning = net > 0 || (won && net === 0);
+    const losing = net < 0 && !pushed;
     // 승리는 돌려받는 전체(원금 포함)를 보여 준다. 50코인 걸어 이기면 "+50" 이 아니라 "+100".
-    stage.current?.showMine({ net, amount: net > 0 ? staked + net : net, title: blackjack ? "블랙잭!" : net > 0 ? "승리했습니다" : net < 0 ? "아쉽게 패배했습니다" : "푸시 · 베팅금 반환" });
-    if (net > 0) { playSound(blackjack ? "blackjack" : "win"); celebrateWin(net); }
-    else if (net < 0) playSound("lose");
+    stage.current?.showMine({ net, amount: winning ? staked + net : net, title: blackjack ? "블랙잭!" : winning ? "승리했습니다" : losing ? "아쉽게 패배했습니다" : "푸시 · 베팅금 반환" });
+    if (winning) { playSound(blackjack ? "blackjack" : "win"); celebrateWin(net); }
+    else if (losing) playSound("lose");
     else playSound("push");
   }, [snapshot, resultReady, settledRound, later]);
 
@@ -265,7 +268,9 @@ export function BlackjackRoomPage({ token, onLogout }: { token: string; onLogout
       occupied: snapshot.seats.map((seat) => Boolean(seat.userId)),
       mySeat: snapshot.mySeat,
       activeHandId: snapshot.activeHandId,
-      lightning: snapshot.room.gameType === "lightning_blackjack" ? { active: snapshot.activeLightningMultiplier ?? null, next: snapshot.nextLightningMultiplier ?? null } : null,
+      lightning: snapshot.room.gameType === "lightning_blackjack"
+        ? { active: snapshot.activeLightningMultiplier ?? null, next: snapshot.nextLightningMultiplier ?? null, board: snapshot.lightningBoard ?? null }
+        : null,
     };
   }, [snapshot]);
 

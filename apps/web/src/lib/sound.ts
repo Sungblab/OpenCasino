@@ -117,7 +117,7 @@ const SOUND_FILES = {
   big: "/sounds/big.mp3",
   triple: "/sounds/triple.mp3",
 
-  // ── 슬롯 (docs/research/slots/B-slot-ux.md G 목록, 길이도 그 표 그대로) ─────────
+  // ── 슬롯 ─────────
   // BigWin · FsSummary 는 Pixabay 로열티 프리 징글(floraphonic "You Win Sequence" 1·2)에 코인 쏟아짐
   // ("Slot Machine Coin Payout 1")을 섞은 것, 나머지는 ffmpeg 합성(C장조 종소리 — 등급이 오를수록 높고 촘촘하다).
   // ReturnLow 는 일부러 낮고 둔한 "툴" 하나 — 베팅 이하 당첨을 승리처럼 들리게 하지 않는다(문서 A14/D).
@@ -200,7 +200,7 @@ export const COMMON_SOUNDS: readonly SoundName[] = ["chip", "deal", "win", "lose
 export const GAME_SOUNDS = {
   baccarat: ["player", "banker", "tie", "natural", "lightning"],
   dragonTiger: ["dragon", "tiger", "tie", "suitedTie"],
-  blackjack: ["blackjack", "bust", "dealerBust", "push", "double", "split", "surrender", "insurance"],
+  blackjack: ["blackjack", "bust", "dealerBust", "push", "double", "split", "surrender", "insurance", "lightning"],
   holdem: ["fold", "allin", "check", "call", "raise", "royalFlush", "straightFlush", "fourOfAKind", "fullHouse", "flush", "straight", "threeOfAKind", "twoPair", "onePair", "highCard"],
   badugi: ["fold", "allin", "check", "call", "raise"],
   sutda: ["fold", "allin", "check", "call", "redeal", "s38Gwangddaeng", "gwangddaeng", "jangddaeng", "ddaeng", "ali", "doksa", "gubbing", "jangbbing", "jangsa", "seryuk", "gabo", "mangtong", "ambassador", "ddaengCatcher", "gusa", "mungu"],
@@ -535,10 +535,10 @@ export function playPegTick(row: number): void {
    무시해서 요소 볼륨으로는 원래 크기 그대로 나온다. 전체 소리 끄기(muted)와 별도로 배경 음악만 끌 수 있다. */
 
 export type BgmTrack = "lounge" | "groove";
-/** 곡 묶음마다 두 곡을 번갈아 튼다 — 2분짜리 한 곡만 돌리면 금방 귀에 걸린다. */
+/** 곡 묶음마다 여러 곡을 돌아가며 튼다 — 2분짜리 한 곡만 돌리면 금방 귀에 걸린다. */
 const BGM_FILES: Record<BgmTrack, readonly string[]> = {
-  lounge: ["/sounds/bgm/lounge-1.mp3", "/sounds/bgm/lounge-2.mp3"],
-  groove: ["/sounds/bgm/groove-1.mp3", "/sounds/bgm/groove-2.mp3"],
+  lounge: ["/sounds/bgm/lounge-1.mp3", "/sounds/bgm/lounge-2.mp3", "/sounds/bgm/lounge-3.mp3", "/sounds/bgm/lounge-4.mp3"],
+  groove: ["/sounds/bgm/groove-1.mp3", "/sounds/bgm/groove-2.mp3", "/sounds/bgm/groove-3.mp3", "/sounds/bgm/groove-4.mp3"],
 };
 const BGM_KEY = "opencasino.bgm";
 const BGM_LEVEL = 0.2;

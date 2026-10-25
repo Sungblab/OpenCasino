@@ -29,7 +29,8 @@ const DESKTOP: Row[] = [
 ];
 
 const PHONE: Row[] = [
-  { height: 1.15, cells: [["small", 1], ["odd", 1], ["trany", 1.2], ["even", 1], ["big", 1]] },
+  // 윗줄은 이름·범위·배당 세 줄이라 다른 줄보다 높게 — 1.15 면 짧은 폰(보이는 높이 550px 안팎)에서 SMALL·BIG 글자가 잘렸다.
+  { height: 1.3, cells: [["small", 1], ["odd", 1], ["trany", 1.2], ["even", 1], ["big", 1]] },
   { height: 1, cells: one(range("t", 4, 10)) },
   { height: 1, cells: one(range("t", 11, 17)) },
   { height: 1, cells: one(range("d", 1, 6)) },

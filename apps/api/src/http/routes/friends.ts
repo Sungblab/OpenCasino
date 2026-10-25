@@ -1,7 +1,7 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { friendRequestCreateSchema } from "@opencasino/contracts";
-import { requireAdmin, requireAuth, requireMember, type AuthRequest } from "../../auth/auth.js";
+import { requireAuth, requireMember, type AuthRequest } from "../../auth/auth.js";
 import { friendService } from "../../friends/friend-service.js";
 import { HTTP_LIMITS } from "../../rate-limit/limits.js";
 import { domainHandler } from "../domain-response.js";
@@ -19,7 +19,7 @@ const actionSchema = z.enum(["accept", "reject", "cancel", "remove", "unblock"])
 
 /**
  * 친구와 1:1 메시지. 메시지 보내기는 소켓(sockets/handlers/chat.ts 의 dm.send)이 맡고, 여기는 목록·요청·관계 바꾸기·
- * 지난 메시지·읽음 표시, 그리고 관리자 열람. 관계가 바뀌면 두 사람 모두에게 friends.changed 를 보낸다.
+ * 지난 메시지·읽음 표시. 1:1 메시지는 당사자만 읽는다(관리자 열람 없음). 관계가 바뀌면 두 사람 모두에게 friends.changed 를 보낸다.
  */
 export function friendRoutes({ io }: RouteDeps): Router {
   const router = Router();
@@ -81,24 +81,6 @@ export function friendRoutes({ io }: RouteDeps): Router {
     // 같은 계정의 다른 탭도 안 읽음 배지를 맞춘다.
     changed(me);
     res.json({ status: "read" });
-  }));
-
-  // ── 관리자 열람 ──────────────────────────────────────────────────────────────
-
-  router.get("/api/v1/admin/dm/conversations", requireAuth, requireAdmin, domainHandler(async (req, res) => {
-    const q = typeof req.query.q === "string" && req.query.q.trim() ? searchSchema.safeParse(req.query.q) : null;
-    if (q && !q.success) return badRequest(res, "닉네임을 1~20자로 입력해주세요.");
-    res.json({ items: await friendService.adminConversations(q?.data) });
-  }));
-
-  router.get("/api/v1/admin/dm/conversations/:userA/:userB/messages", requireAuth, requireAdmin, domainHandler(async (req, res) => {
-    const a = userParam(req.params.userA);
-    const b = userParam(req.params.userB);
-    const before = beforeSchema.safeParse(req.query.before);
-    if (!a || !b || !before.success) return badRequest(res, "요청 형식이 올바르지 않습니다.");
-    const history = await friendService.adminMessages((req as AuthRequest).user.id, a, b, before.data);
-    if (!history) return void res.status(404).json({ message: "대화를 찾을 수 없습니다." });
-    res.json(history);
   }));
 
   return router;

@@ -1,0 +1,73 @@
+/* 오른쪽 아래 채팅 버튼과 창(components/ChatDock.tsx). 게임방의 테이블 채팅 버튼과 같은 자리·같은 감각 — 로비에서도 "누르면 채팅"이
+   보이게. 창 안의 대화 줄·입력칸은 테이블 채팅(.room-chat-*) 모양을 그대로 쓴다. */
+.chat-dock { position: fixed; right: 20px; bottom: 20px; z-index: 45; display: grid; justify-items: end; gap: 12px; font-family: var(--ui-font); pointer-events: none; }
+.chat-dock > * { pointer-events: auto; }
+
+.chat-dock-button { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 20px 0 16px; border: 1px solid var(--gold-line); border-radius: 999px; background: linear-gradient(180deg, #2b2216, #1a140d); box-shadow: 0 8px 22px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 224, 150, .12) inset; color: var(--gold-light); font: 700 14px var(--ui-font); cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.chat-dock-button:hover { transform: translateY(-1px); border-color: var(--gold); box-shadow: 0 10px 26px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 224, 150, .16) inset; }
+.chat-dock-button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.chat-dock.is-open .chat-dock-button { width: 52px; padding: 0; justify-content: center; }
+.chat-dock-badge { position: absolute; top: -6px; right: -4px; min-width: 22px; height: 22px; padding: 0 6px; border: 2px solid #120e09; border-radius: 999px; background: var(--negative); color: #fff; font: 700 12px/18px var(--ui-font); text-align: center; font-variant-numeric: tabular-nums; }
+.chat-dock-dot { position: absolute; top: 4px; right: 6px; width: 10px; height: 10px; border: 2px solid #120e09; border-radius: 50%; background: var(--positive); }
+
+.chat-dock-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; width: min(380px, calc(100vw - 32px)); height: min(560px, calc(100dvh - 120px)); overflow: hidden; border: 1px solid var(--gold-line); border-radius: 14px; background: #120e09; box-shadow: 0 18px 48px rgba(0, 0, 0, .6); }
+.chat-dock-head { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 10px; border-bottom: 1px solid var(--gold-line-soft, var(--line)); }
+.chat-dock-tabs { display: flex; flex: 1; gap: 2px; min-width: 0; }
+.chat-dock-tabs button { position: relative; display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); font: 600 13px var(--ui-font); cursor: pointer; white-space: nowrap; }
+.chat-dock-tabs button:hover { color: var(--text); }
+.chat-dock-tabs button.active { background: var(--panel-raised); color: var(--text); }
+.chat-dock-tabs i { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--negative); color: #fff; font: normal 700 11px/18px var(--ui-font); text-align: center; }
+.chat-dock-close { display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); cursor: pointer; }
+.chat-dock-close:hover { color: var(--text); background: var(--panel-2); }
+.chat-dock-list { min-height: 0; overscroll-behavior: contain; }
+.chat-dock-list .room-chat-author time { margin-left: 6px; color: var(--muted-dim); font-weight: 400; }
+.chat-dock .lobby-chat-guest { margin: 0; padding: 14px 16px; border-top: 1px solid var(--gold-line); color: var(--muted); font-size: 13px; text-align: center; }
+.chat-dock .lobby-chat-guest a, .chat-dock-empty a { color: var(--gold-light); font-weight: 600; }
+
+.chat-dock-scroll { grid-row: 2 / -1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px; }
+.chat-dock-empty { margin: 18px 12px; color: var(--muted); font-size: 13px; line-height: 1.6; text-align: center; }
+.chat-dock-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.chat-dock-row:hover, .chat-dock-row:focus-visible { background: var(--panel-2); }
+.chat-dock-row.is-request { grid-template-columns: 30px minmax(0, 1fr) auto auto; cursor: default; }
+.chat-dock-row.is-request .friends-row-button { min-height: 34px; min-width: 48px; }
+.chat-dock-row-text { display: grid; min-width: 0; }
+.chat-dock-row-text strong, .chat-dock-row-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-dock-row-text strong { color: var(--text); font-size: 13.5px; }
+.chat-dock-row-text small { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.friends-avatar.is-support { border-color: var(--gold-line); background: var(--gold-wash); color: var(--gold-light); }
+.chat-dock-more { display: block; width: calc(100% - 12px); margin: 8px 6px 4px; min-height: 40px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: transparent; color: var(--text); font: 600 13px var(--ui-font); cursor: pointer; }
+.chat-dock-more:hover { border-color: var(--gold-line); color: var(--gold-light); }
+
+.chat-dock-notices { display: grid; gap: 6px; margin: 0; padding: 4px; list-style: none; }
+.chat-dock-notices li { padding: 12px 12px 11px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .02); }
+.chat-dock-notices li.is-pinned { border-color: var(--gold-line); background: var(--gold-wash); }
+.chat-dock-notices small { display: flex; gap: 6px; color: var(--muted); font-size: 11.5px; }
+.chat-dock-notices small b { color: var(--gold-light); }
+.chat-dock-notices p { margin: 6px 0 0; color: var(--text); font-size: 13px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* 채팅 버튼 위로 올라오는 토스트(친구 메시지 등)가 버튼과 겹치지 않게. */
+body.has-chat-dock .toast-region.is-corner { bottom: 88px; }
+/* 창이 열려 있으면 그 왼쪽으로(창 아래쪽을 덮지 않게). */
+body.chat-dock-open .toast-region.is-corner { right: calc(min(380px, 100vw - 32px) + 32px); }
+
+@media (max-width: 720px) {
+  /* 폰은 아래 탭 줄 바로 위. 버튼은 동그라미만(글자는 뺀다). */
+  .chat-dock { right: 14px; bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .chat-dock-button { width: 52px; padding: 0; justify-content: center; }
+  .chat-dock-label { display: none; }
+  body.has-chat-dock .toast-region.is-corner { bottom: calc(140px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 620px) {
+  /* 창은 아래 시트 — 화면 폭 전체, 탭 줄 위까지. */
+  .chat-dock.is-open { left: 0; right: 0; bottom: 0; justify-items: stretch; gap: 0; }
+  .chat-dock.is-open .chat-dock-button { display: none; }
+  .chat-dock-panel { width: 100%; height: min(78dvh, 620px); border-radius: 16px 16px 0 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom); }
+  body.chat-dock-open .toast-region.is-corner { right: 10px; bottom: calc(min(78dvh, 620px) + 10px); }
+}
+
+/* 로비 맨 위 공지 띠(components/NoticeBanner.tsx). */
+.notice-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 8px 10px 14px; border: 1px solid var(--gold-line); border-radius: 10px; background: linear-gradient(90deg, rgba(240, 180, 28, .12), rgba(240, 180, 28, .04)); color: var(--gold-light); font-family: var(--ui-font); }
+.notice-banner p { margin: 0; overflow: hidden; color: var(--text); font-size: 13.5px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.notice-banner p b { margin-right: 8px; color: var(--gold-light); font-weight: 700; }
+.notice-banner button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); cursor: pointer; }
+.notice-banner button:hover { color: var(--text); background: rgba(255, 255, 255, .06); }

@@ -1,50 +1,38 @@
 import { Router } from "express";
 import { z } from "zod";
-import { gameTypeSchema, type GameType, type TableTier } from "@opencasino/contracts";
+import { ADMIN_STATS_DAYS, gameTypeSchema, type AdminStatsResponse, type AdminStatsTotals, type GameType, type TableTier } from "@opencasino/contracts";
 import { requireAdmin, requireAuth } from "../../auth/auth.js";
 import { pool } from "../../database/pool.js";
+import { kstDayStart } from "../../ops/kst-periods.js";
 import { asyncHandler } from "../async-handler.js";
 import { ALL_BETS_CTE, fetchGameHistoryPage, parseHistoryPage } from "../game-history-queries.js";
 import { coins, type RouteDeps } from "../route-deps.js";
+
+const DAY_MS = 86_400_000;
+
+/** since 부터 지금까지의 합계(봇 제외). players 는 기간 안의 서로 다른 사람 수라 일별 합으로 낼 수 없다. */
+async function queryTotals(since: Date): Promise<AdminStatsTotals> {
+  const result = await pool.query<{ wagered: string; house_profit: string; bets: string; players: string; signups: string }>(
+    `${ALL_BETS_CTE}
+     SELECT COALESCE(SUM(amount_minor),0) AS wagered,
+            COALESCE(SUM(amount_minor - COALESCE(payout_minor,0)),0) AS house_profit,
+            COUNT(*) AS bets, COUNT(DISTINCT user_id) AS players,
+            (SELECT COUNT(*) FROM users WHERE created_at >= $1 AND NOT is_bot AND NOT is_guest) AS signups
+     FROM all_bets WHERE settled_at >= $1`,
+    [since],
+  );
+  const row = result.rows[0]!;
+  return { wagered: coins(row.wagered), houseProfit: coins(row.house_profit), bets: Number(row.bets), players: Number(row.players), signups: Number(row.signups) };
+}
 
 /** 관리자 대시보드 숫자와 게임 기록 조회. */
 export function adminReportRoutes({ rooms }: RouteDeps): Router {
   const router = Router();
 
   router.get("/api/v1/admin/overview", requireAuth, requireAdmin, asyncHandler(async (_req, res) => {
-    const [roomRows, userRows, roundRows, supportRows, botRows, botWindowRows, houseTotalsRows, houseByGameRows, trendRows] = await Promise.all([
+    const [roomRows, roundRows, supportRows, botRows, botWindowRows, houseTotalsRows, todayRows] = await Promise.all([
       pool.query<{ id: string; game_type: GameType; code: string; name: string; min_bet: number; max_bet: number; enabled: boolean; tier: TableTier }>(
         "SELECT id,game_type,code,name,min_bet,max_bet,enabled,tier FROM game_rooms WHERE game_type <> 'casino_holdem' ORDER BY min_bet,game_type",
-      ),
-      pool.query<{
-        id: string;
-        username: string;
-        role: "user" | "admin";
-        approved: boolean;
-        created_at: string;
-        balance_minor: string;
-        total_bets: string;
-        total_wagered: string;
-        wins: string;
-        losses: string;
-      }>(
-        `${ALL_BETS_CTE}
-         SELECT u.id,u.username,u.role,u.approved,u.created_at,
-                COALESCE(wa.balance_minor,0) AS balance_minor,
-                COALESCE(stats.total_bets,0) AS total_bets,
-                COALESCE(stats.total_wagered,0) AS total_wagered,
-                COALESCE(stats.wins,0) AS wins,
-                COALESCE(stats.losses,0) AS losses
-         FROM users u
-         LEFT JOIN wallet_accounts wa ON wa.kind='user' AND wa.user_id=u.id
-         LEFT JOIN (
-           SELECT user_id,COUNT(*) AS total_bets,SUM(amount_minor) AS total_wagered,
-                  COUNT(*) FILTER (WHERE outcome='win') AS wins,
-                  COUNT(*) FILTER (WHERE outcome='lose') AS losses
-           FROM all_bets GROUP BY user_id
-         ) stats ON stats.user_id=u.id
-         WHERE u.deleted_at IS NULL AND NOT u.is_bot
-         ORDER BY u.created_at DESC LIMIT 200`,
       ),
       pool.query<{ total_rounds: string; player_rounds: string; banker_rounds: string; tie_rounds: string }>(
         `SELECT COUNT(*) AS total_rounds,
@@ -91,24 +79,8 @@ export function adminReportRoutes({ rooms }: RouteDeps): Router {
                 COUNT(DISTINCT user_id) AS active_bettors
          FROM all_bets`,
       ),
-      pool.query<{ game_type: GameType; total_wagered: string; house_profit: string; settled_bets: string }>(
-        `${ALL_BETS_CTE}
-         SELECT gr.game_type,
-                COALESCE(SUM(ab.amount_minor),0) AS total_wagered,
-                COALESCE(SUM(ab.amount_minor - COALESCE(ab.payout_minor,0)),0) AS house_profit,
-                COUNT(*) AS settled_bets
-         FROM all_bets ab JOIN game_rooms gr ON gr.id=ab.room_id
-         GROUP BY gr.game_type ORDER BY total_wagered DESC`,
-      ),
-      pool.query<{ day: string; bets: string; wagered: string; house_profit: string }>(
-        `${ALL_BETS_CTE}
-         SELECT to_char(date_trunc('day', settled_at), 'YYYY-MM-DD') AS day,
-                COUNT(*) AS bets,
-                COALESCE(SUM(amount_minor),0) AS wagered,
-                COALESCE(SUM(amount_minor - COALESCE(payout_minor,0)),0) AS house_profit
-         FROM all_bets WHERE settled_at >= now() - interval '7 days'
-         GROUP BY 1 ORDER BY 1`,
-      ),
+      // 오늘(한국 시간) — 맨 윗줄 숫자.
+      queryTotals(kstDayStart(new Date())),
     ]);
 
     const liveRooms = new Map(rooms.listRooms().map((room) => [room.id, room]));
@@ -131,18 +103,6 @@ export function adminReportRoutes({ rooms }: RouteDeps): Router {
     const house = houseTotalsRows.rows[0]!;
     res.json({
       rooms: adminRooms,
-      users: userRows.rows.map((user) => ({
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        approved: user.approved,
-        createdAt: user.created_at,
-        balance: coins(user.balance_minor),
-        totalBets: Number(user.total_bets),
-        totalWagered: coins(user.total_wagered),
-        wins: Number(user.wins),
-        losses: Number(user.losses),
-      })),
       house: {
         totalWagered: coins(house.total_wagered),
         houseProfit: coins(house.house_profit),
@@ -162,20 +122,57 @@ export function adminReportRoutes({ rooms }: RouteDeps): Router {
         netToday: coins(botWindowRows.rows[0]?.today ?? 0),
         netWeek: coins(botWindowRows.rows[0]?.week ?? 0),
       },
-      houseByGame: houseByGameRows.rows.map((row) => ({
-        game: row.game_type,
-        totalWagered: coins(row.total_wagered),
-        houseProfit: coins(row.house_profit),
-        settledBets: Number(row.settled_bets),
-      })),
-      recentTrend: trendRows.rows.map((row) => ({
-        date: row.day,
-        bets: Number(row.bets),
-        wagered: coins(row.wagered),
-        houseProfit: coins(row.house_profit),
-      })),
+      today: todayRows,
       openSupportConversations: Number(supportRows.rows[0]?.count ?? 0),
     });
+  }));
+
+  /** 통계 화면: 최근 N일(한국 시간 날짜 단위)의 합계·일별·게임별. 빈 날도 0 으로 채워 막대가 날짜에 맞게 선다. */
+  router.get("/api/v1/admin/stats", requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    const days = ADMIN_STATS_DAYS.find((value) => value === Number(req.query.days)) ?? 7;
+    const since = new Date(kstDayStart(new Date()).getTime() - (days - 1) * DAY_MS);
+    const [totals, daily, byGame] = await Promise.all([
+      queryTotals(since),
+      pool.query<{ date: string; wagered: string; house_profit: string; bets: string; players: string; signups: string }>(
+        `${ALL_BETS_CTE},
+         days AS (
+           SELECT generate_series(($1::timestamptz AT TIME ZONE 'Asia/Seoul')::date, (now() AT TIME ZONE 'Asia/Seoul')::date, interval '1 day')::date AS day
+         ),
+         played AS (
+           SELECT (settled_at AT TIME ZONE 'Asia/Seoul')::date AS day, SUM(amount_minor) AS wagered,
+                  SUM(amount_minor - COALESCE(payout_minor,0)) AS house_profit, COUNT(*) AS bets, COUNT(DISTINCT user_id) AS players
+           FROM all_bets WHERE settled_at >= $1 GROUP BY 1
+         ),
+         joined AS (
+           SELECT (created_at AT TIME ZONE 'Asia/Seoul')::date AS day, COUNT(*) AS signups
+           FROM users WHERE created_at >= $1 AND NOT is_bot AND NOT is_guest GROUP BY 1
+         )
+         SELECT to_char(days.day, 'YYYY-MM-DD') AS date, COALESCE(played.wagered,0) AS wagered, COALESCE(played.house_profit,0) AS house_profit,
+                COALESCE(played.bets,0) AS bets, COALESCE(played.players,0) AS players, COALESCE(joined.signups,0) AS signups
+         FROM days LEFT JOIN played USING (day) LEFT JOIN joined USING (day) ORDER BY days.day`,
+        [since],
+      ),
+      pool.query<{ game_type: GameType; wagered: string; house_profit: string; bets: string; players: string }>(
+        `${ALL_BETS_CTE}
+         SELECT gr.game_type, SUM(ab.amount_minor) AS wagered, SUM(ab.amount_minor - COALESCE(ab.payout_minor,0)) AS house_profit,
+                COUNT(*) AS bets, COUNT(DISTINCT ab.user_id) AS players
+         FROM all_bets ab JOIN game_rooms gr ON gr.id=ab.room_id
+         WHERE ab.settled_at >= $1 GROUP BY gr.game_type ORDER BY wagered DESC`,
+        [since],
+      ),
+    ]);
+    const body: AdminStatsResponse = {
+      days,
+      totals,
+      daily: daily.rows.map((row) => ({
+        date: row.date, wagered: coins(row.wagered), houseProfit: coins(row.house_profit),
+        bets: Number(row.bets), players: Number(row.players), signups: Number(row.signups),
+      })),
+      byGame: byGame.rows.map((row) => ({
+        game: row.game_type, wagered: coins(row.wagered), houseProfit: coins(row.house_profit), bets: Number(row.bets), players: Number(row.players),
+      })),
+    };
+    res.json(body);
   }));
 
   /** Every settled bet across every user, filterable by game type and/or room - the console's

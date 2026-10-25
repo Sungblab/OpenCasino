@@ -2,7 +2,7 @@ import { Application, Container, Graphics, PerspectiveMesh, Sprite, Text, Textur
 import type { Card } from "@opencasino/contracts";
 import { cardBackUrl, cardFaceUrl } from "../../components/CardFace";
 import { msUntil } from "../../lib/serverClock";
-import { COMPACT_W, fitStage, flipCorners } from "./layout";
+import { COMPACT_W, fitStage, flipCorners, KR_FONT, NUM_FONT } from "./layout";
 import { bakeFelt } from "./feltBake";
 
 /**
@@ -21,8 +21,7 @@ export const CW = 76;
 export const CH = 106;
 const TEX_W = 264;
 const TEX_H = 370;
-export const NUM_FONT = 'Poppins, "Noto Sans KR", sans-serif';
-export const KR_FONT = '"Noto Sans KR", Poppins, sans-serif';
+export { KR_FONT, NUM_FONT } from "./layout";
 
 export interface StageSounds {
   deal?: () => void;
@@ -407,8 +406,8 @@ function drawTray(): HTMLCanvasElement {
  */
 const SHADOW_PAD = 16;
 const shadowTextures = new Map<string, Texture>();
-function softShadow(w: number, h: number): Texture {
-  const key = `${w}x${h}`;
+function softShadow(w: number, h: number, r = 7): Texture {
+  const key = `${w}x${h}r${r}`;
   let texture = shadowTextures.get(key);
   if (!texture) {
     const res = 2;
@@ -422,7 +421,7 @@ function softShadow(w: number, h: number): Texture {
     x.shadowColor = "rgba(0,0,0,.62)";
     x.shadowBlur = 9 * res;
     x.shadowOffsetX = far * res;
-    roundRectPath(x, SHADOW_PAD - far, SHADOW_PAD, w, h, 7);
+    roundRectPath(x, SHADOW_PAD - far, SHADOW_PAD, w, h, r);
     x.fillStyle = "#000";
     x.fill();
     texture = Texture.from(canvas);
@@ -437,8 +436,8 @@ function softShadow(w: number, h: number): Texture {
  */
 const SHEEN_FRAMES = 12;
 const sheenTextures = new Map<string, Texture[]>();
-function sheenFrames(w: number, h: number): Texture[] {
-  const key = `${w}x${h}`;
+function sheenFrames(w: number, h: number, r = Math.min(w, h) * 0.08): Texture[] {
+  const key = `${w}x${h}r${r}`;
   let frames = sheenTextures.get(key);
   if (!frames) {
     const res = 2;
@@ -449,7 +448,7 @@ function sheenFrames(w: number, h: number): Texture[] {
       canvas.height = Math.ceil(h * res);
       const x = canvas.getContext("2d")!;
       x.scale(res, res);
-      roundRectPath(x, 0, 0, w, h, Math.min(w, h) * 0.08);
+      roundRectPath(x, 0, 0, w, h, r);
       x.clip();
       // 왼쪽 위 → 오른쪽 아래로 지나가는 띠. 띠 중심이 카드 밖에서 들어와 밖으로 나간다.
       const t = -0.25 + (1.5 * i) / (SHEEN_FRAMES - 1);
@@ -474,8 +473,8 @@ function sheenFrames(w: number, h: number): Texture[] {
 
 /** 두꺼운 패(화투)의 옆면: 카드 모양 그대로 어두운 판 한 장을 아래로 비켜 깐다. */
 const edgeTextures = new Map<string, Texture>();
-function edgeTexture(w: number, h: number): Texture {
-  const key = `${w}x${h}`;
+function edgeTexture(w: number, h: number, r = Math.min(w, h) * 0.1): Texture {
+  const key = `${w}x${h}r${r}`;
   let texture = edgeTextures.get(key);
   if (!texture) {
     const res = 2;
@@ -484,7 +483,7 @@ function edgeTexture(w: number, h: number): Texture {
     canvas.height = Math.ceil(h * res);
     const x = canvas.getContext("2d")!;
     x.scale(res, res);
-    roundRectPath(x, 0, 0, w, h, Math.min(w, h) * 0.1);
+    roundRectPath(x, 0, 0, w, h, r);
     x.fillStyle = "#1c0a08";
     x.fill();
     texture = Texture.from(canvas);
@@ -507,6 +506,8 @@ export interface CardDeps {
   thickness?: number;
   /** 카드 크기(설계)와 텍스처 크기. 없으면 트럼프 카드(CW×CH, 텍스처 264×370). 화투는 게임이 넘긴다. */
   size?: { w: number; h: number; texW: number; texH: number };
+  /** 카드 모서리 반지름(설계 px). 그림자·옆면·빛 띠가 앞·뒷면 그림과 같은 모서리를 쓰게 — 화투가 넘긴다. */
+  radius?: number;
 }
 
 /**
@@ -543,7 +544,7 @@ export class CardView<C = Card> extends Container {
     const { w, h } = deps.size ?? { w: CW, h: CH };
     this.w = w;
     this.h = h;
-    this.shadow = new Sprite(softShadow(w, h));
+    this.shadow = new Sprite(softShadow(w, h, deps.radius));
     this.shadow.anchor.set(0.5);
     this.shadow.width = w + SHADOW_PAD * 2;
     this.shadow.height = h + SHADOW_PAD * 2;
@@ -552,7 +553,7 @@ export class CardView<C = Card> extends Container {
     this.face = cardMesh(faceTex ?? Texture.EMPTY);
     this.face.visible = false;
     if (deps.thickness) {
-      this.edge = cardMesh(edgeTexture(w, h));
+      this.edge = cardMesh(edgeTexture(w, h, deps.radius));
       this.body.addChild(this.edge);
     }
     this.body.addChild(this.back, this.face);
@@ -573,7 +574,7 @@ export class CardView<C = Card> extends Container {
       if (this.sheen) this.sheen.visible = false;
       return;
     }
-    const frames = sheenFrames(this.w, this.h);
+    const frames = sheenFrames(this.w, this.h, this.deps.radius);
     if (!this.sheen) {
       this.sheen = cardMesh(frames[0]!);
       this.sheen.blendMode = "add";

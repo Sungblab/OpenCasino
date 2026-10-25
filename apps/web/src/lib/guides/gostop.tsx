@@ -1,4 +1,4 @@
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, startSection, type GameGuideContent } from "../../components/GameGuide";
 
 /** 족보 표 — score.ts 의 scorePile 과 같은 숫자. 카드 그림 없이 이름·조건·점수만 (섯다처럼
  *  고정된 조합이 아니라 "몇 장 모았나"로 정해지는 숫자라 카드 랭킹 리스트 형태가 안 맞는다). */
@@ -39,6 +39,7 @@ export const gostopGuide: GameGuideContent = {
   title: "고스톱",
   intro: "화투 패를 내고 바닥과 맞춰 먹으면서 광·열끗·띠·피를 모으는 게임. 정해진 점수에 먼저 닿은 사람이 고(더 모으기) 또는 스톱(정산)을 고릅니다.",
   sections: [
+    startSection({ steps: [{ title: "앉고 준비 완료", body: "빈 자리를 눌러 앉고 준비 완료를 눌러요." }, { title: "한 장 내서 바닥과 맞추기", body: "내 패 한 장을 내서 바닥의 같은 월(같은 그림) 패와 맞추면 먹어요. 이어서 더미에서 한 장이 뒤집혀요." }, { title: "점수가 나면 고 또는 스톱", body: "먹은 패로 점수가 나면 스톱(지금 정산) 또는 고(더 모으기)를 골라요." }], tip: "처음엔 점수가 나면 바로 스톱해서 이긴 판을 확정해 보세요. 고를 하면 더 벌 수 있지만, 그 뒤에 상대가 나면 크게 잃어요." }),
     {
       id: "rankings",
       title: "점수표",

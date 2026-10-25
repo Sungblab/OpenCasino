@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 328">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 346">
   <!-- Traditional hwatu back: deep red with a dense quilted lattice of concave
-       diamonds, a dot in each petal, gold pins at the lattice crossings. -->
+       diamonds, a dot in each petal, gold pins at the lattice crossings.
+       212×346 = the face art's 250×408 ratio, so the lattice isn't stretched on the card. -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0.7" y2="1">
       <stop offset="0" stop-color="#c2181f"/>
@@ -24,7 +25,10 @@
       <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
     </radialGradient>
   </defs>
-  <rect width="212" height="328" fill="url(#bg)"/>
-  <rect width="212" height="328" fill="url(#lattice)"/>
-  <rect width="212" height="328" fill="url(#sheen)"/>
+  <rect width="212" height="346" fill="url(#bg)"/>
+  <rect width="212" height="346" fill="url(#lattice)"/>
+  <rect width="212" height="346" fill="url(#sheen)"/>
+  <!-- Pale bevel just inside the edge (card corner = 9.4% of the width, like the faces) so
+       overlapping backs in a hand still read as separate cards. -->
+  <rect x="4" y="4" width="204" height="338" rx="16" fill="none" stroke="#ffc9b8" stroke-opacity="0.3" stroke-width="2.4"/>
 </svg>

@@ -22,6 +22,10 @@ export interface StageFit {
  *  세로 폰 390·가로 폰 440 안팎. 캔버스 위 DOM(블랙잭 좌석)도 같은 값으로 설계를 골라야 어긋나지 않는다. */
 export const COMPACT_W = 560;
 
+/** 캔버스 숫자·한글 글꼴. 3D(three.js) 컨트롤러도 쓰므로 Pixi 가 없는 여기 둔다 — core 에서 가져오면 Pixi 가 딸려 온다. */
+export const NUM_FONT = 'Poppins, "Noto Sans KR", sans-serif';
+export const KR_FONT = '"Noto Sans KR", Poppins, sans-serif';
+
 export function fitStage(width: number, height: number, minW: number, designH: number): StageFit {
   if (width <= 0 || height <= 0) return { scale: 1, designW: minW, x: 0, y: 0 };
   const scale = Math.min(width / minW, height / designH);

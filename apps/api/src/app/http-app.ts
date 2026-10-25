@@ -15,6 +15,7 @@ import { friendRoutes } from "../http/routes/friends.js";
 import { handRoutes } from "../http/routes/hands.js";
 import { lobbyRoutes } from "../http/routes/lobby.js";
 import { metaRoutes } from "../http/routes/meta.js";
+import { noticeRoutes } from "../http/routes/notices.js";
 import { profileRoutes } from "../http/routes/profile.js";
 import { roomRoutes } from "../http/routes/rooms.js";
 import { supportRoutes } from "../http/routes/support.js";
@@ -48,6 +49,7 @@ export function configureHttpApp(app: Express, deps: RouteDeps & { tracker: Work
   app.use(profileRoutes(deps));
   app.use(handRoutes(deps));
   app.use(metaRoutes(deps));
+  app.use(noticeRoutes(deps));
   app.use(walletRoutes(deps));
   app.use(roomRoutes(deps));
   app.use(supportRoutes(deps));

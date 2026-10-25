@@ -2,7 +2,7 @@ import type { SlotRoundResult, SlotSpinOutcome } from "@opencasino/contracts";
 import { secureRandomInt, type RandomInt } from "./lightning.js";
 
 /**
- * 5릴 × 3줄 243웨이 "황금 드래곤". 수학은 docs/research/slots/D-new-machines.md.
+ * 5릴 × 3줄 243웨이 "황금 드래곤". 수학은 packages/game-core 의 테스트가 고정한다.
  *
  * 웨이: 왼쪽 릴부터 이웃한 릴마다 같은 심볼(또는 WILD)이 창 어디에든 있으면 이어진다. 당첨 = 배당 × 단위 ×
  * (릴마다 맞는 칸 수의 곱). WILD 는 릴 2~4 에만 있어 첫 릴은 늘 진짜 심볼이다(WILD 만의 배당이 없다).

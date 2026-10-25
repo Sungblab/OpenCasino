@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { SUTDA_RANKINGS, SUTDA_SPECIALS, SUTDA_TIER_LABEL, type SutdaRankingRow, type SutdaTier } from "@opencasino/game-core/sutda";
-import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, type GameGuideContent } from "../../components/GameGuide";
+import { GuideActions, GuideHeading, GuideNote, GuideSteps, GuideTerms, startSection, type GameGuideContent } from "../../components/GameGuide";
 import { HwatuCard } from "../../components/HwatuCard";
 
 const TIER_ORDER: SutdaTier[] = ["gwangddaeng", "ddaeng", "named", "gabo", "kkeut", "mangtong"];
@@ -95,6 +95,7 @@ export const sutdaGuide: GameGuideContent = {
   title: "섯다",
   intro: "화투 2장으로 족보를 만들어 겨루는 게임. 족보가 가장 높은 사람이 판돈(팟)을 모두 가져갑니다.",
   sections: [
+    startSection({ steps: [{ title: "앉고 준비 완료", body: "빈 자리를 눌러 앉고 준비 완료를 눌러요. 기본 베팅(삥)은 자동으로 나가요." }, { title: "한 장씩 받으며 베팅", body: "패를 한 장 받고 베팅, 두 번째 장을 받고 한 번 더 베팅해요." }, { title: "족보로 승부", body: "끝까지 남은 사람 중 족보가 가장 높은 사람이 판돈을 가져가요. 패가 약하면 다이(포기)도 좋은 선택이에요." }], tip: <>먼저 <Link to="/learn/sutda">연습 판</Link>을 쳐 보세요(코인이 오가지 않아요). 족보표 탭에서 땡(같은 월 두 장)과 끗(두 장 합의 끝자리)만 먼저 보면 충분해요.</> }),
     {
       id: "rankings",
       title: "족보표",

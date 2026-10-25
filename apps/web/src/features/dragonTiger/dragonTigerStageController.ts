@@ -89,9 +89,8 @@ export async function createDragonTigerStage(host: HTMLElement, sounds: StageSou
           g.stroke();
         }
         // 카드 자리와 가운데 VS(배당은 베팅 칸에 있다).
-        g.setLineDash([0.07 * unit, 0.05 * unit]);
-        g.lineWidth = 2.5;
-        g.strokeStyle = "rgba(233,196,106,.34)";
+        g.lineWidth = 2;
+        g.strokeStyle = "rgba(233,196,106,.3)";
         for (const side of ["dragon", "tiger"] as Side[]) {
           const s = slotPos(side);
           const w = CARD_W * layout.scale + 0.08, d = CARD_H * layout.scale + 0.08;
@@ -99,7 +98,6 @@ export async function createDragonTigerStage(host: HTMLElement, sounds: StageSou
           g.roundRect(px(s.x - w / 2), pz(s.z - d / 2), w * unit, d * unit, 0.06 * unit);
           g.stroke();
         }
-        g.setLineDash([]);
         g.fillStyle = "rgba(240,180,28,.32)";
         g.font = `700 ${0.38 * unit}px ${DISPLAY_FONT}`;
         g.textAlign = "center";

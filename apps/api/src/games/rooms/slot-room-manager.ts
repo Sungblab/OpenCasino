@@ -165,7 +165,6 @@ async function settleSpin(userId: string, roomId: string, command: SlotSpinComma
       [spinId, command.requestId, roomId, userId, bet, payout, outcome, round.free.length, machine.rulesVersion, JSON.stringify(round)],
     );
     // 슬롯엔 맞베팅이 없어 베팅 전액이 위험을 진 돈이다.
-
     const balance = await client.query<{ balance_minor: string }>("SELECT balance_minor FROM wallet_accounts WHERE kind='user' AND user_id=$1", [userId]);
     await client.query("COMMIT");
     const balanceMinor = toBalance(balance.rows[0]?.balance_minor);

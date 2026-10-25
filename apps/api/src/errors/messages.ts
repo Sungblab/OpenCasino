@@ -39,6 +39,7 @@ const MESSAGES: Partial<Record<DomainErrorCode, string>> = {
   NOT_DRAW_TIME: "지금은 바꿀 카드를 고르는 때가 아닙니다.",
   NO_ACTIVE_HAND: "진행 중인 핸드가 없습니다.",
   HAND_IN_PROGRESS: "이미 진행 중인 핸드가 있습니다.",
+  HILO_BASE_CHANGED: "기준 카드가 바뀌었습니다. 새 카드를 보고 다시 골라 주세요.",
   ROOM_PAUSED: "현재 일시정지된 테이블입니다.",
   DOUBLE_NOT_ALLOWED: "카드가 2장일 때만 더블다운할 수 있습니다.",
   SPLIT_NOT_ALLOWED: "같은 가치의 첫 두 장만 최대 4핸드까지 스플릿할 수 있습니다.",

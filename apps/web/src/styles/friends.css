@@ -1,4 +1,4 @@
-/* ── 친구·1:1 메시지: 위 띠 아이콘, 닉네임 메뉴, /friends 화면, 관리자 DM 열람 ─────────────────────
+/* ── 친구·1:1 메시지: 위 띠 아이콘, 닉네임 메뉴, /friends 화면과 친구 창 ─────────────────────
    lib/friends.tsx 가 불러온다(앱 전체가 쓰는 프로바이더라 styles.css 보다 먼저 들어간다). 그래서 styles.css 의
    클래스를 덮지 않고 friends-* · name-menu-* 이름만 쓴다. 재료는 문의 화면(support-card)·관리자 대화 목록과 같다. */
 
@@ -67,26 +67,63 @@
 .friends-chat-dropdown button.is-danger { color: var(--negative); }
 .friends-chat-notice { margin: 0; padding: 6px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font: 12px var(--ui-font); }
 .friends-chat .chat-thread { min-height: 0; }
+.friends-send-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.friends-send-toggle[aria-expanded="true"] { border-color: var(--gold-line); color: var(--gold-light); }
+/* 대화 머리 아래 송금 줄(안내 줄 자리를 잠깐 빌린다). */
+.friends-send { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.friends-send .friends-search-input { flex: 1; min-width: 0; }
+.friends-send-question { flex: 1; min-width: 0; margin: 0; color: var(--text); font: 500 13px/1.5 var(--ui-font); }
+.friends-send-question b { color: var(--gold-light); font-weight: 700; }
+.friends-send-error { flex-basis: 100%; margin: 0; color: var(--negative); font: 12px var(--ui-font); }
 
 /* 폰: 목록 → 대화 한 화면씩. 대화를 열면 제목 줄도 걷고 대화가 화면을 채운다. */
 @media (max-width: 760px) {
   .friends-layout { display: block; height: auto; min-height: 0; }
   .friends-list-pane { overflow: visible; padding: 10px; }
   .friends-chat-pane { display: none; }
-  .friends-page.has-chat .friends-heading, .friends-page.has-chat .friends-list-pane { display: none; }
+  .friends-page.has-chat .friends-heading, .friends-layout.has-chat .friends-list-pane { display: none; }
   /* 위 띠(64px)와 아래 탭 줄(76px + 안전 영역), 본문 위 여백을 뺀 높이. */
-  .friends-page.has-chat .friends-chat-pane { display: grid; height: calc(100dvh - 64px - 76px - env(safe-area-inset-bottom) - 24px); min-height: 320px; }
+  .friends-layout.has-chat .friends-chat-pane { display: grid; height: calc(100dvh - 64px - 76px - env(safe-area-inset-bottom) - 24px); min-height: 320px; }
   .friends-back { display: inline-grid; }
 }
 
-/* ── 관리자 DM 열람 ───────────────────────────────────────────────────── */
-.admin-dm-search { display: flex; gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); }
-.admin-dm-search .admin-search { flex: 1; width: auto; min-width: 0; height: 36px; }
-.admin-dm-search .friends-icon-button { width: 36px; height: 36px; }
-.admin-dm-panel .admin-support-layout { grid-template-columns: 260px minmax(0, 1fr); height: min(640px, calc(100dvh - 220px)); min-height: 420px; }
+/* ── 친구 창(FriendsModal): 도움말 틀 안에 같은 본문. game-guide.css 가 이 파일보다 뒤에 들어와서 .game-guide 를 겹쳐 쓴다. */
+.game-guide.friends-modal { grid-template-rows: auto minmax(0, 1fr); width: min(880px, calc(100vw - 32px)); height: min(84dvh, 720px); max-height: none; }
+.friends-modal .friends-layout { height: auto; min-height: 0; padding: 0 14px 14px; }
+/* 토스트(z 70)가 창(z 300)의 막 밑에 깔리지 않게 — 친구 수락·송금 결과를 창 위에서 본다. */
+body.has-friends-modal .toast-region { z-index: 301; }
 @media (max-width: 760px) {
-  .admin-dm-panel .admin-support-layout { grid-template-columns: 1fr; }
-  .admin-dm-search { min-width: 220px; border-right: 1px solid var(--line); border-bottom: 0; }
-  .admin-dm-search .admin-search, .admin-dm-search .friends-icon-button { height: 44px; }
-  .admin-dm-search .friends-icon-button { width: 44px; }
+  /* 페이지처럼 한 화면씩이되, 높이는 창이 정한다. */
+  .friends-modal .friends-layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .friends-modal .friends-list-pane { overflow-y: auto; }
+  .friends-modal .friends-layout.has-chat .friends-chat-pane { height: auto; min-height: 0; }
 }
+/* 폰: 아래 시트가 아니라 화면을 다 채운다 — 대화창 높이가 모자라지 않게. */
+@media (max-width: 620px) {
+  .game-guide.friends-modal { width: 100%; height: 100dvh; margin: 0; padding-top: env(safe-area-inset-top); border: 0; border-radius: 0; }
+  .friends-modal .friends-layout { padding: 0 8px calc(8px + env(safe-area-inset-bottom)); }
+}
+@media (max-height: 520px) {
+  .game-guide.friends-modal { height: calc(100dvh - 12px); }
+}
+
+/* 테이블 채팅의 "이 방 사람들"(RoomChat.tsx RoomPeople). */
+.room-chat-head .room-chat-people-toggle { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 30px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text); font: 600 12px var(--ui-font); }
+.room-chat-head .room-chat-people-toggle:hover { border-color: var(--gold-line); color: var(--gold-light); }
+.room-chat-head .room-chat-people-toggle.is-active { border-color: var(--gold-line); background: var(--gold-wash); color: var(--gold-light); }
+.room-people { gap: 2px; }
+.room-people-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 4px 2px; border-bottom: 1px solid var(--line); }
+.room-people-name { min-width: 0; overflow: hidden; color: var(--text); font: 600 13px var(--ui-font); text-overflow: ellipsis; white-space: nowrap; }
+.room-people-name small { margin-left: 4px; color: var(--muted); font-weight: 500; }
+.room-people-action { flex: none; min-height: 32px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 999px; background: transparent; color: var(--text); font: 600 12px var(--ui-font); cursor: pointer; }
+.room-people-action.is-primary { border-color: var(--gold-line); background: var(--gold-wash); color: var(--gold-light); }
+.room-people-action:hover { border-color: var(--gold); }
+.room-people-state { flex: none; color: var(--muted); font: 12px var(--ui-font); }
+.room-people-hint { margin: 0 0 6px; color: var(--muted); font: 12px var(--ui-font); }
+
+/* 친구가 아닌 사람 이름 옆의 작은 "+" — 누르면 친구 요청 메뉴가 뜬다는 표시(좁은 좌석 이름표에서만). */
+.bjt-spot-tag .name-menu-trigger.is-addable::after { content: "+"; display: inline-grid; width: 14px; height: 14px; margin-left: 4px; place-items: center; border-radius: 50%; background: var(--gold-wash); color: var(--gold-light); font: 700 11px/14px var(--ui-font); vertical-align: 1px; }
+/* 관리자 닉네임 메뉴의 운영자 메시지 칸. */
+.name-menu-admin { display: grid; gap: 6px; margin-top: 4px; }
+.name-menu-admin textarea { width: 100%; min-width: 220px; padding: 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: rgba(0, 0, 0, .3); color: var(--text); font: 13px/1.45 var(--ui-font); resize: vertical; }
+.name-menu-admin textarea:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 1px; }

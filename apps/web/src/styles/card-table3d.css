@@ -68,6 +68,22 @@
 .ct-lightning img { width: 30px; height: 42px; border-radius: 3px; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
 .ct-lightning figcaption { font-size: 11px; font-weight: 700; line-height: 1; color: #ffd24a; }
 
+/* 라이트닝 블랙잭의 점수별 배수판(17~21·BJ) — 베팅이 닫힐 때 칸마다 차례로 번쩍, 내 손이 이긴 점수 칸은 결과 때 빛난다 */
+.ct-bolt-board { display: grid; justify-items: center; gap: 5px; padding: 6px 8px 8px; border-radius: 10px; background: rgba(8, 12, 34, .72); border: 1px solid rgba(150, 190, 255, .45); box-shadow: 0 0 18px rgba(120, 170, 255, .25); }
+.ct-bolt-board b { font-size: 10px; font-weight: 700; letter-spacing: .24em; line-height: 1; color: #b9d2ff; }
+.ct-bolt-board ol { display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ct-bolt-board li { display: grid; justify-items: center; gap: 1px; padding: 3px 0 4px; border-radius: 6px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .12); animation: ct-bolt .5s ease-out both; animation-delay: calc(var(--i) * 110ms); }
+.ct-bolt-board li span { font-size: 10px; font-weight: 600; line-height: 1; color: #d9e4ff; }
+.ct-bolt-board li em { font-size: 15px; font-style: normal; font-weight: 700; line-height: 1.1; color: #ffd24a; }
+.ct-bolt-board li.hit { background: #ffd24a; border-color: #fff; box-shadow: 0 0 14px rgba(255, 210, 74, .8); animation: ct-bump .42s cubic-bezier(.2, .9, .3, 1.3); }
+.ct-bolt-board li.hit span, .ct-bolt-board li.hit em { color: #1c1300; }
+@keyframes ct-bolt { 0% { opacity: 0; scale: .6; background: #fff; box-shadow: 0 0 22px #bcd4ff; } 40% { opacity: 1; scale: 1.08; } }
+.ct-overlay.compact .ct-bolt-board { gap: 3px; padding: 4px 5px 5px; }
+.ct-overlay.compact .ct-bolt-board b { font-size: 8px; }
+.ct-overlay.compact .ct-bolt-board ol { grid-template-columns: repeat(3, 30px); gap: 3px; }
+.ct-overlay.compact .ct-bolt-board li em { font-size: 12px; }
+.ct-overlay.compact .ct-bolt-board li span { font-size: 9px; }
+
 @media (prefers-reduced-motion: reduce) {
-  .ct-banner.show, .ct-hand-label.bump .num, .ct-lightning figure, .ct-badge.pop, .ct-chip.pop, .ct-marker { animation: none; }
+  .ct-bolt-board li, .ct-banner.show, .ct-hand-label.bump .num, .ct-lightning figure, .ct-badge.pop, .ct-chip.pop, .ct-marker { animation: none; }
 }

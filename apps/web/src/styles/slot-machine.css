@@ -249,6 +249,19 @@
   .slot-stepper { gap: 4px; }
   .slot-stepper button { width: 36px; height: 36px; }
   .slot-stepper strong { min-width: 58px; font-size: 18px; }
+  /* 자동 스핀: 150px 기둥에선 이름 · 횟수 · 시작이 한 줄에 안 들어가 한 글자씩 세로로 접혔다.
+     윗줄 "자동 스핀 [횟수]", 아랫줄 시작/중지 버튼 — 도는 동안의 "중지 · 100회 남음" 도 같은 두 줄에 든다. */
+  .slot-auto { flex-wrap: wrap; gap: 4px 6px; width: 100%; }
+  .slot-auto :is(label, select) { flex: 0 0 auto; white-space: nowrap; }
+  .slot-auto button { flex: 1 0 100%; white-space: nowrap; }
+}
+/* 주소창·툴바가 높이를 먹는 가로 폰(보이는 높이 400px 이하, 844×340 등): 기둥이 위아래로 넘쳐 "총베팅" 이 당첨 줄에
+   겹치고 자동 스핀 시작 버튼이 화면 아래로 잘렸다 — 스핀 버튼·자동 스핀 줄을 한 치수씩 줄인다(도구는 터치 44px 그대로). */
+@media (orientation: landscape) and (max-height: 400px) {
+  .slot-controls { gap: 6px; }
+  .slot-bet small { display: none; }
+  .slot-spin { width: 64px; height: 64px; }
+  .slot-auto select, .slot-auto button { min-height: 30px; padding-block: 2px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

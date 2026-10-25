@@ -14,6 +14,7 @@ const sockets: Socket[] = [];
 
 const BACCARAT_ROOKIE = "10000000-0000-4000-8000-000000000001";
 const HOLDEM_ROOKIE = "30000000-0000-4000-8000-000000000010";
+const AGREEMENTS = { age14: true, terms: true, privacy: true };
 
 beforeAll(async () => {
   db = await createTestDatabase("guests");
@@ -78,12 +79,14 @@ describe("게스트 체험", () => {
   });
 
   it("가입하면 같은 계정 그대로 — 코인이 이어지고 갱신·로그인도 정식 계정", async () => {
-    const claimed = await http(api, "POST", "/api/v1/auth/claim", { token, body: { username: "guest_claimed", nickname: "전환한사람", password: "claim-pass-123" } });
+    const claimed = await http(api, "POST", "/api/v1/auth/claim", { token, body: { username: "guest_claimed", nickname: "전환한사람", password: "claim-pass-123", agreements: AGREEMENTS } });
     expect(claimed.status).toBe(200);
     expect(claimed.body.user.id).toBe(guestId);
     expect(claimed.body.user.guest).toBeUndefined();
     expect((await http(api, "GET", "/api/v1/lobby", { token: claimed.body.token })).body.walletBalance).toBe(1_000);
-    expect((await http(api, "POST", "/api/v1/auth/claim", { token: claimed.body.token, body: { username: "again_x", nickname: "다시전환", password: "claim-pass-123" } })).status).toBe(409);
+    expect((await http(api, "POST", "/api/v1/auth/claim", { token: claimed.body.token, body: { username: "again_x", nickname: "다시전환", password: "claim-pass-123", agreements: AGREEMENTS } })).status).toBe(409);
+    // 동의 항목이 빠지면 전환되지 않는다.
+    expect((await http(api, "POST", "/api/v1/auth/claim", { token, body: { username: "no_consent", nickname: "동의없음", password: "claim-pass-123" } })).status).toBe(400);
     const refreshed = await http(api, "POST", "/api/v1/auth/refresh", { cookie });
     expect(refreshed.status).toBe(200);
     expect(refreshed.body.user.guest).toBeUndefined();

@@ -13,6 +13,9 @@ export function SignupPage({ claim = false }: { claim?: boolean }) {
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [agreeAge, setAgreeAge] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -23,6 +26,8 @@ export function SignupPage({ claim = false }: { claim?: boolean }) {
     if (nickname.trim().length < 2) return setError("닉네임은 2자 이상 입력해주세요.");
     if (password.length < 8) return setError("비밀번호는 8자 이상 입력해주세요.");
     if (password !== passwordConfirm) return setError("비밀번호가 일치하지 않습니다.");
+    if (!agreeAge) return setError("만 14세 이상만 가입할 수 있습니다.");
+    if (!agreeTerms || !agreePrivacy) return setError("이용약관과 개인정보 수집·이용에 동의해주세요.");
     setBusy(true);
     try {
       if (claim) {
@@ -73,6 +78,26 @@ export function SignupPage({ claim = false }: { claim?: boolean }) {
             비밀번호 확인
             <input type="password" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} autoComplete="new-password" />
           </label>
+          <fieldset className="signup-consent" style={{ margin: 0, minWidth: 0 }}>
+            <label className="all">
+              <input type="checkbox" checked={agreeAge && agreeTerms && agreePrivacy} onChange={(event) => { setAgreeAge(event.target.checked); setAgreeTerms(event.target.checked); setAgreePrivacy(event.target.checked); }} />
+              전체 동의
+            </label>
+            <label>
+              <input type="checkbox" checked={agreeAge} onChange={(event) => setAgreeAge(event.target.checked)} />
+              (필수) 만 14세 이상입니다
+            </label>
+            <label>
+              <input type="checkbox" checked={agreeTerms} onChange={(event) => setAgreeTerms(event.target.checked)} />
+              (필수) 이용약관 동의
+              <Link to="/terms" target="_blank">보기</Link>
+            </label>
+            <label>
+              <input type="checkbox" checked={agreePrivacy} onChange={(event) => setAgreePrivacy(event.target.checked)} />
+              (필수) 개인정보 수집·이용 동의
+              <Link to="/privacy" target="_blank">보기</Link>
+            </label>
+          </fieldset>
           {error && <p className="error-message" role="alert">{error}</p>}
           <button className="gold-button" disabled={busy}>
             {busy ? "가입 중…" : claim ? "가입하고 이어가기" : "회원가입"}

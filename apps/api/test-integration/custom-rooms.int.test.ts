@@ -141,12 +141,12 @@ describe("등급 입장 조건(방 입구)", () => {
     expect((await ask(rich, "holdem.join", { roomId: HOLDEM_STANDARD })).ok).toBe(true);
   });
 
-  it("고액은 Lv10 부터 — user_progress 의 레벨을 본다", async () => {
+  it("고액은 Lv5 부터 — user_progress 의 레벨을 본다", async () => {
     const climber = await socketOf("climber");
     const denied = await ask(climber, "holdem.join", { roomId: HOLDEM_HIGH });
     expect(denied.ok).toBe(false);
-    expect(denied.error).toContain("Lv10");
-    await db.pool.query("INSERT INTO user_progress (user_id,level) VALUES ($1,10)", [users.climber!.id]);
+    expect(denied.error).toContain("Lv5");
+    await db.pool.query("INSERT INTO user_progress (user_id,level) VALUES ($1,5)", [users.climber!.id]);
     expect((await ask(climber, "holdem.join", { roomId: HOLDEM_HIGH })).ok).toBe(true);
   });
 

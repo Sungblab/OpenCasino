@@ -16,6 +16,8 @@ import { coins, disconnectUser, userChannel, type RouteDeps } from "../route-dep
 const adminBalanceAdjustSchema = z.object({
   amount: z.number().int().refine((value) => value !== 0, "0코인은 조정할 수 없습니다."),
   requestId: z.string().uuid().optional(),
+  /** 지급·차감 사유(이벤트 보상, 오류 보상 등). 감사 기록과 받는 사람 알림에 붙는다. */
+  reason: z.string().trim().max(100).optional(),
 });
 
 const auditLogQuerySchema = z.object({
@@ -171,14 +173,15 @@ export function adminUserRoutes({ io }: RouteDeps): Router {
     // cheerful success while nothing was posted.
     const idempotencyKey = `admin-adjustment:${parsed.data.requestId ?? randomUUID()}:${parsed.data.amount}`;
     try {
-      const { balanceMinor, duplicate } = await walletService.adminAdjustBalanceWithOutcome(admin.id, userId, parsed.data.amount * COIN_SCALE, idempotencyKey);
+      const reason = parsed.data.reason || undefined;
+      const { balanceMinor, duplicate } = await walletService.adminAdjustBalanceWithOutcome(admin.id, userId, parsed.data.amount * COIN_SCALE, idempotencyKey, reason);
       io.to(userChannel(userId)).emit("wallet.updated", { balance: coins(balanceMinor) });
       // 같은 requestId 의 재시도(버튼 두 번, 네트워크 재전송)는 원장에 다시 적히지 않는다. 감사 로그
       // (원장과 같은 트랜잭션에서 walletService 가 적는다)와 사용자 알림도 마찬가지여야 한다.
       if (!duplicate) {
         io.to(userChannel(userId)).emit("notification", {
           type: parsed.data.amount > 0 ? "success" : "info",
-          message: `관리자가 잔액을 ${parsed.data.amount > 0 ? "+" : ""}${parsed.data.amount.toLocaleString()}코인 조정했습니다.`,
+          message: `관리자가 잔액을 ${parsed.data.amount > 0 ? "+" : ""}${parsed.data.amount.toLocaleString()}코인 조정했습니다.${reason ? ` (${reason})` : ""}`,
         });
       }
       res.json({ balance: coins(balanceMinor) });

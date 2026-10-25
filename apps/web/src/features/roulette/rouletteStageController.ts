@@ -31,7 +31,7 @@ import { RED_NUMBERS, ROULETTE_TIMING, WHEEL_ORDER } from "@opencasino/game-core
 import { boltPoints, ribbon } from "../stage3d/bolt";
 import { createStage3D } from "../stage3d/core3d";
 import type { StageControllerBase, StageSounds } from "../stage/core";
-import { NUM_FONT } from "../stage/core";
+import { NUM_FONT } from "../stage/layout";
 import { SLOT, TAU, ballPose, planSpin, pocketAngle, wheelAngle, type SpinPlan } from "./ballPath";
 
 /**

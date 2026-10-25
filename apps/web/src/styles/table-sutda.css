@@ -158,13 +158,6 @@
 
 /* ── 화투 ────────────────────────────────────────────────────────────────── */
 
-/* 진짜 화투 뒷면 (/cards/hwatu/back.svg) — 기본 .hwatu-back 의 CSS 줄무늬는 카드가 아니라 UI 텍스처로
-   읽혔다. 뒷면이 그려지는 모든 자리(좌석·덱)에 적용된다. */
-.hwatu-back {
-  background: #a80f16 url("/cards/hwatu/back.svg") center / cover no-repeat;
-  border-color: #7c050a;
-}
-
 /* 크기: styles.css 의 .hwatu-card 는 옛 대형 테이블에 맞춘 53×82 고정이라 좌석에는 크다. 상대 패는
    좌석 크기로, 내 패만 크게. */
 .game-shell .sutda-shell .sutda-cards { height: auto; min-height: 56px; align-items: flex-end; gap: 0; }

@@ -14,11 +14,12 @@ import { MoneyWheelRoomManager } from "./money-wheel-room-manager.js";
 import { TableGameRoomManager } from "./table-game-room-manager.js";
 import { SlotRoomManager } from "./slot-room-manager.js";
 import type { BaseRoomRow, AppServer, AppSocket } from "./room-actor.js";
-import type { GameRoomManager } from "./room-manager-base.js";
+import type { GameRoomManager, RoomOccupancy } from "./room-manager-base.js";
 import { SevenPokerRoomManager } from "./seven-poker-room-manager.js";
 import { SutdaRoomManager } from "./sutda-room-manager.js";
 import { VideoPokerRoomManager } from "./video-poker-room-manager.js";
 import { PachinkoRoomManager } from "./pachinko-room-manager.js";
+import { HiLoRoomManager } from "./hilo-room-manager.js";
 
 /** 좌석과 표정이 있는 게임. room.emote.send 가 좌석 번호를 여기서 찾는다. */
 export type SeatedGame = "holdem" | "sutda" | "gostop" | "seven_poker" | "badugi";
@@ -45,6 +46,7 @@ export class RoomRegistry {
   readonly slot: SlotRoomManager;
   readonly videoPoker: VideoPokerRoomManager;
   readonly pachinko: PachinkoRoomManager;
+  readonly hilo: HiLoRoomManager;
   readonly blackjack: BlackjackRoomManager;
   readonly holdem: HoldemRoomManager;
   readonly sutda: SutdaRoomManager;
@@ -66,13 +68,14 @@ export class RoomRegistry {
     this.slot = new SlotRoomManager(io);
     this.videoPoker = new VideoPokerRoomManager(io);
     this.pachinko = new PachinkoRoomManager(io);
+    this.hilo = new HiLoRoomManager(io);
     this.blackjack = new BlackjackRoomManager(io);
     this.holdem = new HoldemRoomManager(io);
     this.sutda = new SutdaRoomManager(io);
     this.sevenPoker = new SevenPokerRoomManager(io);
     this.badugi = new BadugiRoomManager(io);
     this.gostop = new GostopRoomManager(io);
-    this.managers = [this.baccarat, this.dragonTiger, this.roulette, this.sicbo, this.moneyWheel, this.tableGames, this.crash, this.slot, this.videoPoker, this.pachinko, this.blackjack, this.holdem, this.sutda, this.sevenPoker, this.badugi, this.gostop];
+    this.managers = [this.baccarat, this.dragonTiger, this.roulette, this.sicbo, this.moneyWheel, this.tableGames, this.crash, this.slot, this.videoPoker, this.pachinko, this.hilo, this.blackjack, this.holdem, this.sutda, this.sevenPoker, this.badugi, this.gostop];
   }
 
   /**
@@ -97,6 +100,7 @@ export class RoomRegistry {
     await this.slot.initialize();
     await this.videoPoker.initialize();
     await this.pachinko.initialize();
+    await this.hilo.initialize();
     await this.blackjack.initialize();
   }
 
@@ -170,6 +174,11 @@ export class RoomRegistry {
     const owner = this.ownerOf(roomId);
     if (!owner) throw new DomainError("ROOM_NOT_FOUND");
     return owner.requestDeal(userId, roomId);
+  }
+
+  /** 사람이 들어 있는 방 전부(관리자 실시간 현황). */
+  occupancy(): RoomOccupancy[] {
+    return this.managers.flatMap((manager) => manager.occupancy());
   }
 
   /** null 이면 그런 방이 없다. */

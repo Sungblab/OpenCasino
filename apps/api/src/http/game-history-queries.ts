@@ -52,6 +52,12 @@ export const ALL_BETS_CTE = `
     SELECT user_id, room_id, bet_minor AS amount_minor, payout_minor, outcome, created_at AS settled_at
     FROM pachinko_drops
     UNION ALL
+    -- 하이로우(연속 도전): 끝난 판만. 이어 가는 중인 판의 베팅은 방 계정에 예치돼 있다.
+    SELECT user_id, room_id, bet_minor AS amount_minor, payout_minor,
+           CASE WHEN payout_minor > bet_minor THEN 'win' WHEN payout_minor = bet_minor THEN 'push' ELSE 'lose' END AS outcome,
+           settled_at
+    FROM hilo_games WHERE status='settled'
+    UNION ALL
     -- 블랙잭 사이드 베팅(퍼펙트 페어·21+3): 본 핸드와 따로, 첫 딜 직후 정산된다.
     SELECT user_id, room_id, amount_minor, payout_minor, outcome, settled_at
     FROM blackjack_side_bets WHERE settled_at IS NOT NULL
@@ -170,6 +176,33 @@ export function pachinkoHistoryItem(row: PachinkoHistoryRow) {
   };
 }
 
+/** 하이로우 끝난 판 — 관리자 기록과 내 기록이 같은 모양으로 읽는다($1 사용자 · $2 게임 · $3 방 · $4 개수). */
+export const HILO_HISTORY_SQL = `
+  SELECT h.id,gr.game_type,gr.id AS room_id,gr.name AS room_name,h.user_id,u.username,h.choices,h.outcome AS end_reason,
+         h.bet_minor AS amount_minor,h.payout_minor,
+         CASE WHEN h.payout_minor > h.bet_minor THEN 'win' WHEN h.payout_minor = h.bet_minor THEN 'push' ELSE 'lose' END AS outcome,
+         h.settled_at AS created_at
+  FROM hilo_games h JOIN game_rooms gr ON gr.id=h.room_id JOIN users u ON u.id=h.user_id
+  WHERE h.status='settled'
+    AND ($1::uuid IS NULL OR h.user_id=$1) AND ($2::text IS NULL OR gr.game_type=$2) AND ($3::uuid IS NULL OR h.room_id=$3)
+  ORDER BY h.settled_at DESC, h.id DESC LIMIT $4`;
+
+export interface HiLoHistoryRow {
+  id: string; game_type: GameType; room_id: string; room_name: string; user_id: string; username: string;
+  choices: string[]; end_reason: "cashout" | "lose" | "cap"; amount_minor: string; payout_minor: string; outcome: "win" | "lose" | "push"; created_at: string;
+}
+
+/** 지급이 0.01코인 단위(10 × 1.07)라 반올림하지 않는다. 몇 번 맞혔는지가 이름이다. */
+export function hiloHistoryItem(row: HiLoHistoryRow) {
+  const streak = row.choices.length - (row.end_reason === "lose" ? 1 : 0);
+  return {
+    id: row.id, game: row.game_type, roomName: row.room_name,
+    choiceLabel: row.end_reason === "lose" ? (streak > 0 ? `${streak}연속 뒤 실패` : "실패") : `${streak}연속 · ${row.end_reason === "cap" ? "상한" : "캐시아웃"}`,
+    amount: Number(row.amount_minor) / 100, outcome: row.outcome,
+    net: (Number(row.payout_minor) - Number(row.amount_minor)) / 100, createdAt: row.created_at,
+  };
+}
+
 export interface VideoPokerHistoryRow {
   id: string; game_type: GameType; room_id: string; room_name: string; user_id: string; username: string;
   rank: VideoPokerRank | null; amount_minor: string; payout_minor: string; outcome: "win" | "lose" | "push"; created_at: string;
@@ -255,7 +288,7 @@ export async function fetchGameHistoryPage(
   const perTableLimit = Math.min(page.offset + page.limit + 1, 500);
   const params = [userId, game, roomId, perTableLimit];
 
-  const [wagerRows, blackjackRows, holdemRows, sutdaRows, gostopRows, slotRows, sideRows, videoPokerRows, sevenPokerRows, badugiRows, pachinkoRows] = await Promise.all([
+  const [wagerRows, blackjackRows, holdemRows, sutdaRows, gostopRows, slotRows, sideRows, videoPokerRows, sevenPokerRows, badugiRows, pachinkoRows, hiloRows] = await Promise.all([
     pool.query<{ id: string; game_type: GameType; room_id: string; room_name: string; user_id: string; username: string; choice: string; amount_minor: string; payout_minor: string | null; outcome: "win" | "lose" | "push" | null; created_at: string }>(
       `SELECT w.id,gr.game_type,gr.id AS room_id,gr.name AS room_name,w.user_id,u.username,w.choice,w.amount_minor,w.payout_minor,w.outcome,w.settled_at AS created_at
        FROM wagers w JOIN game_rooms gr ON gr.id=w.room_id JOIN users u ON u.id=w.user_id
@@ -302,6 +335,7 @@ export async function fetchGameHistoryPage(
     pool.query<SevenPokerHistoryRow>(SEVEN_POKER_HISTORY_SQL, params),
     pool.query<BadugiHistoryRow>(BADUGI_HISTORY_SQL, params),
     pool.query<PachinkoHistoryRow>(PACHINKO_HISTORY_SQL, params),
+    pool.query<HiLoHistoryRow>(HILO_HISTORY_SQL, params),
   ]);
 
   const merged = [
@@ -351,6 +385,7 @@ export async function fetchGameHistoryPage(
     ...sevenPokerRows.rows.map((row) => ({ ...sevenPokerHistoryItem(row), roomId: row.room_id, userId: row.user_id, username: row.username })),
     ...badugiRows.rows.map((row) => ({ ...badugiHistoryItem(row), roomId: row.room_id, userId: row.user_id, username: row.username })),
     ...pachinkoRows.rows.map((row) => ({ ...pachinkoHistoryItem(row), roomId: row.room_id, userId: row.user_id, username: row.username })),
+    ...hiloRows.rows.map((row) => ({ ...hiloHistoryItem(row), roomId: row.room_id, userId: row.user_id, username: row.username })),
   ].sort((a, b) => {
     // Ties happen often here — a round settling N wagers at once stamps them all with the same
     // instant. Without a secondary key, two calls with different per-table LIMITs (offset+limit+1

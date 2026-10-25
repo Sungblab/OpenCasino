@@ -144,6 +144,10 @@ export class HoldemRoomActor extends RoomActor<RoomRow, "holdem.snapshot"> {
     return Math.max(0, Math.floor(Math.min(seat.stackMinor, Math.round(walletCoins * COIN_SCALE)) / COIN_SCALE));
   }
 
+  override seatedUserIds(): string[] {
+    return this.seats.flatMap((seat) => (seat ? [seat.userId] : []));
+  }
+
   publicRoom(): GameRoom {
     return {
       id: this.room.id,

@@ -1,5 +1,5 @@
 /**
- * 표 게임(table games) — 판 전체가 같은 결과에 거는 하우스 게임(HiLo·Bac Bo·메가볼·탑 카드)의 공용 틀.
+ * 표 게임(table games) — 판 전체가 같은 결과에 거는 하우스 게임(Bac Bo·메가볼·탑 카드)의 공용 틀.
  *
  * 룰렛·식보·머니 휠은 게임마다 서버 매니저·소켓 이벤트·방 화면을 따로 두었다. 이 게임들은 그 모양이 같아서(베팅 15초 →
  * 마감 → 결과 공개 → 정산) 규칙만 이 모듈 하나(`TableGameDef`)로 적고, 서버(TableGameRoomActor)·소켓(tableGame.*)·
@@ -11,7 +11,7 @@
  * 정수 minor 단위를 만든다 — 배당 소수를 화면과 서버가 같은 정수로 계산한다.
  */
 
-export const TABLE_GAME_TYPES = ["hilo", "bac_bo", "mega_ball", "top_card"] as const;
+export const TABLE_GAME_TYPES = ["bac_bo", "mega_ball", "top_card"] as const;
 export type TableGameType = (typeof TABLE_GAME_TYPES)[number];
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -38,7 +38,7 @@ export interface TableHistoryEntry {
 
 export interface TableGameDef<Setup = Json, Outcome = Json> {
   readonly type: TableGameType;
-  /** 베팅 이름 접두사("hilo"). choice 는 항상 `<prefix>:…`. */
+  /** 베팅 이름 접두사("bacbo"). choice 는 항상 `<prefix>:…`. */
   readonly prefix: string;
   /** game_rounds.rules_version — 서버 재시작 복구(SWEEPABLE_RULES_VERSIONS)가 이 이름으로 판을 찾는다. */
   readonly rulesVersion: string;
@@ -46,7 +46,7 @@ export interface TableGameDef<Setup = Json, Outcome = Json> {
   readonly bettingMs: number;
   /** 결과 공개 한 단계의 길이. steps 단계가 차례로(stepMs 간격) 보인다. */
   readonly stepMs: number;
-  /** 판이 열릴 때(베팅 시작) 정해지는 공개 정보 — HiLo 의 기준 카드처럼 베팅 전에 보이는 것. 없으면 `{}`. */
+  /** 판이 열릴 때(베팅 시작) 정해지는 공개 정보 — 베팅 전에 미리 보이는 값. 없으면 `{}`. */
   newSetup(): Setup;
   /** 베팅이 닫힌 뒤 결과를 뽑는다. 서버만 부른다. */
   draw(setup: Setup): Outcome;
@@ -75,7 +75,7 @@ export function formatPermille(permille: number): string {
   return `×${x >= 100 ? Math.round(x) : x >= 10 ? x.toFixed(1).replace(/\.0$/, "") : x.toFixed(2).replace(/0$/, "").replace(/\.$/, "")}`;
 }
 
-/** 베팅 이름이 이 게임의 것인가("hilo:higher" → prefix "hilo"). */
+/** 베팅 이름이 이 게임의 것인가("bacbo:player" → prefix "bacbo"). */
 export function choiceToken(def: Pick<TableGameDef, "prefix">, choice: string): string | null {
   return choice.startsWith(`${def.prefix}:`) ? choice.slice(def.prefix.length + 1) : null;
 }

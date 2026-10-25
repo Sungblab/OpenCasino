@@ -1,0 +1,238 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   하이로우(1인용, 연속 도전): 배너 → 판(이번 판에 나온 카드 줄 · 기준 카드와 엎은 다음 카드) → 두 갈래 버튼 → 베팅·CASH OUT·잔액.
+   PC 는 오른쪽에 당첨 소식·최근 판. HiLoRoomPage 가 불러오므로 이 방에 들어갈 때만 받는다.
+   평평한 2D: 짙은 초록 판, 위쪽 갈래는 파랑, 아래쪽 갈래는 빨강.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.game-shell .game-body:has(.hl-room) { width: 100%; padding: 0; }
+
+.hl-room {
+  --hl-felt: #0f4a35;
+  --hl-felt-2: #0a3324;
+  --hl-line: rgba(140, 220, 180, .22);
+  --hl-up: #2d7bdc;
+  --hl-down: #d32f3d;
+  --hl-ink: #ffe07a;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 240px);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+  box-sizing: border-box;
+}
+
+.hl-machine { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+
+/* ── 배너 (높이 고정: 글이 바뀌어도 판이 들썩이지 않는다) ─────────────────────── */
+.hl-message { display: grid; flex: 0 0 auto; place-items: center; height: 36px; }
+.hl-banner { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 0 16px; overflow: hidden; color: var(--muted); font: 600 13px var(--ui-font); white-space: nowrap; text-overflow: ellipsis; }
+.hl-banner.is-hint b { color: var(--hl-ink); }
+.hl-banner.is-error { color: var(--banker-light); }
+.hl-banner.is-lose { height: 30px; border-radius: 99px; background: rgba(211, 47, 61, .16); color: #ff9aa2; }
+.hl-banner.is-win {
+  height: 34px; padding: 0 20px; border: 2px solid var(--hl-ink); border-radius: 99px; background: #17643f;
+  color: #fff; animation: hl-pop .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+.hl-banner.is-win b { color: var(--hl-ink); font: 800 16px Poppins, var(--ui-font); }
+.hl-banner.is-win em { font: 800 18px Poppins, var(--ui-font); font-style: normal; font-variant-numeric: tabular-nums; }
+@keyframes hl-pop { from { transform: scale(.5); opacity: 0; } }
+
+/* ── 판: 위 줄은 이번 판에 나온 카드, 가운데 두 장. 카드 폭은 판의 높이·폭 중 작은 쪽에서(컨테이너 단위). ── */
+.hl-stage {
+  --hl-trail-h: clamp(52px, 13cqh, 84px);
+  display: grid; flex: 1 1 0; grid-template-rows: var(--hl-trail-h) minmax(0, 1fr); gap: 6px; min-height: 0; padding: 10px 14px 12px; container-type: size;
+  border: 1px solid var(--hl-line); border-radius: 14px; box-sizing: border-box;
+  background: var(--felt-grain), radial-gradient(ellipse 80% 90% at 50% 55%, var(--hl-felt) 0%, var(--hl-felt-2) 78%);
+}
+.hl-trail { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; margin: 0; padding: 0; overflow: hidden; list-style: none; }
+.hl-trail li { position: relative; display: grid; flex: none; justify-items: center; }
+.hl-trail .hl-order { display: block; color: rgba(255, 255, 255, .5); font: 700 clamp(11px, 2.2cqw, 16px) var(--ui-font); letter-spacing: .02em; white-space: nowrap; }
+.hl-trail .hl-order b { color: var(--hl-ink); }
+.hl-mini { --_cw: calc(var(--hl-trail-h) / 1.4); display: block; width: calc(var(--hl-trail-h) / 1.4); height: var(--hl-trail-h); overflow: hidden; border-radius: 4px; box-shadow: 0 3px 8px -4px rgba(0, 0, 0, .7); }
+.hl-trail i {
+  position: absolute; right: -9px; top: 50%; z-index: 1; display: grid; place-items: center; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%;
+  background: #17643f; color: #fff; font: 800 11px/1 var(--ui-font); font-style: normal; box-shadow: 0 0 0 2px var(--hl-felt-2);
+}
+.hl-trail i.is-miss { background: var(--hl-down); }
+
+.hl-pair {
+  --hl-gap: clamp(28px, 7cqw, 96px);
+  --hl-cw: min(calc((100cqw - 28px - var(--hl-gap)) / 2), calc((100cqh - var(--hl-trail-h) - 40px - 28px) / 1.4), 340px);
+  display: flex; align-items: center; justify-content: center; gap: var(--hl-gap); min-height: 0;
+}
+.hl-slot { display: grid; justify-items: center; gap: 6px; margin: 0; }
+.hl-slot figcaption { display: grid; place-items: center; height: 26px; color: rgba(255, 255, 255, .7); font: 600 12px var(--ui-font); }
+.hl-refresh {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border: 1px solid rgba(255, 255, 255, .28); border-radius: 99px;
+  background: rgba(0, 0, 0, .25); color: #fff; font: 700 12px var(--ui-font); cursor: pointer;
+}
+.hl-refresh:disabled { opacity: .4; cursor: default; }
+@media (pointer: coarse) { .hl-refresh { height: 32px; padding: 0 14px; } .hl-slot figcaption { height: 32px; } }
+.hl-card { --_cw: var(--hl-cw); position: relative; display: block; width: var(--hl-cw); height: calc(var(--hl-cw) * 1.4); border-radius: calc(var(--hl-cw) * .06); }
+.hl-back, .hl-face { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .8); }
+.hl-slot.is-next.is-hit .hl-card { box-shadow: 0 0 0 3px var(--hl-ink), 0 0 22px rgba(255, 224, 122, .45); border-radius: calc(var(--hl-cw) * .06); }
+.hl-slot.is-next.is-miss .hl-card { box-shadow: 0 0 0 3px var(--hl-down); border-radius: calc(var(--hl-cw) * .06); }
+/* 납작하게 뒤집기: 뒷면이 가로로 접히고(0→.15s) 앞면이 펴진다(.15→.3s). */
+.hl-card.is-flipping .hl-back { animation: hl-fold .15s ease-in both; }
+.hl-card.is-flipping .hl-face { animation: hl-unfold .15s ease-out .15s both; }
+@keyframes hl-fold { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes hl-unfold { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* 새 기준 카드는 옆자리에서 미끄러져 들어온 것처럼 잠깐 밀려 온다. */
+.hl-slot:not(.is-next) .hl-card { animation: hl-slide .25s ease-out; }
+@keyframes hl-slide { from { transform: translateX(calc(var(--hl-cw) * .5)); opacity: .3; } }
+.hl-stage.is-lose .hl-slot:not(.is-next) .hl-card { box-shadow: 0 0 0 3px var(--hl-down); border-radius: calc(var(--hl-cw) * .06); }
+
+/* ── 두 갈래 버튼 ─────────────────────────────────────────────────────────── */
+.hl-choices { display: grid; flex: 0 0 auto; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hl-choice {
+  position: relative; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 2px 10px;
+  min-height: 64px; padding: 8px 16px; border: 2px solid transparent; border-radius: 14px; text-align: left; cursor: pointer;
+  color: #fff; font: inherit; transition: transform .1s ease, filter .15s ease;
+}
+.hl-choice.is-up { border-color: #7fb4ff; background: linear-gradient(to bottom, #3a8ae8, #1f5fae); }
+.hl-choice.is-down { border-color: #ff9aa2; background: linear-gradient(to bottom, #e2483c, #a3201a); }
+.hl-choice:active { transform: scale(.98); }
+.hl-choice:disabled { filter: grayscale(.7) brightness(.6); cursor: not-allowed; }
+.hl-choice-name { display: flex; align-items: center; gap: 8px; font: 800 17px var(--ui-font); white-space: nowrap; }
+.hl-choice-name i { font-style: normal; font-size: 15px; }
+.hl-choice b { grid-row: 1 / 3; grid-column: 2; font: 800 24px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; }
+.hl-choice small { color: rgba(255, 255, 255, .82); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hl-choice kbd {
+  position: absolute; top: 6px; right: 8px; display: none; padding: 0 4px; border: 1px solid rgba(255, 255, 255, .4); border-radius: 4px;
+  color: rgba(255, 255, 255, .8); font: 600 11px var(--ui-font);
+}
+@media (hover: hover) and (pointer: fine) { .hl-choice:not(:disabled) kbd { display: block; } .hl-choice b { margin-top: 10px; } }
+
+/* ── 조작 줄: 베팅 · CASH OUT/카드 바꾸기 · 잔액·쌓인 금액 · 채팅 ─────────────── */
+.hl-controls { display: grid; flex: 0 0 auto; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; }
+.hl-bet { display: grid; justify-items: start; gap: 4px; }
+.hl-bet small, .hl-money small { color: var(--muted); font: 600 12px var(--ui-font); }
+.hl-stepper { display: flex; align-items: center; gap: 6px; }
+.hl-stepper button {
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px;
+  background: var(--panel-raised); color: var(--text); cursor: pointer;
+}
+.hl-stepper button:disabled { opacity: .35; cursor: not-allowed; }
+.hl-stepper strong { min-width: 72px; color: var(--hl-ink); font: 800 22px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; text-align: center; }
+/* CASH OUT 글자와 쌓인 금액은 한 줄에 들어가면 나란히, 버튼이 좁으면(폰·쌓인 금액이 길 때) 두 줄로 접힌다 — 버튼 밖으로 삐져나가지 않게. */
+.hl-primary {
+  display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; gap: 0 10px;
+  width: clamp(170px, 20vw, 240px); min-width: 0; height: 58px; padding: 0 14px; overflow: hidden;
+  border-radius: 16px; cursor: pointer; transition: transform .1s ease, filter .15s ease;
+}
+.hl-primary.is-cashout {
+  border: 2px solid #ffe08a; background: linear-gradient(to bottom, #ffd75a, #e0a514); color: #2f1d02;
+  box-shadow: 0 8px 22px -8px rgba(240, 180, 28, .55);
+}
+.hl-primary.is-cashout span { font: 800 16px/1.15 Poppins, var(--ui-font); letter-spacing: .06em; white-space: nowrap; }
+.hl-primary.is-cashout b {
+  max-width: 100%; overflow: hidden; font: 800 22px/1.15 Poppins, var(--ui-font); font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.hl-primary:active { transform: scale(.97); }
+.hl-primary:disabled { filter: grayscale(.7) brightness(.65); cursor: not-allowed; }
+.hl-right { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-width: 0; }
+.hl-money { display: flex; gap: 14px; }
+.hl-money span { display: grid; justify-items: center; gap: 2px; min-width: 64px; }
+.hl-money b { color: var(--text); font: 800 18px Poppins, var(--ui-font); font-variant-numeric: tabular-nums; }
+.hl-money .is-win b { color: var(--hl-ink); }
+.hl-tools { display: flex; }
+.game-shell .hl-room .hl-tools .room-chat-toggle {
+  position: relative; right: auto; bottom: auto; flex: none; width: 44px; height: 44px;
+  border: 1px solid var(--gold-line); border-radius: 10px; background: rgba(0, 0, 0, .28); color: var(--gold-light); box-shadow: none;
+}
+
+/* ── 오른쪽: 당첨 소식 · 최근 판 ───────────────────────────────────────────── */
+.hl-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
+.hl-side .winner-feed { flex: 0 0 auto; border-radius: 12px; }
+.hl-side .winner-feed ul { max-height: 132px; overflow-y: auto; scrollbar-width: none; }
+.hl-side header {
+  padding: 10px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--panel-2);
+  color: var(--text); font: 700 13px var(--ui-font); text-align: center;
+}
+.hl-recent {
+  flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; margin: -8px 0 0; padding: 6px 8px; overflow-y: auto; list-style: none;
+  border: 1px solid var(--line); border-radius: 0 0 12px 12px; background: var(--panel); scrollbar-width: thin;
+}
+.hl-recent li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px; border-radius: 6px;
+  color: var(--muted); font: 600 12px var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.hl-recent li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hl-recent li b { min-width: 48px; color: var(--muted); text-align: right; }
+.hl-recent li.is-win { background: rgba(255, 224, 122, .07); }
+.hl-recent li.is-win span, .hl-recent li.is-win b { color: var(--hl-ink); }
+.hl-recent li.is-empty { display: block; padding: 12px 6px; text-align: center; }
+.hl-cap { flex: none; margin: 0; color: var(--muted); font: 600 12px var(--ui-font); text-align: center; }
+
+/* ── 짧은 화면(가로 폰·낮은 PC 창): 오른쪽 기둥을 빼고, 갈래 버튼을 판 옆으로 ─────────── */
+@media (orientation: landscape) and (max-height: 680px) {
+  .hl-room { grid-template-columns: minmax(0, 1fr); padding-block: 8px; }
+  .hl-side { display: none; }
+  .hl-machine { display: grid; grid-template-columns: minmax(0, 1fr) clamp(200px, 26vw, 300px); grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px 12px; }
+  .hl-message { grid-column: 1; grid-row: 1; }
+  .hl-stage { grid-column: 1; grid-row: 2; }
+  .hl-choices { grid-column: 2; grid-row: 1 / 3; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  /* 좁은 기둥: 이름 → 배수 → 확률·금액을 위아래로. */
+  .hl-choice { grid-template-columns: 1fr; align-content: center; gap: 4px; }
+  .hl-choice b { grid-row: auto; grid-column: auto; margin-top: 0; font-size: 28px; }
+  .hl-controls { grid-column: 1 / 3; grid-row: 3; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .hl-room { padding: 6px max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); }
+  .hl-message { height: 30px; }
+  .hl-stage { padding: 6px 10px 8px; }
+  .hl-controls { gap: 8px; }
+  .hl-bet small { display: none; }
+  .hl-stepper { gap: 4px; }
+  .hl-stepper strong { min-width: 48px; font-size: 18px; }
+  .hl-primary { width: 150px; height: 46px; padding: 0 10px; }
+  .hl-primary.is-cashout span { font-size: 12px; }
+  .hl-primary.is-cashout b { font-size: 17px; }
+  .hl-right, .hl-money { gap: 8px; }
+  .hl-money span { min-width: 0; }
+  .hl-money b { font-size: 15px; }
+}
+
+/* ── 세로 폰: 배너 → 판 → 갈래 버튼 → 잔액 → 베팅·주 버튼·채팅 ──────────────── */
+@media (max-width: 900px) and (orientation: portrait) {
+  .hl-room { display: flex; flex-direction: column; gap: 0; padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .hl-side { display: none; }
+  .hl-machine { flex: 1 1 auto; gap: 6px; }
+  /* 카드 폭은 화면 폭과 보이는 높이 중 좁은 쪽에 맞춘다 — 폭만 보면 주소창·툴바가 높이를 먹는 짧은 폰(아이폰 SE
+     사파리 375×548 등)에서 조작 줄이 화면 아래로 잘렸다. 남는 높이는 판(펠트)이 받고, 갈래 버튼은 136px 까지만 큰다
+     (남는 높이를 다 받던 때는 긴 폰에서 버튼이 300px 넘게 길쭉했다). */
+  .hl-stage {
+    --hl-phone-cw: max(56px, min(calc((100vw - 16px - 20px - 24px) / 2), 200px, calc((100dvh - 424px) / 1.4)));
+    --hl-trail-h: 48px;
+    flex: 1 0 auto; min-height: calc(var(--hl-phone-cw) * 1.4 + var(--hl-trail-h) + 32px + 6px + 6px + 18px); padding: 8px 10px 10px;
+  }
+  .hl-pair { --hl-gap: 24px; --hl-cw: var(--hl-phone-cw); }
+  .hl-banner { padding: 0 10px; font-size: 13px; }
+  .hl-choices { flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 88px; max-height: 136px; }
+  .hl-choice { grid-template-columns: 1fr; align-content: center; justify-items: center; gap: 4px; min-width: 0; padding: 8px 6px; text-align: center; }
+  .hl-choice-name { font-size: 15px; }
+  .hl-choice b { grid-row: auto; grid-column: auto; margin-top: 0; font-size: clamp(24px, 8vw, 34px); }
+  .hl-choice small { font-size: 12px; }
+  /* 주 버튼이 남는 폭을 가진다 — 고정 폭이면 320px 폰에서 채팅 버튼이 화면 밖으로 밀렸다. */
+  .hl-controls { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "money money money" "bet primary tools"; gap: 8px 10px; }
+  .hl-right { display: contents; }
+  .hl-money { grid-area: money; justify-content: center; gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .hl-money span { flex: 1 1 0; grid-template-columns: auto auto; justify-content: center; align-items: baseline; gap: 8px; padding: 6px 0; }
+  .hl-money span + span { border-left: 1px solid var(--line); }
+  .hl-money b { font-size: 16px; }
+  .hl-bet { grid-area: bet; justify-items: center; }
+  .hl-bet small { display: none; }
+  .hl-stepper { gap: 4px; }
+  .hl-stepper strong { min-width: clamp(44px, 13vw, 64px); font-size: clamp(16px, 4.8vw, 20px); }
+  .hl-primary { grid-area: primary; width: 100%; height: 56px; padding: 0 8px; }
+  .hl-primary.is-cashout span { font-size: 13px; }
+  .hl-primary.is-cashout b { font-size: clamp(17px, 5.4vw, 21px); }
+  .hl-tools { grid-area: tools; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-card.is-flipping .hl-back, .hl-card.is-flipping .hl-face, .hl-banner.is-win, .hl-slot:not(.is-next) .hl-card { animation: none; }
+  .hl-card.is-flipping .hl-back { transform: scaleX(0); }
+}

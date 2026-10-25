@@ -163,22 +163,38 @@ export function payoutForLightningBaccaratBet(
 export const LIGHTNING_BLACKJACK_MULTIPLIERS = [2, 5, 8, 10, 15, 20, 25] as const;
 export type LightningBlackjackMultiplier = (typeof LIGHTNING_BLACKJACK_MULTIPLIERS)[number];
 
-export function drawLightningBlackjackMultiplier(rng: RandomInt = secureRandomInt): LightningBlackjackMultiplier {
-  return LIGHTNING_BLACKJACK_MULTIPLIERS[rng(LIGHTNING_BLACKJACK_MULTIPLIERS.length)]!;
-}
+/**
+ * 라이트닝 블랙잭 수수료(%) — 에볼루션처럼 판돈만큼이다(칩 하나의 절반이 판돈, 절반이 수수료). 그만큼 배수판이 크다.
+ * 더블·스플릿으로 더 거는 몫에는 수수료가 없다.
+ */
+export const LIGHTNING_BLACKJACK_FEE_PERCENT = 100;
+
+/** 배수가 붙는 최종 점수. 이 점수로 이기면(블랙잭은 BJ) 그 판 배수판의 값을 다음 판에 받는다. 16 이하로 이기면 없다. */
+export const LIGHTNING_BLACKJACK_TOTALS = ["17", "18", "19", "20", "21", "BJ"] as const;
+export type LightningBlackjackTotal = (typeof LIGHTNING_BLACKJACK_TOTALS)[number];
+export type LightningBlackjackBoard = Record<LightningBlackjackTotal, LightningBlackjackMultiplier>;
 
 /**
- * The chance (in percent) that a winning Lightning Blackjack hand earns a multiplier for the next
- * round. It used to be every win: with a 20% fee and an average multiplier of ~12x that paid back
- * about 245% of what was bet even betting flat. Simulated at 10% (2M hands, 6 decks, 75% cut card,
- * flat 12-coin chips): ~101% for basic strategy without splits, ~95.6% for hit-to-17. 9% lands
- * near 99% (basic strategy), which is where it sits. Each point here moves RTP by roughly 1.9 points.
+ * 점수마다 따로 뽑는 배수의 무게(천분율), 평균 ×7.1. 수수료 100%·이긴 판돈까지만 배수(applyLightningBlackjackMultiplier)로
+ * 6덱·딜러 17 스탠드·3:2, 스플릿·서렌더 없는 기본 전략 200만 판을 두 번 돌려 RTP 99.2%·99.3%(이긴 점수로 배수를 받는 판 35%).
+ * 평균을 ×1 올리면 RTP 가 약 2.2점 오른다.
  */
-export const LIGHTNING_BLACKJACK_AWARD_PERCENT = 9;
+export const LIGHTNING_BLACKJACK_WEIGHTS: ReadonlyArray<readonly [LightningBlackjackMultiplier, number]> = [
+  [2, 320], [5, 250], [8, 160], [10, 120], [15, 80], [20, 45], [25, 25],
+];
 
-/** Rolled once per winning hand, when it wins: true if that hand earns a multiplier. */
-export function rollLightningBlackjackAward(rng: RandomInt = secureRandomInt): boolean {
-  return rng(100) < LIGHTNING_BLACKJACK_AWARD_PERCENT;
+/** 한 판의 배수판 — 베팅이 닫히는 순간 점수마다 하나씩 뽑는다. */
+export function drawLightningBlackjackBoard(rng: RandomInt = secureRandomInt): LightningBlackjackBoard {
+  const weights = LIGHTNING_BLACKJACK_WEIGHTS.map(([, weight]) => weight);
+  const draw = () => LIGHTNING_BLACKJACK_WEIGHTS[weightedIndex(rng, weights)]![0];
+  return Object.fromEntries(LIGHTNING_BLACKJACK_TOTALS.map((key) => [key, draw()])) as LightningBlackjackBoard;
+}
+
+/** 이긴 손이 배수판의 어느 칸을 받는가. 블랙잭은 BJ, 17~21 로 이긴 손은 그 점수, 나머지(16 이하로 이김·짐·푸시)는 null. */
+export function lightningBlackjackTotal(outcome: string, playerTotal: number): LightningBlackjackTotal | null {
+  if (outcome === "blackjack") return "BJ";
+  if (outcome !== "win" || playerTotal < 17 || playerTotal > 21) return null;
+  return String(playerTotal) as LightningBlackjackTotal;
 }
 
 /**

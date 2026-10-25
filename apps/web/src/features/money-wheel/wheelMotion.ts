@@ -62,7 +62,7 @@ export function landedMultiplier(spins: readonly MoneyWheelSpin[], landed: numbe
 export const WHEEL_FRAME_R = 1.24;
 export const WHEEL_TOP = 1.3;
 export const HUB_R = 0.56;
-/** 허브의 OC 메달 높이 — 배너·결과 카드가 이 위에 겹쳐 뜬다(넓은 화면에서도 허브 윗부분이라 보인다). */
+/** 허브의 GC 메달 높이 — 배너·결과 카드가 이 위에 겹쳐 뜬다(넓은 화면에서도 허브 윗부분이라 보인다). */
 export const MEDAL_Y = 0.27;
 
 export interface WheelFraming {

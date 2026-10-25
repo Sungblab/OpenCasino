@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Route, Routes, useParams } from "react-router-dom";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { LegalPage } from "./pages/LegalPage";
+import { GuidePage } from "./pages/GuidePage";
 import { LobbyPage } from "./pages/LobbyPage";
 import { GameRoomsPage, PrivateRoomLink } from "./pages/GameRoomsPage";
 import { SiteToast } from "./components/SiteToast";
@@ -27,7 +29,6 @@ const AuctionPage = lazy(() => import("./pages/AuctionPage").then((m) => ({ defa
 const ShopPage = lazy(() => import("./pages/ShopPage").then((m) => ({ default: m.ShopPage })));
 const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
 const FriendsPage = lazy(() => import("./pages/FriendsPage").then((m) => ({ default: m.FriendsPage })));
-const AdminMessagesPage = lazy(() => import("./pages/AdminMessagesPage").then((m) => ({ default: m.AdminMessagesPage })));
 const BaccaratRoomPage = lazy(() => import("./pages/BaccaratRoomPage").then((m) => ({ default: m.BaccaratRoomPage })));
 const BlackjackRoomPage = lazy(() => import("./pages/BlackjackRoomPage").then((m) => ({ default: m.BlackjackRoomPage })));
 const DragonTigerRoomPage = lazy(() => import("./pages/DragonTigerRoomPage").then((m) => ({ default: m.DragonTigerRoomPage })));
@@ -35,6 +36,7 @@ const RouletteRoomPage = lazy(() => import("./pages/RouletteRoomPage").then((m) 
 const SicBoRoomPage = lazy(() => import("./pages/SicBoRoomPage").then((m) => ({ default: m.SicBoRoomPage })));
 const CrashRoomPage = lazy(() => import("./pages/CrashRoomPage").then((m) => ({ default: m.CrashRoomPage })));
 const MoneyWheelRoomPage = lazy(() => import("./pages/MoneyWheelRoomPage").then((m) => ({ default: m.MoneyWheelRoomPage })));
+const HiLoRoomPage = lazy(() => import("./pages/HiLoRoomPage").then((m) => ({ default: m.HiLoRoomPage })));
 const TableGameRoomPage = lazy(() => import("./pages/TableGameRoomPage").then((m) => ({ default: m.TableGameRoomPage })));
 const SlotRoomPage = lazy(() => import("./pages/SlotRoomPage").then((m) => ({ default: m.SlotRoomPage })));
 const VideoPokerRoomPage = lazy(() => import("./pages/VideoPokerRoomPage").then((m) => ({ default: m.VideoPokerRoomPage })));
@@ -47,6 +49,7 @@ const GostopRoomPage = lazy(() => import("./pages/GostopRoomPage").then((m) => (
 const TutorialPage = lazy(() => import("./pages/TutorialPage").then((m) => ({ default: m.TutorialPage })));
 const AdminApp = lazy(() => import("./admin/AdminShell").then((m) => ({ default: m.AdminApp })));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })));
+const AdminCoinsPage = lazy(() => import("./pages/AdminCoinsPage").then((m) => ({ default: m.AdminCoinsPage })));
 const AdminSupportPage = lazy(() => import("./pages/AdminSupportPage").then((m) => ({ default: m.AdminSupportPage })));
 const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage").then((m) => ({ default: m.AdminUsersPage })));
 const AdminUserDetailPage = lazy(() => import("./pages/AdminUserDetailPage").then((m) => ({ default: m.AdminUserDetailPage })));
@@ -54,6 +57,9 @@ const AdminGameHistoryPage = lazy(() => import("./pages/AdminGameHistoryPage").t
 const AdminLobbyChatPage = lazy(() => import("./pages/AdminLobbyChatPage").then((m) => ({ default: m.AdminLobbyChatPage })));
 const AdminGamesPage = lazy(() => import("./pages/AdminGamesPage").then((m) => ({ default: m.AdminGamesPage })));
 const AdminStatsPage = lazy(() => import("./pages/AdminStatsPage").then((m) => ({ default: m.AdminStatsPage })));
+const AdminLivePage = lazy(() => import("./pages/AdminLivePage").then((m) => ({ default: m.AdminLivePage })));
+const AdminNoticesPage = lazy(() => import("./pages/AdminNoticesPage").then((m) => ({ default: m.AdminNoticesPage })));
+const AdminAdminsPage = lazy(() => import("./pages/AdminAdminsPage").then((m) => ({ default: m.AdminAdminsPage })));
 const AdminAuditLogPage = lazy(() => import("./pages/AdminAuditLogPage").then((m) => ({ default: m.AdminAuditLogPage })));
 
 /**
@@ -91,6 +97,11 @@ function AppRoutes() {
 
   const routes = (
     <Routes>
+      {/* 약관·방침은 로그인 여부와 상관없이 열린다(가입 화면·푸터에서 링크). */}
+      <Route path="/terms" element={<Screen><LegalPage doc="terms" /></Screen>} />
+      <Route path="/privacy" element={<Screen><LegalPage doc="privacy" /></Screen>} />
+      <Route path="/guide" element={<Screen><GuidePage /></Screen>} />
+
       <Route element={<RedirectIfAuthenticated />}>
         <Route path="/login" element={<Screen><LoginPage onLogin={login} /></Screen>} />
         <Route path="/signup" element={<Screen><SignupPage /></Screen>} />
@@ -124,6 +135,7 @@ function AppRoutes() {
         <Route path="/rooms/slot/:roomId"element={<RoomScreen><SlotRoomPage {...session} /></RoomScreen>} />
         <Route path="/rooms/video-poker/:roomId" element={<RoomScreen><VideoPokerRoomPage {...session} /></RoomScreen>} />
         <Route path="/rooms/pachinko/:roomId" element={<RoomScreen><PachinkoRoomPage {...session} /></RoomScreen>} />
+        <Route path="/rooms/hilo/:roomId" element={<RoomScreen><HiLoRoomPage {...session} /></RoomScreen>} />
         <Route path="/rooms/holdem/:roomId" element={<RoomScreen><HoldemRoomPage {...session} /></RoomScreen>} />
         <Route path="/rooms/sutda/:roomId" element={<RoomScreen><SutdaRoomPage {...session} /></RoomScreen>} />
         <Route path="/rooms/seven-poker/:roomId" element={<RoomScreen><SevenPokerRoomPage {...session} /></RoomScreen>} />
@@ -136,6 +148,10 @@ function AppRoutes() {
       <Route element={<RequireAdmin />}>
         <Route path="/admin" element={<Screen><AdminApp {...session} /></Screen>}>
           <Route index element={<Screen inline><AdminDashboardPage /></Screen>} />
+          <Route path="live" element={<Screen inline><AdminLivePage /></Screen>} />
+          <Route path="coins" element={<Screen inline><AdminCoinsPage /></Screen>} />
+          <Route path="admins" element={<Screen inline><AdminAdminsPage /></Screen>} />
+          <Route path="notices" element={<Screen inline><AdminNoticesPage /></Screen>} />
           <Route path="support" element={<Screen inline><AdminSupportPage /></Screen>} />
           <Route path="users" element={<Screen inline><AdminUsersPage /></Screen>} />
           <Route path="users/:userId" element={<Screen inline><AdminUserDetailPage /></Screen>} />
@@ -143,7 +159,6 @@ function AppRoutes() {
           <Route path="games" element={<Screen inline><AdminGamesPage /></Screen>} />
           <Route path="stats" element={<Screen inline><AdminStatsPage /></Screen>} />
           <Route path="audit" element={<Screen inline><AdminAuditLogPage /></Screen>} />
-          <Route path="messages" element={<Screen inline><AdminMessagesPage /></Screen>} />
           <Route path="lobby-chat" element={<Screen inline><AdminLobbyChatPage /></Screen>} />
         </Route>
       </Route>

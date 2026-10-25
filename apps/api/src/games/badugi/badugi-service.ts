@@ -89,7 +89,6 @@ export class BadugiService {
         const outcome = plan.outcomes.get(item.userId) ?? (payout === item.amountMinor ? "push" : "lose");
         await client.query("UPDATE badugi_contributions SET payout_minor=$2,outcome=$3,settled_at=now() WHERE id=$1", [item.id, payout, outcome]);
       }
-
       await client.query("COMMIT");
       for (const id of touched) balances.set(id, await walletService.getUserBalance(id));
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
